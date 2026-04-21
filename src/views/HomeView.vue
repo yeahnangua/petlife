@@ -1,15 +1,18 @@
 <script setup>
-import { computed } from 'vue'
+import { computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
+import EmptyState from '@/components/EmptyState.vue'
 import ProductCard from '@/components/ProductCard.vue'
 import ServiceCard from '@/components/ServiceCard.vue'
 import PetChipSwitch from '@/components/PetChipSwitch.vue'
 import IconSvg from '@/components/IconSvg.vue'
-import { bundles, products, quickEntries, services, user } from '@/mocks'
-import { getFeaturedProducts, getRecommendedBundles, getServicesByPetType } from '@/lib/catalog'
+import { bundles, quickEntries, user } from '@/mocks'
+import { getRecommendedBundles } from '@/lib/catalog'
+import { useCatalogStore } from '@/stores/catalog'
 import { useProfileStore } from '@/stores/profile'
 
 const router = useRouter()
+const catalogStore = useCatalogStore()
 const profileStore = useProfileStore()
 
 const activePetType = computed({
@@ -17,9 +20,17 @@ const activePetType = computed({
   set: (value) => profileStore.setPetType(value)
 })
 
-const featuredProducts = computed(() => getFeaturedProducts(products, activePetType.value))
-const featuredServices = computed(() => getServicesByPetType(services, activePetType.value).slice(0, 2))
+const featuredProducts = computed(() => catalogStore.homeProducts.slice(0, 4))
+const featuredServices = computed(() => catalogStore.homeServices.slice(0, 2))
 const recommendedBundles = computed(() => getRecommendedBundles(bundles, activePetType.value))
+
+watch(
+  activePetType,
+  (value) => {
+    catalogStore.fetchHomeData(value)
+  },
+  { immediate: true }
+)
 
 function openQuickEntry(entry) {
   if (['food', 'snack', 'toy', 'clean'].includes(entry.id)) {
@@ -108,7 +119,27 @@ function openQuickEntry(entry) {
         <button type="button" class="section-link" @click="router.push('/service')">查看全部</button>
       </div>
 
+      <div v-if="catalogStore.loading.home" class="surface-card home__state">
+        正在加载服务目录...
+      </div>
+      <EmptyState
+        v-else-if="catalogStore.error.home"
+        icon="service"
+        :title="catalogStore.error.home"
+        description="服务目录暂时没有加载成功，稍后重试。"
+        action-label="刷新"
+        @action="catalogStore.fetchHomeData(activePetType)"
+      />
+      <EmptyState
+        v-else-if="!featuredServices.length"
+        icon="service"
+        title="暂时没有可展示的服务"
+        description="稍后回来看看新的门店服务。"
+        action-label="查看全部"
+        @action="router.push('/service')"
+      />
       <ServiceCard
+        v-else
         v-for="service in featuredServices"
         :key="service.id"
         :service="service"
@@ -147,13 +178,30 @@ function openQuickEntry(entry) {
         <button
           type="button"
           class="section-link"
-          @click="router.push({ path: '/products', query: { pet: activePetType } })"
+          @click="router.push({ path: '/products', query: { pet: activePetType.value } })"
         >
           查看全部
         </button>
       </div>
 
-      <div class="home__product-grid">
+      <div v-if="catalogStore.loading.home" class="surface-card home__state">
+        正在加载商品目录...
+      </div>
+      <EmptyState
+        v-else-if="catalogStore.error.home"
+        title="商品目录暂时不可用"
+        description="接口请求失败，稍后刷新试试。"
+        action-label="重新加载"
+        @action="catalogStore.fetchHomeData(activePetType)"
+      />
+      <EmptyState
+        v-else-if="!featuredProducts.length"
+        title="今天还没有推荐商品"
+        description="先去分类页看看完整目录。"
+        action-label="去逛商品"
+        @action="router.push('/products')"
+      />
+      <div v-else class="home__product-grid">
         <ProductCard
           v-for="product in featuredProducts"
           :key="product.id"
@@ -302,6 +350,12 @@ function openQuickEntry(entry) {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: var(--space-3);
+}
+
+.home__state {
+  padding: var(--space-5);
+  color: var(--color-text-soft);
+  text-align: center;
 }
 
 .home__member {

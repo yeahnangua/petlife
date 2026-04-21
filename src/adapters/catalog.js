@@ -21,6 +21,26 @@ const CATEGORY_GRADIENTS = {
   all: ['#B7BFA9', '#EEE8D8']
 }
 
+function inferServiceCategory(item = {}) {
+  const haystack = [item.title, item.subtitle, ...(Array.isArray(item.highlights) ? item.highlights : [])]
+    .filter(Boolean)
+    .join(' ')
+
+  if (/寄养|日托/.test(haystack)) {
+    return 'boarding'
+  }
+
+  if (/美容|造型/.test(haystack)) {
+    return 'beauty'
+  }
+
+  if (/护理|驱虫|体检|健康/.test(haystack)) {
+    return 'health'
+  }
+
+  return 'bath'
+}
+
 function toArray(value) {
   if (Array.isArray(value)) {
     return value
@@ -79,7 +99,7 @@ export function adaptProductDetail(item = {}) {
 }
 
 export function adaptService(item = {}) {
-  const categoryKey = item.category_slug || item.category || 'bath'
+  const categoryKey = item.category_slug || item.category || inferServiceCategory(item)
 
   return {
     id: item.id,

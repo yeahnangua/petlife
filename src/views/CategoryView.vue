@@ -1,12 +1,14 @@
 <script setup>
 import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import EmptyState from '@/components/EmptyState.vue'
 import ProductCard from '@/components/ProductCard.vue'
-import { primaryCategories, products, secondaryCategories } from '@/mocks'
-import { getProductsByCategory } from '@/lib/catalog'
+import { primaryCategories } from '@/mocks'
+import { useCatalogStore } from '@/stores/catalog'
 
 const route = useRoute()
 const router = useRouter()
+const catalogStore = useCatalogStore()
 
 const activePrimary = ref(route.query.pet || 'cat')
 const activeSecondary = ref('')
@@ -18,11 +20,18 @@ watch(
   }
 )
 
-const secondaryOptions = computed(() => secondaryCategories[activePrimary.value] ?? [])
+const secondaryOptions = computed(() => catalogStore.categoriesByPetType(activePrimary.value))
 
 watch(
-  secondaryOptions,
-  (options) => {
+  [secondaryOptions, () => route.query.category],
+  ([options, routeCategory]) => {
+    const resolvedCategoryId = catalogStore.resolveCategoryId(routeCategory, activePrimary.value)
+
+    if (resolvedCategoryId && options.find((item) => item.id === resolvedCategoryId)) {
+      activeSecondary.value = resolvedCategoryId
+      return
+    }
+
     if (!options.find((item) => item.id === activeSecondary.value)) {
       activeSecondary.value = options[0]?.id ?? ''
     }
@@ -30,18 +39,27 @@ watch(
   { immediate: true }
 )
 
-const normalizedCategory = computed(() => {
-  const current = activeSecondary.value.split('-').pop()
-  return current === 'home' || current === 'gift' ? '' : current
-})
-
-const filteredProducts = computed(() =>
-  getProductsByCategory(products, activePrimary.value, normalizedCategory.value)
+watch(
+  [activePrimary, activeSecondary],
+  ([petType, categoryId]) => {
+    catalogStore.fetchProductList({
+      petType,
+      categoryId,
+      page: 1,
+      pageSize: 20
+    })
+  },
+  { immediate: true }
 )
 
 function setPrimary(id) {
   activePrimary.value = id
   router.replace({ path: '/category', query: { pet: id } })
+}
+
+function setSecondary(id) {
+  activeSecondary.value = id
+  router.replace({ path: '/category', query: { pet: activePrimary.value, category: id } })
 }
 </script>
 
@@ -70,15 +88,32 @@ function setPrimary(id) {
             type="button"
             class="category__chip"
             :class="{ 'is-active': activeSecondary === item.id }"
-            @click="activeSecondary = item.id"
+            @click="setSecondary(item.id)"
           >
-            {{ item.label }}
+            {{ item.label || item.name }}
           </button>
         </div>
 
-        <div class="category__grid">
+        <div v-if="catalogStore.loading.products" class="surface-card category__state">
+          正在加载分类商品...
+        </div>
+        <EmptyState
+          v-else-if="catalogStore.error.products"
+          title="分类加载失败"
+          :description="catalogStore.error.products"
+          action-label="重试"
+          @action="catalogStore.fetchProductList({ petType: activePrimary, categoryId: activeSecondary, page: 1, pageSize: 20 })"
+        />
+        <EmptyState
+          v-else-if="!catalogStore.productList.length"
+          title="这个分类下还没有商品"
+          description="换个分类看看，或者稍后再来。"
+          action-label="查看全部"
+          @action="router.push('/products')"
+        />
+        <div v-else class="category__grid">
           <ProductCard
-            v-for="product in filteredProducts"
+            v-for="product in catalogStore.productList"
             :key="product.id"
             :product="product"
           />
@@ -151,5 +186,11 @@ function setPrimary(id) {
 .category__grid {
   display: grid;
   gap: var(--space-3);
+}
+
+.category__state {
+  padding: var(--space-5);
+  color: var(--color-text-soft);
+  text-align: center;
 }
 </style>

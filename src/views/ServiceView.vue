@@ -1,36 +1,65 @@
 <script setup>
-import { computed } from 'vue'
+import { computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import EmptyState from '@/components/EmptyState.vue'
 import ServiceCard from '@/components/ServiceCard.vue'
 import PetChipSwitch from '@/components/PetChipSwitch.vue'
 import IconSvg from '@/components/IconSvg.vue'
-import { serviceCategories, services } from '@/mocks'
-import { getServicesByPetType } from '@/lib/catalog'
+import { serviceCategories } from '@/mocks'
+import { useCatalogStore } from '@/stores/catalog'
 import { useProfileStore } from '@/stores/profile'
 
 const route = useRoute()
 const router = useRouter()
+const catalogStore = useCatalogStore()
 const profileStore = useProfileStore()
+
+function replaceQuery(nextQuery) {
+  const mergedQuery = {
+    ...route.query,
+    ...nextQuery
+  }
+
+  Object.keys(mergedQuery).forEach((key) => {
+    if (mergedQuery[key] === '' || mergedQuery[key] === undefined || mergedQuery[key] === null) {
+      delete mergedQuery[key]
+    }
+  })
+
+  router.replace({ path: '/service', query: mergedQuery })
+}
 
 const activePet = computed({
   get: () => route.query.pet || profileStore.activePetType,
   set: (value) => {
     profileStore.setPetType(value)
-    router.replace({ path: '/service', query: { ...route.query, pet: value } })
+    replaceQuery({ pet: value, page: '' })
   }
 })
 
 const activeCategory = computed({
   get: () => route.query.category || '',
-  set: (value) => router.replace({ path: '/service', query: { ...route.query, category: value } })
+  set: (value) => replaceQuery({ category: value, page: '' })
 })
 
-const filteredServices = computed(() => {
-  const byPet = getServicesByPetType(services, activePet.value)
-  return activeCategory.value
-    ? byPet.filter((item) => item.category === activeCategory.value)
-    : byPet
-})
+const currentPage = computed(() => Number(route.query.page || 1))
+
+watch(
+  [activePet, activeCategory, currentPage],
+  ([petType, category, page]) => {
+    catalogStore.fetchServiceList({
+      petType,
+      category,
+      page,
+      pageSize: 20
+    })
+  },
+  { immediate: true }
+)
+
+function goToPage(page) {
+  replaceQuery({ page })
+}
 </script>
 
 <template>
@@ -69,12 +98,56 @@ const filteredServices = computed(() => {
       </button>
     </section>
 
-    <section class="page-stack">
+    <div v-if="catalogStore.loading.services" class="surface-card service__state">
+      正在加载服务目录...
+    </div>
+    <EmptyState
+      v-else-if="catalogStore.error.services"
+      icon="service"
+      title="服务目录加载失败"
+      :description="catalogStore.error.services"
+      action-label="重试"
+      @action="catalogStore.fetchServiceList({ petType: activePet, category: activeCategory, page: currentPage, pageSize: 20 })"
+    />
+    <EmptyState
+      v-else-if="!catalogStore.serviceList.length"
+      icon="service"
+      title="这个筛选下还没有服务"
+      description="切换宠物类型或服务分类试试看。"
+      action-label="查看全部"
+      @action="activeCategory = ''"
+    />
+    <section v-else class="page-stack">
       <ServiceCard
-        v-for="serviceItem in filteredServices"
+        v-for="serviceItem in catalogStore.serviceList"
         :key="serviceItem.id"
         :service="serviceItem"
       />
+    </section>
+
+    <section
+      v-if="catalogStore.servicePagination.totalPages > 1"
+      class="surface-card service__pagination"
+    >
+      <button
+        type="button"
+        class="button-secondary"
+        :disabled="catalogStore.servicePagination.page <= 1"
+        @click="goToPage(catalogStore.servicePagination.page - 1)"
+      >
+        上一页
+      </button>
+      <span>
+        第 {{ catalogStore.servicePagination.page }} / {{ catalogStore.servicePagination.totalPages }} 页
+      </span>
+      <button
+        type="button"
+        class="button-secondary"
+        :disabled="catalogStore.servicePagination.page >= catalogStore.servicePagination.totalPages"
+        @click="goToPage(catalogStore.servicePagination.page + 1)"
+      >
+        下一页
+      </button>
     </section>
   </div>
 </template>
@@ -119,5 +192,22 @@ const filteredServices = computed(() => {
 .service__category.is-active {
   background: var(--color-primary-deep);
   color: var(--color-text-invert);
+}
+
+.service__state,
+.service__pagination {
+  padding: var(--space-4);
+}
+
+.service__state {
+  color: var(--color-text-soft);
+  text-align: center;
+}
+
+.service__pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
 }
 </style>

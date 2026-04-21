@@ -1,31 +1,61 @@
 <script setup>
-import { computed } from 'vue'
+import { computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import EmptyState from '@/components/EmptyState.vue'
 import ProductCard from '@/components/ProductCard.vue'
 import PetChipSwitch from '@/components/PetChipSwitch.vue'
-import { products, quickEntries } from '@/mocks'
-import { getProductsByCategory } from '@/lib/catalog'
+import { useCatalogStore } from '@/stores/catalog'
 
 const route = useRoute()
 const router = useRouter()
+const catalogStore = useCatalogStore()
+
+function replaceQuery(nextQuery) {
+  const mergedQuery = {
+    ...route.query,
+    ...nextQuery
+  }
+
+  Object.keys(mergedQuery).forEach((key) => {
+    if (mergedQuery[key] === '' || mergedQuery[key] === undefined || mergedQuery[key] === null) {
+      delete mergedQuery[key]
+    }
+  })
+
+  router.replace({ path: '/products', query: mergedQuery })
+}
 
 const activePet = computed({
   get: () => route.query.pet || 'cat',
-  set: (value) => router.replace({ path: '/products', query: { ...route.query, pet: value } })
+  set: (value) => replaceQuery({ pet: value, page: '' })
 })
 
-const activeCategory = computed({
-  get: () => route.query.category || '',
-  set: (value) => router.replace({ path: '/products', query: { ...route.query, category: value } })
-})
+const activeCategory = computed(() => route.query.category || '')
+const currentPage = computed(() => Number(route.query.page || 1))
+const activeCategoryId = computed(() => catalogStore.resolveCategoryId(activeCategory.value, activePet.value))
 
-const filterChips = computed(() =>
-  quickEntries.filter((item) => ['food', 'snack', 'toy', 'clean'].includes(item.id))
+const filterChips = computed(() => catalogStore.categoriesByPetType(activePet.value))
+
+watch(
+  [activePet, activeCategoryId, currentPage],
+  ([petType, categoryId, page]) => {
+    catalogStore.fetchProductList({
+      petType,
+      categoryId,
+      page,
+      pageSize: 6
+    })
+  },
+  { immediate: true }
 )
 
-const filteredProducts = computed(() =>
-  getProductsByCategory(products, activePet.value, activeCategory.value)
-)
+function setCategory(value) {
+  replaceQuery({ category: value, page: '' })
+}
+
+function goToPage(page) {
+  replaceQuery({ page })
+}
 </script>
 
 <template>
@@ -42,8 +72,8 @@ const filteredProducts = computed(() =>
       <button
         type="button"
         class="product-list__filter"
-        :class="{ 'is-active': !activeCategory }"
-        @click="activeCategory = ''"
+        :class="{ 'is-active': !activeCategoryId }"
+        @click="setCategory('')"
       >
         全部
       </button>
@@ -52,20 +82,62 @@ const filteredProducts = computed(() =>
         :key="chip.id"
         type="button"
         class="product-list__filter"
-        :class="{ 'is-active': activeCategory === chip.id }"
-        @click="activeCategory = chip.id"
+        :class="{ 'is-active': activeCategoryId === chip.id }"
+        @click="setCategory(chip.id)"
       >
-        {{ chip.label }}
+        {{ chip.label || chip.name }}
       </button>
     </section>
 
-    <div class="product-list__grid">
+    <div v-if="catalogStore.loading.products" class="surface-card product-list__state">
+      正在加载商品列表...
+    </div>
+    <EmptyState
+      v-else-if="catalogStore.error.products"
+      title="商品列表加载失败"
+      :description="catalogStore.error.products"
+      action-label="重试"
+      @action="catalogStore.fetchProductList({ petType: activePet, categoryId: activeCategoryId, page: currentPage, pageSize: 6 })"
+    />
+    <EmptyState
+      v-else-if="!catalogStore.productList.length"
+      title="暂时没有符合筛选的商品"
+      description="换个分类或者宠物类型试试看。"
+      action-label="清空筛选"
+      @action="setCategory('')"
+    />
+    <div v-else class="product-list__grid">
       <ProductCard
-        v-for="product in filteredProducts"
+        v-for="product in catalogStore.productList"
         :key="product.id"
         :product="product"
       />
     </div>
+
+    <section
+      v-if="catalogStore.productPagination.totalPages > 1"
+      class="surface-card product-list__pagination"
+    >
+      <button
+        type="button"
+        class="button-secondary"
+        :disabled="catalogStore.productPagination.page <= 1"
+        @click="goToPage(catalogStore.productPagination.page - 1)"
+      >
+        上一页
+      </button>
+      <span>
+        第 {{ catalogStore.productPagination.page }} / {{ catalogStore.productPagination.totalPages }} 页
+      </span>
+      <button
+        type="button"
+        class="button-secondary"
+        :disabled="catalogStore.productPagination.page >= catalogStore.productPagination.totalPages"
+        @click="goToPage(catalogStore.productPagination.page + 1)"
+      >
+        下一页
+      </button>
+    </section>
   </div>
 </template>
 
@@ -105,6 +177,23 @@ const filteredProducts = computed(() =>
 .product-list__grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3);
+}
+
+.product-list__state,
+.product-list__pagination {
+  padding: var(--space-4);
+}
+
+.product-list__state {
+  color: var(--color-text-soft);
+  text-align: center;
+}
+
+.product-list__pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   gap: var(--space-3);
 }
 </style>

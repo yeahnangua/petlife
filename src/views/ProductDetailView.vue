@@ -1,30 +1,61 @@
 <script setup>
-import { computed, reactive, ref } from 'vue'
+import { computed, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import ProductCard from '@/components/ProductCard.vue'
 import EmptyState from '@/components/EmptyState.vue'
 import IconSvg from '@/components/IconSvg.vue'
-import { findProduct, productReviews, products } from '@/mocks'
-import { getFeaturedProducts } from '@/lib/catalog'
 import { formatCurrency } from '@/lib/pricing'
 import { useCartStore } from '@/stores/cart'
+import { useCatalogStore } from '@/stores/catalog'
 
 const route = useRoute()
 const router = useRouter()
 const cartStore = useCartStore()
+const catalogStore = useCatalogStore()
 
-const product = computed(() => findProduct(route.params.id))
-const reviews = computed(() => productReviews[route.params.id] ?? null)
-const relatedProducts = computed(() => {
-  if (!product.value) return []
-  return getFeaturedProducts(
-    products.filter((item) => item.id !== product.value.id),
-    product.value.petType === 'all' ? 'cat' : product.value.petType
-  )
+const product = computed(() => catalogStore.currentProduct)
+const relatedProducts = computed(() => catalogStore.relatedProducts)
+const galleryImages = computed(() => {
+  if (!product.value) {
+    return []
+  }
+
+  const sourceImages = product.value.images?.length ? product.value.images : [product.value.cover]
+  return [...new Set(sourceImages.filter(Boolean))]
 })
 
 const selectedSpecs = reactive({})
+const activeImage = ref('')
 const notice = ref('')
+
+watch(
+  () => route.params.id,
+  (id) => {
+    if (id) {
+      catalogStore.fetchProductDetail(id)
+    }
+  },
+  { immediate: true }
+)
+
+watch(
+  product,
+  () => {
+    Object.keys(selectedSpecs).forEach((key) => {
+      delete selectedSpecs[key]
+    })
+    notice.value = ''
+  },
+  { immediate: true }
+)
+
+watch(
+  galleryImages,
+  (images) => {
+    activeImage.value = images[0] || ''
+  },
+  { immediate: true }
+)
 
 const isSelectionComplete = computed(() => {
   if (!product.value) return false
@@ -53,17 +84,34 @@ function buyNow() {
 </script>
 
 <template>
-  <div v-if="product" class="detail page-stack">
+  <div v-if="catalogStore.loading.productDetail" class="page-pad">
+    <div class="surface-card detail__state">正在加载商品详情...</div>
+  </div>
+
+  <div v-else-if="product" class="detail page-stack">
     <section
       class="detail__hero"
       :style="{
         background: `linear-gradient(135deg, ${product.gradient?.[0] || '#DCE6DD'}, ${product.gradient?.[1] || '#F5EFE7'})`
       }"
     >
-      <img :src="product.cover" :alt="product.title" />
+      <img :src="activeImage || product.cover" :alt="product.title" />
     </section>
 
     <div class="detail__content page-pad page-stack">
+      <section v-if="galleryImages.length > 1" class="surface-card detail__gallery">
+        <button
+          v-for="image in galleryImages"
+          :key="image"
+          type="button"
+          class="detail__thumb"
+          :class="{ 'is-active': activeImage === image }"
+          @click="activeImage = image"
+        >
+          <img :src="image" :alt="product.title" />
+        </button>
+      </section>
+
       <section class="surface-card detail__summary">
         <div class="detail__summary-head">
           <div class="detail__tag-row">
@@ -111,29 +159,20 @@ function buyNow() {
         </p>
       </section>
 
-      <section v-if="reviews" class="surface-card detail__reviews">
+      <section v-if="product.reviewCount" class="surface-card detail__reviews">
         <div class="section-heading">
           <div>
-            <p class="section-heading__meta">用户口碑</p>
-            <h2 class="section-heading__title">{{ reviews.score }} 分好评</h2>
+            <p class="section-heading__meta">真实目录数据</p>
+            <h2 class="section-heading__title">{{ product.rating }} 分综合评分</h2>
           </div>
-          <span class="section-heading__meta">{{ reviews.total }} 条评价</span>
+          <span class="section-heading__meta">{{ product.reviewCount }} 条评价</span>
         </div>
-
-        <div class="detail__review-tags">
-          <span v-for="tag in reviews.tags" :key="tag" class="pill">{{ tag }}</span>
-        </div>
-
-        <article v-for="item in reviews.items" :key="item.id" class="detail__review">
-          <div class="detail__review-head">
-            <strong>{{ item.user }}</strong>
-            <span>{{ item.date }} · {{ item.spec }}</span>
-          </div>
-          <p>{{ item.content }}</p>
-        </article>
+        <p class="detail__review-copy">
+          已售 {{ product.sold }} 件，规格与图片均来自当前后端目录数据。
+        </p>
       </section>
 
-      <section class="page-stack">
+      <section v-if="relatedProducts.length" class="page-stack">
         <div class="section-heading">
           <div>
             <p class="section-heading__meta">延展搭配</p>
@@ -161,7 +200,7 @@ function buyNow() {
   <div v-else class="page-pad">
     <EmptyState
       title="这件商品暂时找不到了"
-      description="可能已经下架，先回列表看看其他精选商品。"
+      :description="catalogStore.error.productDetail || '可能已经下架，先回列表看看其他精选商品。'"
       action-label="返回列表"
       @action="router.push('/products')"
     />
@@ -184,6 +223,7 @@ function buyNow() {
 }
 
 .detail__summary,
+.detail__gallery,
 .detail__specs,
 .detail__reviews {
   display: grid;
@@ -193,8 +233,7 @@ function buyNow() {
 
 .detail__summary-head,
 .detail__tag-row,
-.detail__price,
-.detail__review-head {
+.detail__price {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
@@ -215,9 +254,28 @@ function buyNow() {
 
 .detail__subtitle,
 .detail__suitable,
-.detail__review p,
-.detail__review-head span {
+.detail__review-copy {
   color: var(--color-text-soft);
+}
+
+.detail__gallery {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.detail__thumb {
+  overflow: hidden;
+  border-radius: var(--radius-lg);
+  background: var(--color-surface-soft);
+}
+
+.detail__thumb.is-active {
+  outline: 2px solid var(--color-primary);
+}
+
+.detail__thumb img {
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
 }
 
 .detail__price strong {
@@ -277,17 +335,16 @@ function buyNow() {
   font-size: var(--text-sm);
 }
 
-.detail__review {
-  display: grid;
-  gap: var(--space-2);
-  padding-top: var(--space-3);
-  border-top: 1px solid var(--color-border-soft);
-}
-
 .detail__related {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: var(--space-3);
+}
+
+.detail__state {
+  padding: var(--space-5);
+  color: var(--color-text-soft);
+  text-align: center;
 }
 
 .detail__action-bar {
