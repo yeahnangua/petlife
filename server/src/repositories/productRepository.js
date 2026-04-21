@@ -74,6 +74,22 @@ export function findProductById(db, productId) {
     .get(productId)
 }
 
+export function findAnyProductById(db, productId) {
+  return db
+    .prepare(
+      `
+        SELECT
+          p.*,
+          c.slug AS category_slug
+        FROM products p
+        JOIN categories c ON c.id = p.category_id
+        WHERE p.id = ?
+        LIMIT 1
+      `
+    )
+    .get(productId)
+}
+
 export function listProductImages(db, productId) {
   return db
     .prepare(
