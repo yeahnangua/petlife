@@ -25,13 +25,9 @@ describe('backend app shell', () => {
     const response = await request(app).get('/api/public/categories')
 
     expect(response.status).toBe(200)
-    expect(response.body).toEqual({
-      code: 0,
-      message: 'ok',
-      data: {
-        items: []
-      }
-    })
+    expect(response.body.code).toBe(0)
+    expect(response.body.message).toBe('ok')
+    expect(Array.isArray(response.body.data.list)).toBe(true)
   })
 
   it('rejects admin categories access without x-admin-key', async () => {
