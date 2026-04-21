@@ -1,13 +1,18 @@
 <script setup>
-import { computed } from 'vue'
+import { computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import EmptyState from '@/components/EmptyState.vue'
 import IconSvg from '@/components/IconSvg.vue'
-import { user } from '@/mocks'
 import { useProfileStore } from '@/stores/profile'
 
 const router = useRouter()
 const profileStore = useProfileStore()
 
+onMounted(async () => {
+  await Promise.all([profileStore.fetchProfile(), profileStore.fetchPets()])
+})
+
+const profile = computed(() => profileStore.profile)
 const selectedPet = computed(() => profileStore.selectedPet)
 
 const shortcuts = [
@@ -20,64 +25,78 @@ const shortcuts = [
 
 <template>
   <div class="profile page-pad page-stack">
-    <section class="profile__hero surface-card">
-      <img class="profile__avatar" :src="user.avatar" :alt="user.nickname" />
-      <div class="profile__copy">
-        <span class="pill">{{ user.level }}</span>
-        <h2>{{ user.nickname }}</h2>
-        <p>{{ user.phone }} · 入会于 {{ user.joinDate }}</p>
-      </div>
-    </section>
+    <div v-if="profileStore.loading && !profile" class="surface-card profile__state">
+      正在加载个人资料...
+    </div>
 
-    <section class="profile__stats surface-card">
-      <article>
-        <strong>{{ user.stats.orderCount }}</strong>
-        <span>累计订单</span>
-      </article>
-      <article>
-        <strong>{{ user.stats.serviceCount }}</strong>
-        <span>预约服务</span>
-      </article>
-      <article>
-        <strong>¥{{ user.stats.savedAmount }}</strong>
-        <span>累计节省</span>
-      </article>
-    </section>
-
-    <section class="profile__grid">
-      <button
-        v-for="item in shortcuts"
-        :key="item.label"
-        type="button"
-        class="profile__shortcut surface-card"
-        @click="router.push(item.to)"
-      >
-        <IconSvg :name="item.icon" :size="20" />
-        <span>{{ item.label }}</span>
-      </button>
-    </section>
-
-    <section class="profile__pet surface-card">
-      <div class="section-heading">
-        <div>
-          <p class="section-heading__meta">当前常用宠物</p>
-          <h2 class="section-heading__title">{{ selectedPet?.name || '去创建档案' }}</h2>
+    <template v-else-if="profile">
+      <section class="profile__hero surface-card">
+        <img class="profile__avatar" :src="profile.avatar" :alt="profile.nickname" />
+        <div class="profile__copy">
+          <span class="pill">{{ profile.level }}</span>
+          <h2>{{ profile.nickname }}</h2>
+          <p>{{ profile.phone }} · 入会于 {{ profile.joinDate }}</p>
         </div>
-        <button type="button" class="section-link" @click="router.push('/pets')">管理</button>
-      </div>
-      <p v-if="selectedPet" class="profile__pet-copy">
-        {{ selectedPet.breed }} · {{ selectedPet.age }} · {{ selectedPet.weight }}kg
-      </p>
-    </section>
+      </section>
 
-    <section class="profile__member surface-card">
-      <div>
-        <p class="section-heading__meta">积分与优惠券</p>
-        <h2 class="section-heading__title">{{ user.points }} 积分</h2>
-        <p>{{ user.couponCount }} 张优惠券待使用</p>
-      </div>
-      <button type="button" class="button-secondary" @click="router.push('/member')">查看详情</button>
-    </section>
+      <section class="profile__stats surface-card">
+        <article>
+          <strong>{{ profile.stats.orderCount }}</strong>
+          <span>累计订单</span>
+        </article>
+        <article>
+          <strong>{{ profile.stats.serviceCount }}</strong>
+          <span>预约服务</span>
+        </article>
+        <article>
+          <strong>¥{{ profile.stats.savedAmount }}</strong>
+          <span>累计节省</span>
+        </article>
+      </section>
+
+      <section class="profile__grid">
+        <button
+          v-for="item in shortcuts"
+          :key="item.label"
+          type="button"
+          class="profile__shortcut surface-card"
+          @click="router.push(item.to)"
+        >
+          <IconSvg :name="item.icon" :size="20" />
+          <span>{{ item.label }}</span>
+        </button>
+      </section>
+
+      <section class="profile__pet surface-card">
+        <div class="section-heading">
+          <div>
+            <p class="section-heading__meta">当前常用宠物</p>
+            <h2 class="section-heading__title">{{ selectedPet?.name || '去创建档案' }}</h2>
+          </div>
+          <button type="button" class="section-link" @click="router.push('/pets')">管理</button>
+        </div>
+        <p v-if="selectedPet" class="profile__pet-copy">
+          {{ selectedPet.breed }} · {{ selectedPet.age }} · {{ selectedPet.weight }}kg
+        </p>
+      </section>
+
+      <section class="profile__member surface-card">
+        <div>
+          <p class="section-heading__meta">积分与权益</p>
+          <h2 class="section-heading__title">{{ profile.points }} 积分</h2>
+          <p>{{ profile.couponCount }} 张可用券 · 查看会员页获取完整权益展示</p>
+        </div>
+        <button type="button" class="button-secondary" @click="router.push('/member')">查看详情</button>
+      </section>
+    </template>
+
+    <EmptyState
+      v-else
+      title="个人资料加载失败"
+      :description="profileStore.error || '稍后再试一次。'"
+      action-label="重试"
+      @action="profileStore.fetchProfile()"
+    />
   </div>
 </template>
 
@@ -162,5 +181,11 @@ const shortcuts = [
   color: var(--color-primary-deep);
   font-size: var(--text-sm);
   font-weight: var(--weight-semibold);
+}
+
+.profile__state {
+  padding: var(--space-5);
+  color: var(--color-text-soft);
+  text-align: center;
 }
 </style>

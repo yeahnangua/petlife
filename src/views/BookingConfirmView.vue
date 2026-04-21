@@ -1,8 +1,7 @@
 <script setup>
-import { computed } from 'vue'
+import { computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import EmptyState from '@/components/EmptyState.vue'
-import { findService, serviceDates } from '@/mocks'
 import { formatCurrency } from '@/lib/pricing'
 import { useBookingStore } from '@/stores/booking'
 import { useProfileStore } from '@/stores/profile'
@@ -11,13 +10,22 @@ const router = useRouter()
 const bookingStore = useBookingStore()
 const profileStore = useProfileStore()
 
-const currentService = computed(() => findService(bookingStore.serviceId))
+onMounted(async () => {
+  await profileStore.fetchPets()
+
+  if (bookingStore.serviceId && !bookingStore.timeSlots.length) {
+    await bookingStore.fetchSlots()
+  }
+})
+
+const currentService = computed(() => bookingStore.currentService)
 const availablePets = computed(() => profileStore.pets)
 const selectedPet = computed(() => availablePets.value.find((pet) => pet.id === bookingStore.petId) ?? null)
-const selectedStore = computed(() => currentService.value?.storeOptions.find((item) => item.id === bookingStore.storeId) ?? null)
+const selectedStore = computed(() => bookingStore.storeOptions.find((item) => item.id === bookingStore.storeId) ?? null)
 
-function submitBooking() {
-  router.push({ path: '/orders', query: { status: 'pendingService', created: 'service' } })
+async function submitBooking() {
+  const booking = await bookingStore.submitBooking()
+  router.push(`/bookings/${booking.id}`)
 }
 </script>
 
@@ -72,7 +80,7 @@ function submitBooking() {
 
         <div class="booking__options">
           <button
-            v-for="store in currentService.storeOptions"
+            v-for="store in bookingStore.storeOptions"
             :key="store.id"
             type="button"
             class="booking__option"
@@ -86,12 +94,11 @@ function submitBooking() {
 
         <div class="booking__chips">
           <button
-            v-for="date in serviceDates"
+            v-for="date in bookingStore.dateOptions"
             :key="date.date"
             type="button"
             class="booking__chip"
-            :class="{ 'is-active': bookingStore.date === date.date, 'is-disabled': !date.available }"
-            :disabled="!date.available"
+            :class="{ 'is-active': bookingStore.date === date.date }"
             @click="bookingStore.setDate(date.date)"
           >
             {{ date.label }} · {{ date.weekday }}
@@ -100,7 +107,7 @@ function submitBooking() {
 
         <div class="booking__chips">
           <button
-            v-for="slot in currentService.timeSlots"
+            v-for="slot in bookingStore.timeSlots"
             :key="slot.id"
             type="button"
             class="booking__chip"
@@ -117,6 +124,7 @@ function submitBooking() {
         <div class="section-heading">
           <h2 class="section-heading__title">备注信息</h2>
         </div>
+        <p v-if="bookingStore.error" class="booking__error">{{ bookingStore.error }}</p>
         <label class="booking__field">
           <span>联系电话</span>
           <input v-model="bookingStore.phone" placeholder="填写门店联系号码" />
@@ -135,10 +143,10 @@ function submitBooking() {
         <button
           type="button"
           class="button-primary"
-          :disabled="!bookingStore.isReady"
+          :disabled="!bookingStore.isReady || bookingStore.submitting"
           @click="submitBooking"
         >
-          提交预约
+          {{ bookingStore.submitting ? '提交中...' : '提交预约' }}
         </button>
       </section>
     </template>
@@ -242,6 +250,10 @@ function submitBooking() {
   padding: var(--space-3);
   border-radius: var(--radius-lg);
   background: var(--color-surface-soft);
+}
+
+.booking__error {
+  color: var(--color-coral);
 }
 
 .booking__submit {

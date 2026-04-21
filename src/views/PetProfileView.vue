@@ -1,11 +1,12 @@
 <script setup>
-import { reactive, ref } from 'vue'
+import { onMounted, reactive, ref } from 'vue'
 import PetChipSwitch from '@/components/PetChipSwitch.vue'
 import { petBreeds } from '@/mocks'
 import { useProfileStore } from '@/stores/profile'
 
 const profileStore = useProfileStore()
 const showForm = ref(false)
+const formError = ref('')
 
 const form = reactive({
   id: '',
@@ -13,48 +14,75 @@ const form = reactive({
   type: 'cat',
   breed: petBreeds.cat[0],
   gender: 'male',
-  age: '',
   weight: '',
   birthday: '',
   allergies: '',
+  preferences: '',
   avatar: '',
-  preferences: []
+  color: '',
+  neutered: false
+})
+
+onMounted(() => {
+  profileStore.fetchPets()
 })
 
 function openNewForm() {
   showForm.value = true
+  formError.value = ''
   Object.assign(form, {
     id: '',
     name: '',
     type: 'cat',
     breed: petBreeds.cat[0],
     gender: 'male',
-    age: '',
     weight: '',
     birthday: '',
     allergies: '',
+    preferences: '',
     avatar: '',
-    preferences: []
+    color: '',
+    neutered: false
   })
 }
 
 function editPet(pet) {
   showForm.value = true
+  formError.value = ''
   Object.assign(form, {
     ...pet,
-    allergies: pet.allergies.join('、')
+    allergies: pet.allergies.join('、'),
+    preferences: pet.preferences.join('、')
   })
 }
 
-function savePet() {
-  profileStore.savePet({
-    ...form,
-    avatar: form.avatar || 'https://images.unsplash.com/photo-1543852786-1cf6624b9987?auto=format&fit=crop&w=240&q=70',
-    allergies: form.allergies
-      ? form.allergies.split(/[、,，]/).map((item) => item.trim()).filter(Boolean)
-      : []
-  })
-  showForm.value = false
+async function savePet() {
+  formError.value = ''
+
+  try {
+    await profileStore.savePet({
+      ...form,
+      avatar:
+        form.avatar || 'https://images.unsplash.com/photo-1543852786-1cf6624b9987?auto=format&fit=crop&w=240&q=70',
+      allergies: form.allergies
+        ? form.allergies.split(/[、,，]/).map((item) => item.trim()).filter(Boolean)
+        : [],
+      preferences: form.preferences
+        ? form.preferences.split(/[、,，]/).map((item) => item.trim()).filter(Boolean)
+        : []
+    })
+    showForm.value = false
+  } catch (requestError) {
+    formError.value = requestError instanceof Error ? requestError.message : '保存档案失败'
+  }
+}
+
+async function removePet(id) {
+  try {
+    await profileStore.deletePet(id)
+  } catch {
+    formError.value = profileStore.error || '删除宠物失败'
+  }
 }
 </script>
 
@@ -68,7 +96,9 @@ function savePet() {
       <button type="button" class="button-secondary" @click="openNewForm">新增宠物</button>
     </section>
 
-    <section class="page-stack">
+    <div v-if="profileStore.loading" class="surface-card pets__state">正在加载宠物档案...</div>
+
+    <section v-else class="page-stack">
       <article
         v-for="pet in profileStore.pets"
         :key="pet.id"
@@ -81,7 +111,10 @@ function savePet() {
               <strong>{{ pet.name }}</strong>
               <p>{{ pet.breed }}</p>
             </div>
-            <button type="button" class="section-link" @click="editPet(pet)">编辑</button>
+            <div class="pets__inline-actions">
+              <button type="button" class="section-link" @click="editPet(pet)">编辑</button>
+              <button type="button" class="section-link" @click="removePet(pet.id)">删除</button>
+            </div>
           </div>
           <p>{{ pet.age }} · {{ pet.weight }}kg · {{ pet.gender === 'male' ? '公' : '母' }}</p>
           <p v-if="pet.allergies.length">过敏：{{ pet.allergies.join('、') }}</p>
@@ -119,12 +152,12 @@ function savePet() {
 
       <div class="pets__double">
         <label class="pets__field">
-          <span>年龄</span>
-          <input v-model="form.age" placeholder="如 2岁 3月" />
-        </label>
-        <label class="pets__field">
           <span>体重</span>
           <input v-model="form.weight" placeholder="kg" />
+        </label>
+        <label class="pets__field pets__checkbox">
+          <span>绝育状态</span>
+          <input v-model="form.neutered" type="checkbox" />
         </label>
       </div>
 
@@ -137,6 +170,13 @@ function savePet() {
         <span>过敏信息</span>
         <input v-model="form.allergies" placeholder="用逗号分隔，如 牛肉, 谷物" />
       </label>
+
+      <label class="pets__field">
+        <span>偏好服务</span>
+        <input v-model="form.preferences" placeholder="用逗号分隔，如 洗护清洁, 驱虫护理" />
+      </label>
+
+      <p v-if="formError" class="pets__error">{{ formError }}</p>
 
       <div class="pets__actions">
         <button type="button" class="button-secondary" @click="showForm = false">取消</button>
@@ -186,6 +226,11 @@ function savePet() {
   gap: var(--space-3);
 }
 
+.pets__inline-actions {
+  display: inline-flex;
+  gap: var(--space-2);
+}
+
 .pets__field {
   display: grid;
   gap: var(--space-2);
@@ -210,6 +255,20 @@ function savePet() {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: var(--space-3);
+}
+
+.pets__state,
+.pets__error {
+  color: var(--color-text-soft);
+}
+
+.pets__state {
+  padding: var(--space-5);
+  text-align: center;
+}
+
+.pets__error {
+  color: var(--color-coral);
 }
 
 .section-link {

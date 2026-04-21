@@ -1,43 +1,95 @@
 <script setup>
-import { computed } from 'vue'
+import { computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import OrderCard from '@/components/OrderCard.vue'
 import EmptyState from '@/components/EmptyState.vue'
-import { allOrders, orderStatusTabs } from '@/mocks'
+import { useAccountStore } from '@/stores/account'
 
 const route = useRoute()
 const router = useRouter()
+const accountStore = useAccountStore()
+
+const kindTabs = [
+  { id: 'product', label: '商品订单' },
+  { id: 'service', label: '服务预约' }
+]
+
+const productStatusTabs = [
+  { id: 'all', label: '全部' },
+  { id: 'pendingShipment', label: '待发货' },
+  { id: 'completed', label: '已完成' },
+  { id: 'cancelled', label: '已取消' }
+]
+
+const serviceStatusTabs = [
+  { id: 'all', label: '全部' },
+  { id: 'pendingService', label: '待服务' },
+  { id: 'completed', label: '已完成' },
+  { id: 'cancelled', label: '已取消' }
+]
+
+onMounted(() => {
+  accountStore.fetchOrdersAndBookings()
+})
+
+function replaceQuery(nextQuery) {
+  const mergedQuery = {
+    ...route.query,
+    ...nextQuery
+  }
+
+  Object.keys(mergedQuery).forEach((key) => {
+    if (mergedQuery[key] === '' || mergedQuery[key] === undefined || mergedQuery[key] === null) {
+      delete mergedQuery[key]
+    }
+  })
+
+  router.replace({ path: '/orders', query: mergedQuery })
+}
+
+const activeKind = computed({
+  get: () => route.query.kind || 'product',
+  set: (value) => replaceQuery({ kind: value, status: '' })
+})
 
 const activeStatus = computed({
   get: () => route.query.status || 'all',
-  set: (value) => router.replace({ path: '/orders', query: value === 'all' ? {} : { status: value } })
+  set: (value) => replaceQuery({ status: value === 'all' ? '' : value })
 })
 
-const successBanner = computed(() => {
-  if (route.query.created === 'product') {
-    return '订单已提交，支付链路在作品集版中以结果态展示，当前已进入待支付列表。'
-  }
-  if (route.query.created === 'service') {
-    return '预约已创建，当前已进入待服务列表，你可以继续调整宠物档案或查看会员权益。'
-  }
-  return ''
-})
+const currentStatusTabs = computed(() => activeKind.value === 'service' ? serviceStatusTabs : productStatusTabs)
 
 const visibleOrders = computed(() => {
-  if (activeStatus.value === 'all') return allOrders
-  return allOrders.filter((order) => order.status === activeStatus.value)
+  const source = activeKind.value === 'service'
+    ? accountStore.serviceBookings
+    : accountStore.productOrders
+
+  if (activeStatus.value === 'all') {
+    return source
+  }
+
+  return source.filter((order) => order.status === activeStatus.value)
 })
 </script>
 
 <template>
   <div class="orders page-pad page-stack">
-    <section v-if="successBanner" class="orders__banner surface-card">
-      {{ successBanner }}
+    <section class="orders__tabs surface-card hide-scroll">
+      <button
+        v-for="tab in kindTabs"
+        :key="tab.id"
+        type="button"
+        class="orders__tab"
+        :class="{ 'is-active': activeKind === tab.id }"
+        @click="activeKind = tab.id"
+      >
+        {{ tab.label }}
+      </button>
     </section>
 
     <section class="orders__tabs surface-card hide-scroll">
       <button
-        v-for="tab in orderStatusTabs"
+        v-for="tab in currentStatusTabs"
         :key="tab.id"
         type="button"
         class="orders__tab"
@@ -48,7 +100,9 @@ const visibleOrders = computed(() => {
       </button>
     </section>
 
-    <template v-if="visibleOrders.length">
+    <div v-if="accountStore.loading" class="surface-card orders__state">正在加载订单记录...</div>
+
+    <template v-else-if="visibleOrders.length">
       <OrderCard
         v-for="order in visibleOrders"
         :key="order.id"
@@ -58,8 +112,8 @@ const visibleOrders = computed(() => {
     <EmptyState
       v-else
       icon="order"
-      title="这个状态下还没有订单"
-      description="可以先从首页或者服务页逛一逛，再回来查看。"
+      :title="accountStore.error ? '订单记录加载失败' : '这个状态下还没有订单'"
+      :description="accountStore.error || '可以先从首页或者服务页逛一逛，再回来查看。'"
       action-label="回首页"
       @action="router.push('/')"
     />
@@ -69,12 +123,6 @@ const visibleOrders = computed(() => {
 <style scoped>
 .orders {
   padding-bottom: var(--space-6);
-}
-
-.orders__banner {
-  padding: var(--space-4);
-  color: var(--color-primary-deep);
-  background: linear-gradient(135deg, rgba(220, 230, 221, 0.92), rgba(255, 255, 255, 0.82));
 }
 
 .orders__tabs {
@@ -96,5 +144,11 @@ const visibleOrders = computed(() => {
 .orders__tab.is-active {
   background: var(--color-primary-deep);
   color: var(--color-text-invert);
+}
+
+.orders__state {
+  padding: var(--space-5);
+  color: var(--color-text-soft);
+  text-align: center;
 }
 </style>

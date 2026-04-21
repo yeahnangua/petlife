@@ -1,5 +1,6 @@
 <script setup>
 import { computed } from 'vue'
+import { useRouter } from 'vue-router'
 import { formatCurrency } from '@/lib/pricing'
 import IconSvg from '@/components/IconSvg.vue'
 
@@ -10,7 +11,17 @@ const props = defineProps({
   }
 })
 
+const router = useRouter()
 const kindLabel = computed(() => props.order.kind === 'service' ? '服务订单' : '商品订单')
+
+function openDetail() {
+  if (props.order.kind === 'service') {
+    router.push(`/bookings/${props.order.id}`)
+    return
+  }
+
+  router.push(`/orders/${props.order.id}`)
+}
 </script>
 
 <template>
@@ -46,7 +57,7 @@ const kindLabel = computed(() => props.order.kind === 'service' ? '服务订单'
 
     <footer class="order-card__footer">
       <span class="order-card__amount">{{ formatCurrency(order.totalAmount) }}</span>
-      <button type="button" class="order-card__detail">
+      <button type="button" class="order-card__detail" @click="openDetail">
         查看详情
         <IconSvg name="arrow-right" :size="14" />
       </button>

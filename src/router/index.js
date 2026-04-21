@@ -78,6 +78,12 @@ const routes = [
     meta: { title: '预约确认' }
   },
   {
+    path: '/bookings/:id',
+    name: 'booking-detail',
+    component: () => import('@/views/BookingDetailView.vue'),
+    meta: { title: '预约详情' }
+  },
+  {
     path: '/orders',
     name: 'orders',
     component: () => import('@/views/OrderListView.vue'),

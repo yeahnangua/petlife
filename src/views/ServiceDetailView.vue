@@ -35,7 +35,11 @@ function bookService() {
   bookingStore.prepareFromService({
     ...service.value,
     storeOptions: storeOptions.value,
-    timeSlots: timeSlots.value
+    timeSlots: timeSlots.value,
+    dateOptions: dateOptions.value
+  }, {
+    date: catalogStore.selectedSlotDate,
+    storeId: catalogStore.selectedStoreId
   })
   router.push('/booking/confirm')
 }
