@@ -3,13 +3,14 @@ import AdminLayout from '@/layouts/AdminLayout.vue'
 import { registerUnauthorizedHandler } from '@/api/auth'
 import { useSessionStore } from '@/stores/session'
 import DashboardView from '@/views/DashboardView.vue'
+import CategoryAdminView from '@/views/CategoryAdminView.vue'
+import ProductAdminView from '@/views/ProductAdminView.vue'
+import ServiceAdminView from '@/views/ServiceAdminView.vue'
+import StoreAdminView from '@/views/StoreAdminView.vue'
+import TimeSlotAdminView from '@/views/TimeSlotAdminView.vue'
+import OrderAdminView from '@/views/OrderAdminView.vue'
+import BookingAdminView from '@/views/BookingAdminView.vue'
 import LoginView from '@/views/LoginView.vue'
-
-function createPlaceholderView(title) {
-  return {
-    template: `<section class="admin-placeholder">${title}建设中</section>`
-  }
-}
 
 export function createAdminRouter(pinia) {
   const router = createRouter({
@@ -34,43 +35,43 @@ export function createAdminRouter(pinia) {
           {
             path: 'categories',
             name: 'categories',
-            component: createPlaceholderView('分类页'),
+            component: CategoryAdminView,
             meta: { title: '分类' }
           },
           {
             path: 'products',
             name: 'products',
-            component: createPlaceholderView('商品页'),
+            component: ProductAdminView,
             meta: { title: '商品' }
           },
           {
             path: 'services',
             name: 'services',
-            component: createPlaceholderView('服务页'),
+            component: ServiceAdminView,
             meta: { title: '服务' }
           },
           {
             path: 'stores',
             name: 'stores',
-            component: createPlaceholderView('门店页'),
+            component: StoreAdminView,
             meta: { title: '门店' }
           },
           {
             path: 'time-slots',
             name: 'time-slots',
-            component: createPlaceholderView('时段页'),
+            component: TimeSlotAdminView,
             meta: { title: '时段' }
           },
           {
             path: 'orders',
             name: 'orders',
-            component: createPlaceholderView('订单页'),
+            component: OrderAdminView,
             meta: { title: '订单' }
           },
           {
             path: 'bookings',
             name: 'bookings',
-            component: createPlaceholderView('预约页'),
+            component: BookingAdminView,
             meta: { title: '预约' }
           }
         ]

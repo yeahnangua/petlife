@@ -1,0 +1,144 @@
+<script setup>
+import { computed, onMounted, ref } from 'vue'
+import ServiceFormDialog from '@/components/ServiceFormDialog.vue'
+import { useCatalogStore } from '@/stores/catalog'
+
+const catalogStore = useCatalogStore()
+const statusFilter = ref('all')
+
+const filteredServices = computed(() => {
+  if (statusFilter.value === 'all') {
+    return catalogStore.services
+  }
+
+  return catalogStore.services.filter((item) => item.status === statusFilter.value)
+})
+
+async function loadPage() {
+  await catalogStore.fetchServices()
+}
+
+async function submitService(payload) {
+  const id = catalogStore.dialogs.service.item?.id ?? null
+  await catalogStore.saveService(payload, id)
+}
+
+onMounted(() => {
+  loadPage()
+})
+</script>
+
+<template>
+  <section class="admin-list-page">
+    <div class="admin-list-page__header">
+      <div>
+        <p class="admin-list-page__meta">服务管理</p>
+        <h2>服务 CRUD 与运营状态</h2>
+      </div>
+      <div class="admin-list-page__filters">
+        <select v-model="statusFilter">
+          <option value="all">全部状态</option>
+          <option value="active">active</option>
+          <option value="inactive">inactive</option>
+        </select>
+        <button type="button" class="button-primary" @click="catalogStore.openDialog('service')">新增服务</button>
+      </div>
+    </div>
+    <p v-if="catalogStore.error" class="admin-list-page__error">{{ catalogStore.error }}</p>
+    <div v-if="catalogStore.loading.services" class="admin-list-page__state">正在加载服务...</div>
+    <div v-else class="admin-table">
+      <header class="admin-table__row admin-table__row--head">
+        <span>标题</span>
+        <span>时长</span>
+        <span>价格</span>
+        <span>状态</span>
+        <span>操作</span>
+      </header>
+      <article v-for="item in filteredServices" :key="item.id" class="admin-table__row">
+        <span>{{ item.title }}</span>
+        <span>{{ item.duration_minutes }} 分钟</span>
+        <span>¥{{ item.member_price }}</span>
+        <span>{{ item.status }}</span>
+        <div class="admin-table__actions">
+          <button type="button" @click="catalogStore.openDialog('service', item)">编辑</button>
+          <button type="button" @click="catalogStore.removeService(item.id)">删除/下架</button>
+        </div>
+      </article>
+    </div>
+
+    <ServiceFormDialog
+      v-model="catalogStore.dialogs.service.open"
+      :initial-value="catalogStore.dialogs.service.item"
+      :submitting="catalogStore.saving.service"
+      @submit="submitService"
+    />
+  </section>
+</template>
+
+<style scoped>
+.admin-list-page {
+  display: grid;
+  gap: 20px;
+}
+
+.admin-list-page__header,
+.admin-list-page__filters,
+.admin-table__row,
+.admin-table__actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.admin-list-page__meta {
+  color: #866549;
+}
+
+.admin-list-page__filters select {
+  min-height: 40px;
+  padding: 0 12px;
+  border: 1px solid #d8cbbd;
+  border-radius: 999px;
+}
+
+.admin-list-page__state,
+.admin-list-page__error {
+  padding: 16px;
+  border-radius: 16px;
+  background: #f6efe6;
+}
+
+.admin-list-page__error {
+  color: #b15b38;
+}
+
+.admin-table {
+  display: grid;
+  border-radius: 20px;
+  overflow: hidden;
+}
+
+.admin-table__row {
+  padding: 16px 18px;
+  background: #fff7ef;
+}
+
+.admin-table__row--head {
+  background: #eadfd1;
+  font-weight: 600;
+}
+
+.admin-table__actions button,
+.button-primary {
+  min-height: 36px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 999px;
+}
+
+.button-primary {
+  background: #29211b;
+  color: #fff;
+}
+</style>
