@@ -2,6 +2,12 @@ import { Router } from 'express'
 import { attachDemoUser } from '../middleware/attachDemoUser.js'
 import { createAddress, deleteAddress, listUserAddresses, updateAddress } from '../controllers/userAddressController.js'
 import {
+  cancelBooking,
+  createBooking,
+  getUserBooking,
+  listUserBookings
+} from '../controllers/userBookingController.js'
+import {
   clearInvalidCartItems,
   createCartItem,
   getUserCart,
@@ -39,6 +45,10 @@ export function createUserRouter() {
   router.get('/orders', listUserOrders)
   router.get('/orders/:id', getUserOrder)
   router.post('/orders/:id/cancel', cancelOrder)
+  router.post('/bookings', createBooking)
+  router.get('/bookings', listUserBookings)
+  router.get('/bookings/:id', getUserBooking)
+  router.post('/bookings/:id/cancel', cancelBooking)
 
   return router
 }
