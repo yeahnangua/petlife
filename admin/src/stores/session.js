@@ -1,31 +1,11 @@
 import { defineStore } from 'pinia'
+import { ADMIN_KEY_STORAGE, clearAdminKey, getAdminKey, setAdminKey } from '@/api/auth'
 
-export const ADMIN_KEY_STORAGE = 'petlife.admin.key'
-
-function readAdminKey() {
-  if (typeof window === 'undefined') {
-    return ''
-  }
-
-  return window.localStorage.getItem(ADMIN_KEY_STORAGE) ?? ''
-}
-
-function writeAdminKey(value) {
-  if (typeof window === 'undefined') {
-    return
-  }
-
-  if (value) {
-    window.localStorage.setItem(ADMIN_KEY_STORAGE, value)
-    return
-  }
-
-  window.localStorage.removeItem(ADMIN_KEY_STORAGE)
-}
+export { ADMIN_KEY_STORAGE }
 
 export const useSessionStore = defineStore('admin-session', {
   state: () => ({
-    adminKey: readAdminKey()
+    adminKey: getAdminKey()
   }),
   getters: {
     isAuthenticated: (state) => Boolean(state.adminKey)
@@ -34,12 +14,12 @@ export const useSessionStore = defineStore('admin-session', {
     login(value) {
       const adminKey = value.trim()
       this.adminKey = adminKey
-      writeAdminKey(adminKey)
+      setAdminKey(adminKey)
       return adminKey
     },
     logout() {
       this.adminKey = ''
-      writeAdminKey('')
+      clearAdminKey()
     }
   }
 })
