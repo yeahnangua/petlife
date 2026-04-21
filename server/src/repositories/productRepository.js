@@ -102,3 +102,16 @@ export function listProductImages(db, productId) {
     )
     .all(productId)
 }
+
+export function updateProductInventory(db, product) {
+  db.prepare(
+    `
+      UPDATE products
+      SET
+        stock = @stock,
+        stock_status = @stock_status,
+        updated_at = @updated_at
+      WHERE id = @id
+    `
+  ).run(product)
+}

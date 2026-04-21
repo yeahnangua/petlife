@@ -8,6 +8,12 @@ import {
   removeCartItem,
   updateCartItem
 } from '../controllers/userCartController.js'
+import {
+  cancelOrder,
+  createOrder,
+  getUserOrder,
+  listUserOrders
+} from '../controllers/userOrderController.js'
 import { createPet, deletePet, listUserPets, updatePet } from '../controllers/userPetController.js'
 import { getUserProfile } from '../controllers/userProfileController.js'
 
@@ -29,6 +35,10 @@ export function createUserRouter() {
   router.put('/cart/items/:id', updateCartItem)
   router.delete('/cart/items/:id', removeCartItem)
   router.delete('/cart/invalid-items', clearInvalidCartItems)
+  router.post('/orders', createOrder)
+  router.get('/orders', listUserOrders)
+  router.get('/orders/:id', getUserOrder)
+  router.post('/orders/:id/cancel', cancelOrder)
 
   return router
 }
