@@ -1,0 +1,223 @@
+/* =========================================================
+ * PetLife · Base / Reset / Global typography
+ * ========================================================= */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-body);
+  font-size: var(--text-body);
+  line-height: var(--leading-normal);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  overscroll-behavior-y: none;
+}
+
+body {
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+#app {
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+h1, h2, h3, h4, h5, h6, p, figure {
+  margin: 0;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+ul, ol {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+img {
+  max-width: 100%;
+  display: block;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+input, textarea, select {
+  font: inherit;
+  color: inherit;
+  border: none;
+  outline: none;
+  background: none;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+::placeholder {
+  color: var(--color-text-tint);
+}
+
+/* Fraunces display helper */
+.font-display {
+  font-family: var(--font-display);
+  letter-spacing: var(--tracking-tight);
+  font-variation-settings: 'opsz' 80, 'SOFT' 50;
+}
+
+/* Hide scrollbar utility */
+.hide-scroll {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.hide-scroll::-webkit-scrollbar { display: none; }
+
+/* Page padding helper */
+.page-pad {
+  padding-left: var(--page-padding);
+  padding-right: var(--page-padding);
+}
+
+/* Divider */
+.divider {
+  height: 1px;
+  background: var(--color-divider);
+  border: 0;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.surface-card {
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  border-radius: var(--radius-xl);
+  background: rgba(255, 255, 255, 0.72);
+  box-shadow: var(--shadow-sm);
+  backdrop-filter: blur(12px);
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 30px;
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-full);
+  background: var(--color-primary-tint);
+  color: var(--color-primary-deep);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+}
+
+.section-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.section-heading__title {
+  font-size: var(--text-xl);
+  font-weight: var(--weight-semibold);
+}
+
+.section-heading__meta {
+  color: var(--color-text-mute);
+  font-size: var(--text-sm);
+}
+
+.button-primary,
+.button-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 48px;
+  padding: 0 var(--space-5);
+  border-radius: var(--radius-full);
+  font-size: var(--text-md);
+  font-weight: var(--weight-semibold);
+  transition:
+    transform var(--dur-base) var(--ease-out),
+    background-color var(--dur-base) var(--ease-out),
+    color var(--dur-base) var(--ease-out),
+    border-color var(--dur-base) var(--ease-out);
+}
+
+.button-primary {
+  background: var(--color-primary-deep);
+  color: var(--color-text-invert);
+  box-shadow: var(--shadow-brand);
+}
+
+.button-primary:disabled {
+  background: var(--color-disabled);
+  box-shadow: none;
+  cursor: not-allowed;
+}
+
+.button-secondary {
+  border: 1px solid var(--color-border);
+  background: rgba(255, 255, 255, 0.72);
+  color: var(--color-text);
+}
+
+.page-stack {
+  display: grid;
+  gap: var(--space-5);
+}
+
+.page-with-submit-bar {
+  padding-bottom: calc(var(--shell-bottom-offset) + var(--action-bar-height) + var(--space-8));
+}
+
+.page-submit-bar {
+  position: sticky;
+  bottom: calc(var(--shell-bottom-offset) + var(--space-4));
+  z-index: var(--z-sticky);
+}
+
+.horizontal-scroll {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  gap: var(--space-3);
+  overflow-x: auto;
+  padding-bottom: var(--space-1);
+}
+
+/* Skeleton shimmer (used by placeholders) */
+@keyframes petlife-shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}

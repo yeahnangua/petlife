@@ -1,0 +1,135 @@
+/* =========================================================
+ * PetLife · Design Tokens
+ * 温暖 / 专业 / 轻疗愈 / 品牌感
+ * 配色: 鼠尾草绿 + 奶油白 + 珊瑚橙
+ * ========================================================= */
+
+:root {
+  /* ---------- Color · Surface ---------- */
+  --color-bg: #F4EFE4;            /* 奶油燕麦主背景 */
+  --color-bg-deep: #EDE5D3;       /* 略深底色 */
+  --color-surface: #FFFFFF;
+  --color-surface-soft: #FBF7EE;  /* 卡片柔色底 */
+  --color-surface-warm: #F2EADB;  /* 嵌套模块底 */
+
+  /* ---------- Color · Brand ---------- */
+  --color-primary: #6A8572;       /* 主色 · 鼠尾草绿 */
+  --color-primary-deep: #3F5A48;  /* 深苔绿, 主CTA/深文字 */
+  --color-primary-soft: #DCE6DD;  /* 极浅 sage, tag/hover */
+  --color-primary-tint: #EEF3EC;  /* sage 极浅底色 */
+
+  /* ---------- Color · Accent ---------- */
+  --color-coral: #D97757;         /* 珊瑚橙, 强调/价格/促销 */
+  --color-coral-soft: #F3DFD0;
+  --color-amber: #D4A44C;         /* 琥珀黄, 会员/标签 */
+  --color-amber-soft: #F2E3C1;
+  --color-clay: #B58463;          /* 暖陶土, 宠物档案点缀 */
+  --color-sky: #8AA3B4;           /* 雾青, 服务相关点缀 */
+
+  /* ---------- Color · Text ---------- */
+  --color-text: #2B2A26;          /* 主文字, 暖黑棕 */
+  --color-text-soft: #595650;     /* 次文字 */
+  --color-text-mute: #8D8880;     /* 弱化文字 */
+  --color-text-tint: #B9B4AB;     /* 极弱 */
+  --color-text-invert: #FBF7EE;   /* 深底反白 */
+
+  /* ---------- Color · Divider / Border ---------- */
+  --color-border: #E6DDCB;
+  --color-border-soft: #EEE7D9;
+  --color-divider: #EBE3D2;
+
+  /* ---------- Color · State ---------- */
+  --color-success: #5C8A6A;
+  --color-warning: #D4A44C;
+  --color-danger: #C26553;
+  --color-info: #8AA3B4;
+  --color-disabled: #C9C3B7;
+
+  /* ---------- Radius ---------- */
+  --radius-xs: 8px;
+  --radius-sm: 12px;
+  --radius-md: 16px;
+  --radius-lg: 20px;
+  --radius-xl: 28px;
+  --radius-2xl: 36px;
+  --radius-full: 999px;
+
+  /* ---------- Spacing (4pt grid) ---------- */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-7: 28px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-14: 56px;
+  --space-16: 64px;
+
+  /* ---------- Shadow ---------- */
+  --shadow-xs: 0 1px 2px rgba(43, 42, 38, 0.04);
+  --shadow-sm: 0 2px 8px rgba(43, 42, 38, 0.05), 0 1px 2px rgba(43, 42, 38, 0.03);
+  --shadow-md: 0 6px 20px rgba(43, 42, 38, 0.07), 0 2px 6px rgba(43, 42, 38, 0.04);
+  --shadow-lg: 0 16px 40px rgba(43, 42, 38, 0.10), 0 4px 12px rgba(43, 42, 38, 0.05);
+  --shadow-float: 0 12px 32px rgba(63, 90, 72, 0.12);
+  --shadow-brand: 0 10px 24px rgba(106, 133, 114, 0.28);
+  --shadow-coral: 0 10px 24px rgba(217, 119, 87, 0.25);
+  --shadow-inset: inset 0 0 0 1px rgba(43, 42, 38, 0.05);
+
+  /* ---------- Typography ---------- */
+  --font-display: 'Fraunces', 'Noto Serif SC', 'Songti SC', serif;
+  --font-body: 'Manrope', -apple-system, BlinkMacSystemFont,
+    'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+  --font-mono: 'SF Mono', Menlo, ui-monospace, monospace;
+
+  --text-2xs: 10px;
+  --text-xs: 11px;
+  --text-sm: 12px;
+  --text-base: 13px;
+  --text-md: 14px;
+  --text-body: 15px;
+  --text-lg: 16px;
+  --text-xl: 18px;
+  --text-2xl: 22px;
+  --text-3xl: 26px;
+  --text-4xl: 32px;
+  --text-display: 40px;
+
+  --weight-regular: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+  --weight-bold: 700;
+
+  --leading-tight: 1.2;
+  --leading-snug: 1.35;
+  --leading-normal: 1.5;
+  --leading-relaxed: 1.7;
+
+  --tracking-tight: -0.02em;
+  --tracking-normal: 0;
+  --tracking-wide: 0.04em;
+  --tracking-wider: 0.1em;
+
+  /* ---------- Layout ---------- */
+  --mobile-max: 440px;
+  --page-padding: 20px;
+  --safe-bottom: env(safe-area-inset-bottom, 0);
+  --safe-top: env(safe-area-inset-top, 0);
+  --tabbar-height: 64px;
+  --action-bar-height: 64px;
+
+  /* ---------- Motion ---------- */
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --dur-fast: 140ms;
+  --dur-base: 220ms;
+  --dur-slow: 360ms;
+
+  /* ---------- Z-index ---------- */
+  --z-header: 40;
+  --z-sticky: 50;
+  --z-modal: 70;
+  --z-toast: 90;
+}
