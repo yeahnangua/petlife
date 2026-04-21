@@ -1,6 +1,21 @@
 import { defineStore } from 'pinia'
-import { createPet as createPetRequest, deletePet as deletePetRequest, getPets, getProfile, updatePet as updatePetRequest } from '@/api/user'
+import {
+  createPet as createPetRequest,
+  deletePet as deletePetRequest,
+  getPets,
+  getProfile,
+  updatePet as updatePetRequest,
+  updateProfile as updateProfileRequest
+} from '@/api/user'
 import { adaptPet, adaptProfile } from '@/adapters/profile'
+
+function serializeProfilePayload(payload = {}) {
+  return {
+    nickname: String(payload.nickname ?? '').trim(),
+    phone: String(payload.phone ?? '').trim(),
+    avatar_url: String(payload.avatar || payload.avatar_url || '').trim()
+  }
+}
 
 function serializePetPayload(payload = {}) {
   return {
@@ -14,7 +29,7 @@ function serializePetPayload(payload = {}) {
     allergies: payload.allergies || [],
     preferences: payload.preferences || [],
     avatar_url: payload.avatar || payload.avatar_url || '',
-    color: payload.color || ''
+    color: payload.color || (payload.type === 'dog' ? '#B58463' : '#D97757')
   }
 }
 
@@ -51,6 +66,21 @@ export const useProfileStore = defineStore('profile', {
         this.error = requestError instanceof Error ? requestError.message : '个人资料加载失败'
       } finally {
         this.loading = false
+      }
+    },
+    async updateProfile(payload) {
+      this.saving = true
+      this.error = ''
+
+      try {
+        const data = await updateProfileRequest(serializeProfilePayload(payload))
+        this.profile = adaptProfile(data.profile)
+        return this.profile
+      } catch (requestError) {
+        this.error = requestError instanceof Error ? requestError.message : '个人资料保存失败'
+        throw requestError
+      } finally {
+        this.saving = false
       }
     },
     async fetchPets() {

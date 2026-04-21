@@ -102,6 +102,12 @@ const routes = [
     meta: { tab: 'profile', title: '我的' }
   },
   {
+    path: '/profile/edit',
+    name: 'profile-edit',
+    component: () => import('@/views/ProfileEditView.vue'),
+    meta: { title: '编辑资料' }
+  },
+  {
     path: '/pets',
     name: 'pet-profile',
     component: () => import('@/views/PetProfileView.vue'),

@@ -24,7 +24,8 @@ import {
 import {
   countBookingsByUserId,
   countOrdersByUserId,
-  findUserById
+  findUserById,
+  updateUser
 } from '../repositories/userRepository.js'
 
 function now() {
@@ -79,6 +80,24 @@ function validateAddressPayload(payload) {
   }
 }
 
+function requireMobilePhone(value, fieldName) {
+  const phone = requireString(value, fieldName)
+
+  if (!/^1\d{10}$/.test(phone)) {
+    throw new AppError(400, 40000, `${fieldName} must be an 11-digit mobile number`)
+  }
+
+  return phone
+}
+
+function validateProfilePayload(payload) {
+  return {
+    nickname: requireString(payload.nickname, 'nickname'),
+    phone: requireMobilePhone(payload.phone, 'phone'),
+    avatar_url: requireString(payload.avatar_url, 'avatar_url')
+  }
+}
+
 function validatePetPayload(payload) {
   const weight = Number(payload.weight)
   if (!Number.isFinite(weight) || weight <= 0) {
@@ -100,12 +119,7 @@ function validatePetPayload(payload) {
   }
 }
 
-export function getProfile(db, userId) {
-  const user = findUserById(db, userId)
-  if (!user) {
-    throw new AppError(404, 40400, 'user not found')
-  }
-
+function mapProfile(db, userId, user) {
   return {
     id: user.id,
     nickname: user.nickname,
@@ -122,6 +136,36 @@ export function getProfile(db, userId) {
       saved_amount: 0
     }
   }
+}
+
+export function getProfile(db, userId) {
+  const user = findUserById(db, userId)
+  if (!user) {
+    throw new AppError(404, 40400, 'user not found')
+  }
+
+  return mapProfile(db, userId, user)
+}
+
+export function updateUserProfile(db, userId, payload) {
+  const currentUser = findUserById(db, userId)
+  if (!currentUser) {
+    throw new AppError(404, 40400, 'user not found')
+  }
+
+  const profile = validateProfilePayload(payload)
+  const record = {
+    id: userId,
+    ...profile,
+    updated_at: now()
+  }
+
+  updateUser(db, record)
+
+  return mapProfile(db, userId, {
+    ...currentUser,
+    ...record
+  })
 }
 
 export function getAddresses(db, userId) {

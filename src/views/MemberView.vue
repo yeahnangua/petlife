@@ -1,11 +1,13 @@
 <script setup>
 import { computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import IconSvg from '@/components/IconSvg.vue'
 import EmptyState from '@/components/EmptyState.vue'
 import { memberBenefits, newbiePack } from '@/content/member'
 import { useAccountStore } from '@/stores/account'
 import { useProfileStore } from '@/stores/profile'
 
+const router = useRouter()
 const accountStore = useAccountStore()
 const profileStore = useProfileStore()
 
@@ -27,6 +29,13 @@ const profile = computed(() => profileStore.profile)
           <p class="section-heading__meta">PetLife Club</p>
           <h2 class="font-display">会员不是折扣堆砌，而是照顾体验的升级。</h2>
           <p class="member__subtitle">{{ profile.level }} · 入会于 {{ profile.joinDate }}</p>
+          <button
+            type="button"
+            class="button-secondary member__edit"
+            @click="router.push({ path: '/profile/edit', query: { redirect: '/member' } })"
+          >
+            编辑资料
+          </button>
         </div>
         <div class="member__stats">
           <article>
@@ -121,6 +130,11 @@ const profile = computed(() => profileStore.profile)
   background:
     radial-gradient(circle at top right, rgba(212, 164, 76, 0.18), transparent 30%),
     linear-gradient(135deg, rgba(255, 255, 255, 0.82), rgba(242, 234, 219, 0.88));
+}
+
+.member__edit {
+  width: fit-content;
+  margin-top: var(--space-3);
 }
 
 .member__hero h2 {

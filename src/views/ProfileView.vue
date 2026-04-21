@@ -36,6 +36,13 @@ const shortcuts = [
           <span class="pill">{{ profile.level }}</span>
           <h2>{{ profile.nickname }}</h2>
           <p>{{ profile.phone }} · 入会于 {{ profile.joinDate }}</p>
+          <button
+            type="button"
+            class="button-secondary profile__edit"
+            @click="router.push({ path: '/profile/edit', query: { redirect: '/profile' } })"
+          >
+            编辑资料
+          </button>
         </div>
       </section>
 
@@ -124,6 +131,11 @@ const shortcuts = [
 .profile__copy {
   display: grid;
   gap: 6px;
+}
+
+.profile__edit {
+  width: fit-content;
+  margin-top: var(--space-2);
 }
 
 .profile__copy p,

@@ -4,6 +4,13 @@ export function getProfile() {
   return request('/api/user/profile')
 }
 
+export function updateProfile(payload) {
+  return request('/api/user/profile', {
+    method: 'PUT',
+    body: payload
+  })
+}
+
 export function getAddresses() {
   return request('/api/user/addresses')
 }

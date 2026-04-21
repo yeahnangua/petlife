@@ -1,5 +1,6 @@
 import { Router } from 'express'
 import { attachDemoUser } from '../middleware/attachDemoUser.js'
+import { uploadImage } from '../middleware/uploadImage.js'
 import { createAddress, deleteAddress, listUserAddresses, updateAddress } from '../controllers/userAddressController.js'
 import {
   cancelBooking,
@@ -21,13 +22,16 @@ import {
   listUserOrders
 } from '../controllers/userOrderController.js'
 import { createPet, deletePet, listUserPets, updatePet } from '../controllers/userPetController.js'
-import { getUserProfile } from '../controllers/userProfileController.js'
+import { getUserProfile, updateUserProfile } from '../controllers/userProfileController.js'
+import { uploadUserImageFile } from '../controllers/userUploadController.js'
 
 export function createUserRouter() {
   const router = Router()
 
   router.use(attachDemoUser)
+  router.post('/uploads/images', uploadImage, uploadUserImageFile)
   router.get('/profile', getUserProfile)
+  router.put('/profile', updateUserProfile)
   router.get('/addresses', listUserAddresses)
   router.post('/addresses', createAddress)
   router.put('/addresses/:id', updateAddress)
