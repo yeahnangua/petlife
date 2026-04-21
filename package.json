@@ -7,11 +7,14 @@
   "scripts": {
     "dev": "vite",
     "dev:client": "vite",
+    "dev:admin": "npm --prefix admin run dev",
     "dev:server": "npm --prefix server run dev",
     "build": "vite build",
+    "build:admin": "npm --prefix admin run build",
     "preview": "vite preview",
     "test": "vitest run",
     "test:client": "vitest run",
+    "test:admin": "npm --prefix admin run test",
     "test:server": "npm --prefix server run test"
   },
   "dependencies": {
