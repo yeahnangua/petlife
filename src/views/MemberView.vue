@@ -2,7 +2,7 @@
 import { computed, onMounted } from 'vue'
 import IconSvg from '@/components/IconSvg.vue'
 import EmptyState from '@/components/EmptyState.vue'
-import { memberBenefits, newbiePack } from '@/mocks'
+import { memberBenefits, newbiePack } from '@/content/member'
 import { useAccountStore } from '@/stores/account'
 import { useProfileStore } from '@/stores/profile'
 

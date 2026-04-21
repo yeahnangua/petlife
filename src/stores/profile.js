@@ -1,14 +1,6 @@
 import { defineStore } from 'pinia'
-import { pets } from '@/mocks'
 import { createPet as createPetRequest, deletePet as deletePetRequest, getPets, getProfile, updatePet as updatePetRequest } from '@/api/user'
 import { adaptPet, adaptProfile } from '@/adapters/profile'
-
-const clonePets = () =>
-  pets.map((pet) => ({
-    ...pet,
-    allergies: [...pet.allergies],
-    preferences: [...pet.preferences]
-  }))
 
 function serializePetPayload(payload = {}) {
   return {
@@ -29,9 +21,9 @@ function serializePetPayload(payload = {}) {
 export const useProfileStore = defineStore('profile', {
   state: () => ({
     profile: null,
-    pets: clonePets(),
+    pets: [],
     activePetType: 'cat',
-    selectedPetId: pets[0]?.id ?? null,
+    selectedPetId: null,
     loading: false,
     saving: false,
     error: ''

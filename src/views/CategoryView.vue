@@ -3,7 +3,7 @@ import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import EmptyState from '@/components/EmptyState.vue'
 import ProductCard from '@/components/ProductCard.vue'
-import { primaryCategories } from '@/mocks'
+import { primaryCategories } from '@/content/catalog'
 import { useCatalogStore } from '@/stores/catalog'
 
 const route = useRoute()

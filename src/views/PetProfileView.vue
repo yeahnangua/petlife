@@ -1,7 +1,7 @@
 <script setup>
 import { onMounted, reactive, ref } from 'vue'
 import PetChipSwitch from '@/components/PetChipSwitch.vue'
-import { petBreeds } from '@/mocks'
+import { petBreeds } from '@/content/pets'
 import { useProfileStore } from '@/stores/profile'
 
 const profileStore = useProfileStore()

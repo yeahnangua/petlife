@@ -1,5 +1,4 @@
 import { defineStore } from 'pinia'
-import { cartItems } from '@/mocks'
 import {
   addCartItem,
   clearInvalidCartItems,
@@ -9,8 +8,6 @@ import {
 } from '@/api/user'
 import { adaptProduct } from '@/adapters/catalog'
 import { getCartSummary } from '@/lib/pricing'
-
-const cloneItems = () => cartItems.map((item) => ({ ...item }))
 
 function adaptCartItem(item = {}) {
   return {
@@ -28,7 +25,7 @@ function adaptCartItem(item = {}) {
 
 export const useCartStore = defineStore('cart', {
   state: () => ({
-    items: cloneItems(),
+    items: [],
     hydrated: false,
     loading: false,
     error: '',

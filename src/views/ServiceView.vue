@@ -5,7 +5,7 @@ import EmptyState from '@/components/EmptyState.vue'
 import ServiceCard from '@/components/ServiceCard.vue'
 import PetChipSwitch from '@/components/PetChipSwitch.vue'
 import IconSvg from '@/components/IconSvg.vue'
-import { serviceCategories } from '@/mocks'
+import { serviceCategories } from '@/content/catalog'
 import { useCatalogStore } from '@/stores/catalog'
 import { useProfileStore } from '@/stores/profile'
 

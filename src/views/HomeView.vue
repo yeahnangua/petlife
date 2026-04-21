@@ -6,7 +6,7 @@ import ProductCard from '@/components/ProductCard.vue'
 import ServiceCard from '@/components/ServiceCard.vue'
 import PetChipSwitch from '@/components/PetChipSwitch.vue'
 import IconSvg from '@/components/IconSvg.vue'
-import { bundles, quickEntries, user } from '@/mocks'
+import { bundles, quickEntries } from '@/content/catalog'
 import { getRecommendedBundles } from '@/lib/catalog'
 import { useCatalogStore } from '@/stores/catalog'
 import { useProfileStore } from '@/stores/profile'
@@ -28,6 +28,16 @@ watch(
   activePetType,
   (value) => {
     catalogStore.fetchHomeData(value)
+  },
+  { immediate: true }
+)
+
+watch(
+  () => profileStore.profile,
+  (profile) => {
+    if (!profile) {
+      profileStore.fetchProfile()
+    }
   },
   { immediate: true }
 )
@@ -213,9 +223,9 @@ function openQuickEntry(entry) {
     <section class="home__member surface-card">
       <div>
         <p class="section-heading__meta">会员权益</p>
-        <h2 class="section-heading__title">{{ user.level }}</h2>
+        <h2 class="section-heading__title">{{ profileStore.profile?.level || '会员信息加载中' }}</h2>
         <p class="home__member-copy">
-          当前积分 {{ user.points }}，距离 {{ user.levelTo }} 还差一点点。
+          当前积分 {{ profileStore.profile?.points ?? 0 }}，累计订单 {{ profileStore.profile?.stats.orderCount ?? 0 }}。
         </p>
       </div>
       <button type="button" class="button-secondary" @click="router.push('/member')">
