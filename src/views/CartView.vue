@@ -1,5 +1,5 @@
 <script setup>
-import { computed } from 'vue'
+import { computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import EmptyState from '@/components/EmptyState.vue'
 import { useCartStore } from '@/stores/cart'
@@ -8,13 +8,29 @@ import { formatCurrency } from '@/lib/pricing'
 const router = useRouter()
 const cartStore = useCartStore()
 
+onMounted(() => {
+  cartStore.fetchCart()
+})
+
 const validItems = computed(() => cartStore.items.filter((item) => item.valid))
 const invalidItems = computed(() => cartStore.invalidItems)
 </script>
 
 <template>
   <div class="cart page-pad page-stack">
-    <template v-if="cartStore.items.length">
+    <div v-if="cartStore.loading" class="surface-card cart__state">
+      正在加载购物车...
+    </div>
+
+    <EmptyState
+      v-else-if="cartStore.error && !cartStore.items.length"
+      title="购物车加载失败"
+      :description="cartStore.error"
+      action-label="重试"
+      @action="cartStore.fetchCart()"
+    />
+
+    <template v-else-if="cartStore.items.length">
       <section class="page-stack">
         <article
           v-for="item in validItems"
@@ -43,7 +59,7 @@ const invalidItems = computed(() => cartStore.invalidItems)
       <section v-if="invalidItems.length" class="page-stack">
         <div class="section-heading">
           <h2 class="section-heading__title">失效商品</h2>
-          <button type="button" class="section-link" @click="cartStore.removeInvalidItems()">
+          <button type="button" class="section-link" @click="cartStore.clearInvalidItems()">
             清空
           </button>
         </div>
@@ -160,6 +176,12 @@ const invalidItems = computed(() => cartStore.invalidItems)
   justify-content: space-between;
   gap: var(--space-4);
   padding: var(--space-4);
+}
+
+.cart__state {
+  padding: var(--space-5);
+  color: var(--color-text-soft);
+  text-align: center;
 }
 
 .section-link {

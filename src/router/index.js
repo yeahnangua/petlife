@@ -54,6 +54,24 @@ const routes = [
     meta: { title: '确认订单' }
   },
   {
+    path: '/addresses',
+    name: 'address-list',
+    component: () => import('@/views/AddressListView.vue'),
+    meta: { title: '地址管理' }
+  },
+  {
+    path: '/addresses/new',
+    name: 'address-new',
+    component: () => import('@/views/AddressFormView.vue'),
+    meta: { title: '新增地址' }
+  },
+  {
+    path: '/addresses/:id/edit',
+    name: 'address-edit',
+    component: () => import('@/views/AddressFormView.vue'),
+    meta: { title: '编辑地址' }
+  },
+  {
     path: '/booking/confirm',
     name: 'booking-confirm',
     component: () => import('@/views/BookingConfirmView.vue'),
@@ -64,6 +82,12 @@ const routes = [
     name: 'orders',
     component: () => import('@/views/OrderListView.vue'),
     meta: { tab: 'orders', title: '订单' }
+  },
+  {
+    path: '/orders/:id',
+    name: 'order-detail',
+    component: () => import('@/views/OrderDetailView.vue'),
+    meta: { title: '订单详情' }
   },
   {
     path: '/profile',

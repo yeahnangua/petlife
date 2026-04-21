@@ -1,36 +1,103 @@
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import EmptyState from '@/components/EmptyState.vue'
-import { addresses, coupons } from '@/mocks'
+import { getAddresses, createOrder } from '@/api/user'
+import { adaptAddress } from '@/adapters/profile'
 import { formatCurrency, getOrderPriceBreakdown } from '@/lib/pricing'
 import { useCartStore } from '@/stores/cart'
 
 const router = useRouter()
 const cartStore = useCartStore()
 
+const loading = ref(false)
 const note = ref('')
-const selectedAddressId = ref(addresses.find((item) => item.isDefault)?.id ?? addresses[0]?.id ?? '')
-const selectedCouponId = ref(coupons[0]?.id ?? '')
+const addresses = ref([])
+const selectedAddressId = ref('')
+const submitError = ref('')
+const submitting = ref(false)
 
 const selectedItems = computed(() => cartStore.selectedItems)
-const selectedAddress = computed(() => addresses.find((item) => item.id === selectedAddressId.value))
-const selectedCoupon = computed(() => coupons.find((item) => item.id === selectedCouponId.value) ?? null)
-const priceBreakdown = computed(() => getOrderPriceBreakdown(selectedItems.value, selectedCoupon.value))
+const selectedAddress = computed(() => addresses.value.find((item) => item.id === selectedAddressId.value) ?? null)
+const priceBreakdown = computed(() => getOrderPriceBreakdown(selectedItems.value))
 
-function submitOrder() {
-  router.push({ path: '/orders', query: { status: 'pendingPayment', created: 'product' } })
+watch(
+  addresses,
+  (value) => {
+    if (!value.length) {
+      selectedAddressId.value = ''
+      return
+    }
+
+    if (value.some((item) => item.id === selectedAddressId.value)) {
+      return
+    }
+
+    selectedAddressId.value = value.find((item) => item.isDefault)?.id ?? value[0]?.id ?? ''
+  },
+  { immediate: true }
+)
+
+async function loadPage() {
+  loading.value = true
+  submitError.value = ''
+
+  try {
+    const [cartData, addressData] = await Promise.all([
+      cartStore.fetchCart(),
+      getAddresses()
+    ])
+
+    void cartData
+    addresses.value = (addressData.list || []).map(adaptAddress)
+  } catch (requestError) {
+    submitError.value = requestError instanceof Error ? requestError.message : '订单确认页加载失败'
+  } finally {
+    loading.value = false
+  }
 }
+
+async function submitOrder() {
+  if (!selectedAddressId.value) {
+    submitError.value = '下单前需要先添加收货地址'
+    return
+  }
+
+  submitting.value = true
+  submitError.value = ''
+
+  try {
+    const data = await createOrder({
+      address_id: selectedAddressId.value,
+      remark: note.value.trim()
+    })
+    await cartStore.fetchCart()
+    router.push(`/orders/${data.order.id}`)
+  } catch (requestError) {
+    submitError.value = requestError instanceof Error ? requestError.message : '提交订单失败'
+  } finally {
+    submitting.value = false
+  }
+}
+
+onMounted(() => {
+  loadPage()
+})
 </script>
 
 <template>
   <div class="order-confirm page-pad page-stack page-with-submit-bar">
-    <template v-if="selectedItems.length">
+    <div v-if="loading" class="surface-card order-confirm__card order-confirm__state">
+      正在加载订单确认信息...
+    </div>
+
+    <template v-else-if="selectedItems.length">
       <section class="surface-card order-confirm__card">
         <div class="section-heading">
           <h2 class="section-heading__title">收货地址</h2>
+          <button type="button" class="section-link" @click="router.push('/addresses')">管理地址</button>
         </div>
-        <div class="order-confirm__address-list">
+        <div v-if="addresses.length" class="order-confirm__address-list">
           <label
             v-for="address in addresses"
             :key="address.id"
@@ -39,9 +106,13 @@ function submitOrder() {
           >
             <input v-model="selectedAddressId" type="radio" :value="address.id" class="sr-only" />
             <strong>{{ address.tag }} · {{ address.name }}</strong>
-            <p>{{ address.province }}{{ address.city }}{{ address.district }} {{ address.detail }}</p>
+            <p>{{ address.displayAddress }}</p>
           </label>
         </div>
+        <div v-else class="surface-card order-confirm__empty-address">
+          还没有收货地址，先去新增一条吧。
+        </div>
+        <p v-if="submitError" class="order-confirm__error">{{ submitError }}</p>
       </section>
 
       <section class="surface-card order-confirm__card">
@@ -64,24 +135,6 @@ function submitOrder() {
 
       <section class="surface-card order-confirm__card">
         <div class="section-heading">
-          <h2 class="section-heading__title">优惠券</h2>
-        </div>
-        <div class="order-confirm__coupon-list">
-          <label
-            v-for="coupon in coupons"
-            :key="coupon.id"
-            class="order-confirm__option"
-            :class="{ 'is-active': selectedCouponId === coupon.id }"
-          >
-            <input v-model="selectedCouponId" type="radio" :value="coupon.id" class="sr-only" />
-            <strong>{{ coupon.title }}</strong>
-            <p>{{ coupon.scope }} · {{ coupon.amount }} 元优惠</p>
-          </label>
-        </div>
-      </section>
-
-      <section class="surface-card order-confirm__card">
-        <div class="section-heading">
           <h2 class="section-heading__title">配送与备注</h2>
         </div>
         <div class="order-confirm__field">
@@ -98,7 +151,6 @@ function submitOrder() {
         <div class="order-confirm__breakdown">
           <div><span>商品小计</span><strong>{{ formatCurrency(priceBreakdown.subtotal) }}</strong></div>
           <div><span>配送费</span><strong>{{ formatCurrency(priceBreakdown.shipping) }}</strong></div>
-          <div><span>优惠抵扣</span><strong>-{{ formatCurrency(priceBreakdown.discount) }}</strong></div>
           <div class="is-total"><span>应付金额</span><strong>{{ formatCurrency(priceBreakdown.payable) }}</strong></div>
         </div>
       </section>
@@ -108,8 +160,8 @@ function submitOrder() {
           <p class="section-heading__meta">{{ selectedAddress?.tag }} · {{ selectedAddress?.phone }}</p>
           <h2 class="section-heading__title">{{ formatCurrency(priceBreakdown.payable) }}</h2>
         </div>
-        <button type="button" class="button-primary" @click="submitOrder">
-          提交订单
+        <button type="button" class="button-primary order-confirm__submit-button" :disabled="submitting" @click="submitOrder">
+          {{ submitting ? '提交中...' : '提交订单' }}
         </button>
       </section>
     </template>
@@ -132,8 +184,7 @@ function submitOrder() {
   padding: var(--space-4);
 }
 
-.order-confirm__address-list,
-.order-confirm__coupon-list {
+.order-confirm__address-list {
   display: grid;
   gap: var(--space-3);
 }
@@ -150,6 +201,13 @@ function submitOrder() {
 .order-confirm__option.is-active {
   border-color: var(--color-primary);
   background: var(--color-primary-tint);
+}
+
+.order-confirm__empty-address,
+.order-confirm__state {
+  padding: var(--space-4);
+  color: var(--color-text-soft);
+  text-align: center;
 }
 
 .order-confirm__option p,
@@ -206,5 +264,10 @@ function submitOrder() {
 
 .order-confirm__breakdown span {
   color: var(--color-text-soft);
+}
+
+.order-confirm__error {
+  color: var(--color-coral);
+  font-size: var(--text-sm);
 }
 </style>

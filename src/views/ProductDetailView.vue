@@ -71,15 +71,25 @@ function chooseSpec(group, option) {
   selectedSpecs[group] = option
 }
 
-function addToCart() {
-  if (!product.value || !isSelectionComplete.value) return
-  cartStore.addProduct(product.value, selectedSpecLabel.value)
-  notice.value = '已加入购物车，可继续逛逛。'
+async function addToCart() {
+  if (!product.value || !isSelectionComplete.value) return false
+
+  try {
+    await cartStore.addProduct(product.value, selectedSpecLabel.value)
+    notice.value = '已加入购物车，可继续逛逛。'
+    return true
+  } catch {
+    notice.value = cartStore.error || '加入购物车失败，请稍后重试。'
+    return false
+  }
 }
 
-function buyNow() {
-  addToCart()
-  router.push('/order/confirm')
+async function buyNow() {
+  const added = await addToCart()
+
+  if (added) {
+    router.push('/order/confirm')
+  }
 }
 </script>
 
