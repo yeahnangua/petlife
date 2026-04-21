@@ -113,3 +113,9 @@ export function updateOrderStatus(db, order) {
     `
   ).run(order)
 }
+
+export function countOrderItemsByProductId(db, productId) {
+  return db
+    .prepare('SELECT COUNT(*) AS count FROM order_items WHERE product_id = ?')
+    .get(productId).count
+}

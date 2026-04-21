@@ -106,3 +106,17 @@ export function updateBookingStatus(db, booking) {
     `
   ).run(booking)
 }
+
+export function countBookingsByServiceId(db, serviceId) {
+  return db.prepare('SELECT COUNT(*) AS count FROM bookings WHERE service_id = ?').get(serviceId).count
+}
+
+export function countBookingsByStoreId(db, storeId) {
+  return db.prepare('SELECT COUNT(*) AS count FROM bookings WHERE store_id = ?').get(storeId).count
+}
+
+export function countBookingsByTimeSlotId(db, timeSlotId) {
+  return db
+    .prepare('SELECT COUNT(*) AS count FROM bookings WHERE time_slot_id = ?')
+    .get(timeSlotId).count
+}
