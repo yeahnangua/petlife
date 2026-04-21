@@ -4,14 +4,17 @@ import { tmpdir } from 'node:os'
 
 export function createTestContext() {
   const rootDir = mkdtempSync(join(tmpdir(), 'petlife-server-test-'))
+  const dataDir = join(rootDir, 'data')
   const uploadDir = join(rootDir, 'uploads')
-  const dbPath = join(rootDir, 'test.sqlite')
+  const dbPath = join(dataDir, 'petlife.test.sqlite')
 
+  mkdirSync(dataDir, { recursive: true })
   mkdirSync(uploadDir, { recursive: true })
 
   return {
     adminKey: 'test-admin-key',
     dbPath,
+    dataDir,
     rootDir,
     uploadDir,
     cleanup() {
