@@ -16,6 +16,18 @@ export function listSlotUsageByStoreAndDate(db, storeId, bookingDate) {
     })
 }
 
+function buildBookingFilters(filters = {}) {
+  const clauses = ['1 = 1']
+  const params = {}
+
+  if (filters.status) {
+    clauses.push('status = @status')
+    params.status = filters.status
+  }
+
+  return { clauses, params }
+}
+
 export function createBooking(db, booking) {
   db.prepare(
     `
@@ -81,6 +93,21 @@ export function listBookingsByUserId(db, userId) {
     .all(userId)
 }
 
+export function listBookings(db, filters = {}) {
+  const { clauses, params } = buildBookingFilters(filters)
+
+  return db
+    .prepare(
+      `
+        SELECT *
+        FROM bookings
+        WHERE ${clauses.join(' AND ')}
+        ORDER BY created_at DESC, id DESC
+      `
+    )
+    .all(params)
+}
+
 export function findBookingById(db, userId, bookingId) {
   return db
     .prepare(
@@ -92,6 +119,19 @@ export function findBookingById(db, userId, bookingId) {
       `
     )
     .get(userId, bookingId)
+}
+
+export function findBookingByIdForAdmin(db, bookingId) {
+  return db
+    .prepare(
+      `
+        SELECT *
+        FROM bookings
+        WHERE id = ?
+        LIMIT 1
+      `
+    )
+    .get(bookingId)
 }
 
 export function updateBookingStatus(db, booking) {

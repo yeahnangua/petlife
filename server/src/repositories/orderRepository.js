@@ -34,6 +34,18 @@ export function createOrder(db, order) {
   ).run(order)
 }
 
+function buildOrderFilters(filters = {}) {
+  const clauses = ['1 = 1']
+  const params = {}
+
+  if (filters.status) {
+    clauses.push('status = @status')
+    params.status = filters.status
+  }
+
+  return { clauses, params }
+}
+
 export function createOrderItem(db, item) {
   db.prepare(
     `
@@ -75,6 +87,21 @@ export function listOrdersByUserId(db, userId) {
     .all(userId)
 }
 
+export function listOrders(db, filters = {}) {
+  const { clauses, params } = buildOrderFilters(filters)
+
+  return db
+    .prepare(
+      `
+        SELECT *
+        FROM orders
+        WHERE ${clauses.join(' AND ')}
+        ORDER BY created_at DESC, id DESC
+      `
+    )
+    .all(params)
+}
+
 export function findOrderById(db, userId, orderId) {
   return db
     .prepare(
@@ -86,6 +113,19 @@ export function findOrderById(db, userId, orderId) {
       `
     )
     .get(userId, orderId)
+}
+
+export function findOrderByIdForAdmin(db, orderId) {
+  return db
+    .prepare(
+      `
+        SELECT *
+        FROM orders
+        WHERE id = ?
+        LIMIT 1
+      `
+    )
+    .get(orderId)
 }
 
 export function listOrderItemsByOrderId(db, orderId) {

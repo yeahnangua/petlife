@@ -6,9 +6,13 @@
   "description": "PetLife 宠物生活馆 · 移动端 Web 作品集项目",
   "scripts": {
     "dev": "vite",
+    "dev:client": "vite",
+    "dev:server": "npm --prefix server run dev",
     "build": "vite build",
     "preview": "vite preview",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:client": "vitest run",
+    "test:server": "npm --prefix server run test"
   },
   "dependencies": {
     "pinia": "^2.1.7",

@@ -1,11 +1,21 @@
 import { Router } from 'express'
 import { adminAuth } from '../middleware/adminAuth.js'
 import {
+  getAdminBooking,
+  listAdminBookings,
+  updateAdminBooking
+} from '../controllers/adminBookingController.js'
+import {
   createCategory,
   deleteCategory,
   listAdminCategories,
   updateCategory
 } from '../controllers/adminCategoryController.js'
+import {
+  getAdminOrder,
+  listAdminOrders,
+  updateAdminOrder
+} from '../controllers/adminOrderController.js'
 import {
   createProduct,
   deleteProduct,
@@ -63,6 +73,14 @@ export function createAdminRouter() {
   router.post('/time-slots', createTimeSlot)
   router.put('/time-slots/:id', updateTimeSlot)
   router.delete('/time-slots/:id', deleteTimeSlot)
+
+  router.get('/orders', listAdminOrders)
+  router.get('/orders/:id', getAdminOrder)
+  router.post('/orders/:id/status', updateAdminOrder)
+
+  router.get('/bookings', listAdminBookings)
+  router.get('/bookings/:id', getAdminBooking)
+  router.post('/bookings/:id/status', updateAdminBooking)
 
   return router
 }
