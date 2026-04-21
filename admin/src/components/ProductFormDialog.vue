@@ -1,6 +1,7 @@
 <script setup>
 import { reactive, ref, watch } from 'vue'
 import UploadImageField from '@/components/UploadImageField.vue'
+import { petTypeOptions, publishStatusOptions, stockStatusOptions } from '@/utils/enumLabels'
 
 const props = defineProps({
   modelValue: Boolean,
@@ -135,9 +136,7 @@ function submitForm() {
         <label>
           <span>宠物类型</span>
           <select v-model="form.pet_type">
-            <option value="cat">cat</option>
-            <option value="dog">dog</option>
-            <option value="all">all</option>
+            <option v-for="item in petTypeOptions" :key="item.value" :value="item.value">{{ item.label }}</option>
           </select>
         </label>
         <label>
@@ -167,19 +166,17 @@ function submitForm() {
         <label>
           <span>库存状态</span>
           <select v-model="form.stock_status">
-            <option value="inStock">inStock</option>
-            <option value="soldOut">soldOut</option>
+            <option v-for="item in stockStatusOptions" :key="item.value" :value="item.value">{{ item.label }}</option>
           </select>
         </label>
         <label>
           <span>上下架状态</span>
           <select v-model="form.status">
-            <option value="active">active</option>
-            <option value="inactive">inactive</option>
+            <option v-for="item in publishStatusOptions" :key="item.value" :value="item.value">{{ item.label }}</option>
           </select>
         </label>
         <label class="dialog-card__full">
-          <span>Badge</span>
+          <span>角标文案</span>
           <input v-model="form.badge" />
         </label>
         <label class="dialog-card__full">
@@ -217,9 +214,12 @@ function submitForm() {
   position: fixed;
   inset: 0;
   display: grid;
-  place-items: center;
+  align-items: start;
+  justify-items: center;
   padding: 24px;
   background: rgba(32, 24, 16, 0.45);
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 .dialog-card {
@@ -229,6 +229,8 @@ function submitForm() {
   padding: 24px;
   border-radius: 24px;
   background: #fffdfa;
+  max-height: calc(100vh - 48px);
+  overflow-y: auto;
 }
 
 .dialog-card__header,

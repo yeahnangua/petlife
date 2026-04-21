@@ -1,6 +1,7 @@
 <script setup>
 import { reactive, watch } from 'vue'
 import UploadImageField from '@/components/UploadImageField.vue'
+import { petTypeOptions } from '@/utils/enumLabels'
 
 const props = defineProps({
   modelValue: Boolean,
@@ -70,15 +71,13 @@ function submitForm() {
           <input v-model="form.name" />
         </label>
         <label>
-          <span>Slug</span>
+          <span>分类标识</span>
           <input v-model="form.slug" />
         </label>
         <label>
           <span>宠物类型</span>
           <select v-model="form.pet_type">
-            <option value="cat">cat</option>
-            <option value="dog">dog</option>
-            <option value="all">all</option>
+            <option v-for="item in petTypeOptions" :key="item.value" :value="item.value">{{ item.label }}</option>
           </select>
         </label>
         <label>
@@ -106,9 +105,12 @@ function submitForm() {
   position: fixed;
   inset: 0;
   display: grid;
-  place-items: center;
+  align-items: start;
+  justify-items: center;
   padding: 24px;
   background: rgba(32, 24, 16, 0.45);
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 .dialog-card {
@@ -118,6 +120,8 @@ function submitForm() {
   padding: 24px;
   border-radius: 24px;
   background: #fffdfa;
+  max-height: calc(100vh - 48px);
+  overflow-y: auto;
 }
 
 .dialog-card__header,

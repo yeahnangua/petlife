@@ -2,6 +2,7 @@
 import { computed, onMounted, ref } from 'vue'
 import StatusTag from '@/components/StatusTag.vue'
 import { useOperationsStore } from '@/stores/operations'
+import { orderStatusFilterOptions } from '@/utils/enumLabels'
 
 const operationsStore = useOperationsStore()
 const statusFilter = ref('')
@@ -38,10 +39,7 @@ onMounted(() => {
       </div>
       <div class="operations-page__filters">
         <select v-model="statusFilter" @change="loadOrders">
-          <option value="">全部状态</option>
-          <option value="pendingShipment">pendingShipment</option>
-          <option value="completed">completed</option>
-          <option value="cancelled">cancelled</option>
+          <option v-for="item in orderStatusFilterOptions" :key="item.value" :value="item.value">{{ item.label }}</option>
         </select>
         <button type="button" class="button-primary" @click="loadOrders">刷新</button>
       </div>

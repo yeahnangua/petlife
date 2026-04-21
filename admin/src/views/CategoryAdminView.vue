@@ -2,6 +2,7 @@
 import { onMounted } from 'vue'
 import CategoryFormDialog from '@/components/CategoryFormDialog.vue'
 import { useCatalogStore } from '@/stores/catalog'
+import { getEnabledLabel, getPetTypeLabel } from '@/utils/enumLabels'
 
 const catalogStore = useCatalogStore()
 
@@ -33,7 +34,7 @@ onMounted(() => {
     <div v-else class="admin-table">
       <header class="admin-table__row admin-table__row--head">
         <span>名称</span>
-        <span>Slug</span>
+        <span>分类标识</span>
         <span>宠物类型</span>
         <span>状态</span>
         <span>操作</span>
@@ -41,8 +42,8 @@ onMounted(() => {
       <article v-for="item in catalogStore.categories" :key="item.id" class="admin-table__row">
         <span>{{ item.name }}</span>
         <span>{{ item.slug }}</span>
-        <span>{{ item.pet_type }}</span>
-        <span>{{ item.is_enabled ? 'enabled' : 'disabled' }}</span>
+        <span>{{ getPetTypeLabel(item.pet_type) }}</span>
+        <span>{{ getEnabledLabel(item.is_enabled) }}</span>
         <div class="admin-table__actions">
           <button type="button" @click="catalogStore.openDialog('category', item)">编辑</button>
           <button type="button" @click="catalogStore.removeCategory(item.id)">删除</button>

@@ -2,6 +2,11 @@
 import { computed, onMounted, ref } from 'vue'
 import ProductFormDialog from '@/components/ProductFormDialog.vue'
 import { useCatalogStore } from '@/stores/catalog'
+import {
+  getPublishStatusLabel,
+  getStockStatusLabel,
+  publishStatusFilterOptions
+} from '@/utils/enumLabels'
 
 const catalogStore = useCatalogStore()
 const statusFilter = ref('all')
@@ -12,6 +17,10 @@ const filteredProducts = computed(() => {
   }
 
   return catalogStore.products.filter((item) => item.status === statusFilter.value)
+})
+
+const categoryNameById = computed(() => {
+  return new Map(catalogStore.categories.map((item) => [item.id, item.name]))
 })
 
 async function loadPage() {
@@ -36,13 +45,11 @@ onMounted(() => {
     <div class="admin-list-page__header">
       <div>
         <p class="admin-list-page__meta">商品管理</p>
-        <h2>商品 CRUD 与上下架</h2>
+        <h2>商品增删改查与上下架</h2>
       </div>
       <div class="admin-list-page__filters">
         <select v-model="statusFilter">
-          <option value="all">全部状态</option>
-          <option value="active">active</option>
-          <option value="inactive">inactive</option>
+          <option v-for="item in publishStatusFilterOptions" :key="item.value" :value="item.value">{{ item.label }}</option>
         </select>
         <button type="button" class="button-primary" @click="catalogStore.openDialog('product')">新增商品</button>
       </div>
@@ -59,9 +66,9 @@ onMounted(() => {
       </header>
       <article v-for="item in filteredProducts" :key="item.id" class="admin-table__row">
         <span>{{ item.title }}</span>
-        <span>{{ item.category_slug }}</span>
-        <span>{{ item.stock }} / {{ item.stock_status }}</span>
-        <span>{{ item.status }}</span>
+        <span>{{ categoryNameById.get(item.category_id) || item.category_slug }}</span>
+        <span>{{ item.stock }} / {{ getStockStatusLabel(item.stock_status) }}</span>
+        <span>{{ getPublishStatusLabel(item.status) }}</span>
         <div class="admin-table__actions">
           <button type="button" @click="catalogStore.openDialog('product', item)">编辑</button>
           <button type="button" @click="catalogStore.removeProduct(item.id)">删除/下架</button>

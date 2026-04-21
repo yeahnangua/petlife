@@ -2,6 +2,7 @@
 import { computed, onMounted, ref } from 'vue'
 import StoreFormDialog from '@/components/StoreFormDialog.vue'
 import { useCatalogStore } from '@/stores/catalog'
+import { getPublishStatusLabel, publishStatusFilterOptions } from '@/utils/enumLabels'
 
 const catalogStore = useCatalogStore()
 const statusFilter = ref('all')
@@ -37,9 +38,7 @@ onMounted(() => {
       </div>
       <div class="admin-list-page__filters">
         <select v-model="statusFilter">
-          <option value="all">全部状态</option>
-          <option value="active">active</option>
-          <option value="inactive">inactive</option>
+          <option v-for="item in publishStatusFilterOptions" :key="item.value" :value="item.value">{{ item.label }}</option>
         </select>
         <button type="button" class="button-primary" @click="catalogStore.openDialog('store')">新增门店</button>
       </div>
@@ -58,7 +57,7 @@ onMounted(() => {
         <span>{{ item.name }}</span>
         <span>{{ item.phone }}</span>
         <span>{{ item.business_hours }}</span>
-        <span>{{ item.status }}</span>
+        <span>{{ getPublishStatusLabel(item.status) }}</span>
         <div class="admin-table__actions">
           <button type="button" @click="catalogStore.openDialog('store', item)">编辑</button>
           <button type="button" @click="catalogStore.removeStore(item.id)">删除/下架</button>

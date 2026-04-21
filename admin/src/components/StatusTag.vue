@@ -1,5 +1,6 @@
 <script setup>
 import { computed } from 'vue'
+import { getDisplayStatusLabel } from '@/utils/enumLabels'
 
 const props = defineProps({
   status: {
@@ -23,10 +24,12 @@ const tone = computed(() => {
 
   return 'is-pending'
 })
+
+const displayLabel = computed(() => getDisplayStatusLabel(props.status, props.label))
 </script>
 
 <template>
-  <span class="status-tag" :class="tone">{{ label || status }}</span>
+  <span class="status-tag" :class="tone">{{ displayLabel }}</span>
 </template>
 
 <style scoped>

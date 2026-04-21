@@ -2,6 +2,7 @@
 import { computed, onMounted, ref } from 'vue'
 import TimeSlotFormDialog from '@/components/TimeSlotFormDialog.vue'
 import { useCatalogStore } from '@/stores/catalog'
+import { enabledFilterOptions, getEnabledLabel } from '@/utils/enumLabels'
 
 const catalogStore = useCatalogStore()
 const enabledFilter = ref('all')
@@ -37,9 +38,7 @@ onMounted(() => {
       </div>
       <div class="admin-list-page__filters">
         <select v-model="enabledFilter">
-          <option value="all">全部状态</option>
-          <option value="true">enabled</option>
-          <option value="false">disabled</option>
+          <option v-for="item in enabledFilterOptions" :key="item.value" :value="item.value">{{ item.label }}</option>
         </select>
         <button type="button" class="button-primary" @click="catalogStore.openDialog('timeSlot')">新增时段</button>
       </div>
@@ -58,7 +57,7 @@ onMounted(() => {
         <span>{{ item.label }}</span>
         <span>{{ item.start_time }} - {{ item.end_time }}</span>
         <span>{{ item.capacity }}</span>
-        <span>{{ item.is_enabled ? 'enabled' : 'disabled' }}</span>
+        <span>{{ getEnabledLabel(item.is_enabled) }}</span>
         <div class="admin-table__actions">
           <button type="button" @click="catalogStore.openDialog('timeSlot', item)">编辑</button>
           <button type="button" @click="catalogStore.removeTimeSlot(item.id)">删除/停用</button>

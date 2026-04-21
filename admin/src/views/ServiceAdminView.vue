@@ -2,6 +2,7 @@
 import { computed, onMounted, ref } from 'vue'
 import ServiceFormDialog from '@/components/ServiceFormDialog.vue'
 import { useCatalogStore } from '@/stores/catalog'
+import { getPublishStatusLabel, publishStatusFilterOptions } from '@/utils/enumLabels'
 
 const catalogStore = useCatalogStore()
 const statusFilter = ref('all')
@@ -33,13 +34,11 @@ onMounted(() => {
     <div class="admin-list-page__header">
       <div>
         <p class="admin-list-page__meta">服务管理</p>
-        <h2>服务 CRUD 与运营状态</h2>
+        <h2>服务增删改查与运营状态</h2>
       </div>
       <div class="admin-list-page__filters">
         <select v-model="statusFilter">
-          <option value="all">全部状态</option>
-          <option value="active">active</option>
-          <option value="inactive">inactive</option>
+          <option v-for="item in publishStatusFilterOptions" :key="item.value" :value="item.value">{{ item.label }}</option>
         </select>
         <button type="button" class="button-primary" @click="catalogStore.openDialog('service')">新增服务</button>
       </div>
@@ -58,7 +57,7 @@ onMounted(() => {
         <span>{{ item.title }}</span>
         <span>{{ item.duration_minutes }} 分钟</span>
         <span>¥{{ item.member_price }}</span>
-        <span>{{ item.status }}</span>
+        <span>{{ getPublishStatusLabel(item.status) }}</span>
         <div class="admin-table__actions">
           <button type="button" @click="catalogStore.openDialog('service', item)">编辑</button>
           <button type="button" @click="catalogStore.removeService(item.id)">删除/下架</button>

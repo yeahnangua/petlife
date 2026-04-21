@@ -2,6 +2,7 @@
 import { computed, onMounted, ref } from 'vue'
 import StatusTag from '@/components/StatusTag.vue'
 import { useOperationsStore } from '@/stores/operations'
+import { bookingStatusFilterOptions } from '@/utils/enumLabels'
 
 const operationsStore = useOperationsStore()
 const statusFilter = ref('')
@@ -38,10 +39,7 @@ onMounted(() => {
       </div>
       <div class="operations-page__filters">
         <select v-model="statusFilter" @change="loadBookings">
-          <option value="">全部状态</option>
-          <option value="pendingService">pendingService</option>
-          <option value="completed">completed</option>
-          <option value="cancelled">cancelled</option>
+          <option v-for="item in bookingStatusFilterOptions" :key="item.value" :value="item.value">{{ item.label }}</option>
         </select>
         <button type="button" class="button-primary" @click="loadBookings">刷新</button>
       </div>
