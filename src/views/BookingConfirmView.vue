@@ -25,7 +25,10 @@ const selectedStore = computed(() => bookingStore.storeOptions.find((item) => it
 
 async function submitBooking() {
   const booking = await bookingStore.submitBooking()
-  router.push(`/bookings/${booking.id}`)
+  router.replace({
+    path: `/bookings/${booking.id}`,
+    query: { backTo: '/' }
+  })
 }
 </script>
 

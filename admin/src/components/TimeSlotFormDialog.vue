@@ -104,9 +104,12 @@ function submitForm() {
   position: fixed;
   inset: 0;
   display: grid;
-  place-items: center;
+  align-items: start;
+  justify-items: center;
   padding: 24px;
   background: rgba(32, 24, 16, 0.45);
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 .dialog-card {
@@ -116,6 +119,8 @@ function submitForm() {
   padding: 24px;
   border-radius: 24px;
   background: #fffdfa;
+  max-height: calc(100vh - 48px);
+  overflow-y: auto;
 }
 
 .dialog-card__header,

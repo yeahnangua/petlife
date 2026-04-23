@@ -2,7 +2,7 @@ import { request } from '@/api/http'
 
 export function uploadImage(file) {
   const formData = new FormData()
-  formData.append('image', file)
+  formData.append('file', file)
 
   return request('/api/admin/uploads/images', {
     method: 'POST',

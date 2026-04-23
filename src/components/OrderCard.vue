@@ -56,7 +56,23 @@ function openDetail() {
     </template>
 
     <footer class="order-card__footer">
-      <span class="order-card__amount">{{ formatCurrency(order.totalAmount) }}</span>
+      <div class="order-card__amount-group">
+        <span class="order-card__amount">
+          {{
+            formatCurrency(
+              order.kind === 'product'
+                ? (order.payableAmount ?? ((Number(order.totalAmount || 0)) + Number(order.shippingAmount || 12)))
+                : order.totalAmount
+            )
+          }}
+        </span>
+        <span
+          v-if="order.kind === 'product' && (order.shippingAmount ?? 12)"
+          class="order-card__amount-note"
+        >
+          含运费 {{ formatCurrency(order.shippingAmount ?? 12) }}
+        </span>
+      </div>
       <button type="button" class="order-card__detail" @click="openDetail">
         查看详情
         <IconSvg name="arrow-right" :size="14" />
@@ -127,10 +143,20 @@ function openDetail() {
   font-size: var(--text-sm);
 }
 
+.order-card__amount-group {
+  display: grid;
+  gap: 4px;
+}
+
 .order-card__amount {
   color: var(--color-coral);
   font-size: var(--text-lg);
   font-weight: var(--weight-semibold);
+}
+
+.order-card__amount-note {
+  color: var(--color-text-soft);
+  font-size: var(--text-xs);
 }
 
 .order-card__detail {

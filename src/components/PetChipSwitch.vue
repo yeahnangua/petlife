@@ -1,7 +1,7 @@
 <script setup>
 const props = defineProps({
   modelValue: {
-    type: String,
+    type: [String, Boolean],
     default: 'cat'
   },
   options: {

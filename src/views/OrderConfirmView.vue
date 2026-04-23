@@ -72,7 +72,10 @@ async function submitOrder() {
       remark: note.value.trim()
     })
     await cartStore.fetchCart()
-    router.push(`/orders/${data.order.id}`)
+    router.replace({
+      path: `/orders/${data.order.id}`,
+      query: { backTo: '/' }
+    })
   } catch (requestError) {
     submitError.value = requestError instanceof Error ? requestError.message : '提交订单失败'
   } finally {

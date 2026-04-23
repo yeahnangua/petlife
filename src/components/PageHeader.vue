@@ -15,8 +15,24 @@ const router = useRouter()
 
 const isTabPage = computed(() => Boolean(route.meta.tab))
 const title = computed(() => props.title || route.meta.title || 'PetLife')
+const backTarget = computed(() => {
+  if (typeof route.query.backTo === 'string' && route.query.backTo.startsWith('/')) {
+    return route.query.backTo
+  }
+
+  if (typeof route.meta.backTo === 'string' && route.meta.backTo.startsWith('/')) {
+    return route.meta.backTo
+  }
+
+  return ''
+})
 
 function goBack() {
+  if (backTarget.value) {
+    router.push(backTarget.value)
+    return
+  }
+
   router.back()
 }
 </script>

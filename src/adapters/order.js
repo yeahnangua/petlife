@@ -1,3 +1,5 @@
+import { getPersistedProductOrderBreakdown } from '@/lib/pricing'
+
 function formatAddress(order = {}) {
   return [order.receiver_region_snapshot, order.receiver_address_snapshot].filter(Boolean).join(' ')
 }
@@ -17,6 +19,8 @@ function adaptOrderItem(item = {}) {
 
 export function adaptOrder(order = {}) {
   const items = Array.isArray(order.items) ? order.items.map(adaptOrderItem) : []
+  const rawTotalAmount = order.total_amount ?? order.totalAmount ?? 0
+  const amountBreakdown = getPersistedProductOrderBreakdown(rawTotalAmount)
 
   return {
     id: order.id,
@@ -25,7 +29,10 @@ export function adaptOrder(order = {}) {
     status: order.status,
     statusLabel: order.status_label,
     createdAt: order.created_at,
-    totalAmount: order.total_amount,
+    totalAmount: rawTotalAmount,
+    subtotalAmount: amountBreakdown.subtotal,
+    shippingAmount: amountBreakdown.shipping,
+    payableAmount: amountBreakdown.payable,
     itemCount: order.item_count ?? items.reduce((sum, item) => sum + (item.quantity || 0), 0),
     address: formatAddress(order),
     remark: order.remark,

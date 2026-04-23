@@ -1,5 +1,6 @@
 <script setup>
-import { onMounted, reactive, ref } from 'vue'
+import { onMounted, reactive, ref, watch } from 'vue'
+import ImageUploadField from '@/components/ImageUploadField.vue'
 import PetChipSwitch from '@/components/PetChipSwitch.vue'
 import { petBreeds } from '@/content/pets'
 import { useProfileStore } from '@/stores/profile'
@@ -7,6 +8,11 @@ import { useProfileStore } from '@/stores/profile'
 const profileStore = useProfileStore()
 const showForm = ref(false)
 const formError = ref('')
+const petColorOptions = ['#D97757', '#B58463', '#8AA3B4', '#6A8572', '#D4A44C', '#C26553']
+
+function getDefaultPetColor(type = 'cat') {
+  return type === 'dog' ? '#B58463' : '#D97757'
+}
 
 const form = reactive({
   id: '',
@@ -27,6 +33,15 @@ onMounted(() => {
   profileStore.fetchPets()
 })
 
+watch(
+  () => form.type,
+  (type) => {
+    if (!petBreeds[type].includes(form.breed)) {
+      form.breed = petBreeds[type][0]
+    }
+  }
+)
+
 function openNewForm() {
   showForm.value = true
   formError.value = ''
@@ -41,7 +56,7 @@ function openNewForm() {
     allergies: '',
     preferences: '',
     avatar: '',
-    color: '',
+    color: getDefaultPetColor('cat'),
     neutered: false
   })
 }
@@ -52,7 +67,10 @@ function editPet(pet) {
   Object.assign(form, {
     ...pet,
     allergies: pet.allergies.join('、'),
-    preferences: pet.preferences.join('、')
+    preferences: pet.preferences.join('、'),
+    avatar: pet.avatar,
+    color: pet.color || getDefaultPetColor(pet.type),
+    neutered: Boolean(pet.neutered)
   })
 }
 
@@ -64,6 +82,7 @@ async function savePet() {
       ...form,
       avatar:
         form.avatar || 'https://images.unsplash.com/photo-1543852786-1cf6624b9987?auto=format&fit=crop&w=240&q=70',
+      color: form.color || getDefaultPetColor(form.type),
       allergies: form.allergies
         ? form.allergies.split(/[、,，]/).map((item) => item.trim()).filter(Boolean)
         : [],
@@ -132,6 +151,8 @@ async function removePet(id) {
         <input v-model="form.name" placeholder="比如橘子、Mocha" />
       </label>
 
+      <ImageUploadField v-model="form.avatar" label="宠物头像" />
+
       <div class="pets__field">
         <span>宠物类型</span>
         <PetChipSwitch
@@ -139,6 +160,17 @@ async function removePet(id) {
           :options="[
             { id: 'cat', label: '猫咪' },
             { id: 'dog', label: '狗狗' }
+          ]"
+        />
+      </div>
+
+      <div class="pets__field">
+        <span>宠物性别</span>
+        <PetChipSwitch
+          v-model="form.gender"
+          :options="[
+            { id: 'male', label: '男孩子' },
+            { id: 'female', label: '女孩子' }
           ]"
         />
       </div>
@@ -155,15 +187,44 @@ async function removePet(id) {
           <span>体重</span>
           <input v-model="form.weight" placeholder="kg" />
         </label>
-        <label class="pets__field pets__checkbox">
+        <div class="pets__field">
           <span>绝育状态</span>
-          <input v-model="form.neutered" type="checkbox" />
-        </label>
+          <PetChipSwitch
+            v-model="form.neutered"
+            :options="[
+              { id: false, label: '未绝育' },
+              { id: true, label: '已绝育' }
+            ]"
+          />
+        </div>
       </div>
 
       <label class="pets__field">
         <span>生日</span>
         <input v-model="form.birthday" type="date" />
+      </label>
+
+      <label class="pets__field">
+        <span>毛色标记</span>
+        <div class="pets__color-picker">
+          <div class="pets__color-swatches">
+            <button
+              v-for="color in petColorOptions"
+              :key="color"
+              type="button"
+              class="pets__color-swatch"
+              :class="{ 'is-active': form.color === color }"
+              :style="{ backgroundColor: color }"
+              @click="form.color = color"
+            >
+              <span class="sr-only">{{ color }}</span>
+            </button>
+          </div>
+          <div class="pets__color-custom">
+            <input v-model="form.color" type="color" />
+            <span>{{ form.color }}</span>
+          </div>
+        </div>
       </label>
 
       <label class="pets__field">
@@ -180,7 +241,9 @@ async function removePet(id) {
 
       <div class="pets__actions">
         <button type="button" class="button-secondary" @click="showForm = false">取消</button>
-        <button type="button" class="button-primary" :disabled="!form.name" @click="savePet">保存档案</button>
+        <button type="button" class="button-primary" :disabled="profileStore.saving || !form.name" @click="savePet">
+          {{ profileStore.saving ? '保存中...' : '保存档案' }}
+        </button>
       </div>
     </section>
   </div>
@@ -251,6 +314,48 @@ async function removePet(id) {
   gap: var(--space-3);
 }
 
+.pets__color-picker {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.pets__color-swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+.pets__color-swatch {
+  width: 32px;
+  height: 32px;
+  border: 2px solid rgba(255, 255, 255, 0.7);
+  border-radius: 999px;
+  box-shadow: var(--shadow-sm);
+}
+
+.pets__color-swatch.is-active {
+  outline: 2px solid var(--color-primary-deep);
+  outline-offset: 2px;
+}
+
+.pets__color-custom {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  color: var(--color-text-soft);
+  font-size: var(--text-sm);
+}
+
+.pets__color-custom input {
+  width: 44px;
+  min-width: 44px;
+  height: 44px;
+  padding: 0;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+}
+
 .pets__actions {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -275,5 +380,11 @@ async function removePet(id) {
   color: var(--color-primary-deep);
   font-size: var(--text-sm);
   font-weight: var(--weight-semibold);
+}
+
+@media (max-width: 640px) {
+  .pets__double {
+    grid-template-columns: 1fr;
+  }
 }
 </style>

@@ -76,8 +76,16 @@ onMounted(() => {
 
       <section class="surface-card order-detail__card">
         <div class="order-detail__amount">
+          <span>商品金额</span>
+          <strong>{{ formatCurrency(order.subtotalAmount) }}</strong>
+        </div>
+        <div class="order-detail__amount">
+          <span>运费</span>
+          <strong>{{ formatCurrency(order.shippingAmount) }}</strong>
+        </div>
+        <div class="order-detail__amount is-total">
           <span>订单总额</span>
-          <strong>{{ formatCurrency(order.totalAmount) }}</strong>
+          <strong>{{ formatCurrency(order.payableAmount) }}</strong>
         </div>
       </section>
     </template>
@@ -126,6 +134,11 @@ onMounted(() => {
 
 .order-detail__amount {
   grid-template-columns: 1fr auto;
+}
+
+.order-detail__amount.is-total {
+  padding-top: var(--space-2);
+  border-top: 1px solid var(--color-border-soft);
 }
 
 .order-detail__amount strong {
