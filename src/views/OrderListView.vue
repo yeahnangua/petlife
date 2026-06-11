@@ -3,6 +3,7 @@ import { computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import OrderCard from '@/components/OrderCard.vue'
 import EmptyState from '@/components/EmptyState.vue'
+import SkeletonBlock from '@/components/SkeletonBlock.vue'
 import { useAccountStore } from '@/stores/account'
 
 const route = useRoute()
@@ -57,7 +58,9 @@ const activeStatus = computed({
   set: (value) => replaceQuery({ status: value === 'all' ? '' : value })
 })
 
-const currentStatusTabs = computed(() => activeKind.value === 'service' ? serviceStatusTabs : productStatusTabs)
+const currentStatusTabs = computed(() =>
+  activeKind.value === 'service' ? serviceStatusTabs : productStatusTabs
+)
 
 const visibleOrders = computed(() => {
   const source = activeKind.value === 'service'
@@ -73,13 +76,19 @@ const visibleOrders = computed(() => {
 </script>
 
 <template>
-  <div class="orders page-pad page-stack">
-    <section class="orders__tabs surface-card hide-scroll">
+  <div class="orders page-pad">
+    <header class="orders__head">
+      <p class="orders__eyebrow">ORDERS</p>
+      <h1 class="orders__title font-display">我的订单</h1>
+    </header>
+
+    <!-- 类型切换 -->
+    <section class="orders__kind">
       <button
         v-for="tab in kindTabs"
         :key="tab.id"
         type="button"
-        class="orders__tab"
+        class="orders__tab orders__kind-tab"
         :class="{ 'is-active': activeKind === tab.id }"
         @click="activeKind = tab.id"
       >
@@ -87,12 +96,13 @@ const visibleOrders = computed(() => {
       </button>
     </section>
 
-    <section class="orders__tabs surface-card hide-scroll">
+    <!-- 状态筛选 -->
+    <section class="orders__status hide-scroll">
       <button
         v-for="tab in currentStatusTabs"
         :key="tab.id"
         type="button"
-        class="orders__tab"
+        class="orders__tab orders__status-tab"
         :class="{ 'is-active': activeStatus === tab.id }"
         @click="activeStatus = tab.id"
       >
@@ -100,15 +110,14 @@ const visibleOrders = computed(() => {
       </button>
     </section>
 
-    <div v-if="accountStore.loading" class="surface-card orders__state">正在加载订单记录...</div>
+    <div v-if="accountStore.loading" class="orders__stack">
+      <SkeletonBlock variant="card" />
+      <SkeletonBlock variant="card" />
+    </div>
 
-    <template v-else-if="visibleOrders.length">
-      <OrderCard
-        v-for="order in visibleOrders"
-        :key="order.id"
-        :order="order"
-      />
-    </template>
+    <section v-else-if="visibleOrders.length" class="orders__stack">
+      <OrderCard v-for="order in visibleOrders" :key="order.id" :order="order" />
+    </section>
     <EmptyState
       v-else
       icon="order"
@@ -122,33 +131,82 @@ const visibleOrders = computed(() => {
 
 <style scoped>
 .orders {
+  display: grid;
+  gap: var(--space-4);
   padding-bottom: var(--space-6);
+  align-content: start;
 }
 
-.orders__tabs {
+.orders__head {
+  padding-top: calc(var(--safe-top) + var(--space-5));
+}
+
+.orders__eyebrow {
+  color: var(--color-primary);
+  font-size: var(--text-2xs);
+  font-weight: var(--weight-bold);
+  letter-spacing: var(--tracking-wider);
+}
+
+.orders__title {
+  margin-top: 2px;
+  font-size: var(--text-3xl);
+  font-weight: var(--weight-semibold);
+}
+
+.orders__kind {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  padding: 4px;
+  border-radius: var(--radius-full);
+  background: var(--color-surface-warm);
+}
+
+.orders__kind-tab {
+  min-height: 38px;
+  border-radius: var(--radius-full);
+  color: var(--color-text-mute);
+  font-size: var(--text-md);
+  font-weight: var(--weight-medium);
+  transition: all var(--dur-base) var(--ease-out);
+}
+
+.orders__kind-tab.is-active {
+  background: var(--color-primary-deep);
+  color: var(--color-text-invert);
+  font-weight: var(--weight-semibold);
+  box-shadow: var(--shadow-sm);
+}
+
+.orders__status {
   display: flex;
   gap: var(--space-2);
   overflow-x: auto;
-  padding: var(--space-3);
+  padding-bottom: 2px;
 }
 
-.orders__tab {
-  min-height: 34px;
-  padding: 0 var(--space-3);
+.orders__status-tab {
+  flex-shrink: 0;
+  min-height: 32px;
+  padding: 0 var(--space-4);
+  border: 1px solid var(--color-border-soft);
   border-radius: var(--radius-full);
-  background: var(--color-surface-soft);
+  background: var(--color-surface);
   color: var(--color-text-soft);
   font-size: var(--text-sm);
+  transition: all var(--dur-base) var(--ease-out);
 }
 
-.orders__tab.is-active {
-  background: var(--color-primary-deep);
-  color: var(--color-text-invert);
+.orders__status-tab.is-active {
+  border-color: var(--color-primary-soft);
+  background: var(--color-primary-tint);
+  color: var(--color-primary-deep);
+  font-weight: var(--weight-semibold);
 }
 
-.orders__state {
-  padding: var(--space-5);
-  color: var(--color-text-soft);
-  text-align: center;
+.orders__stack {
+  display: grid;
+  gap: var(--space-3);
 }
 </style>

@@ -4,6 +4,9 @@ import { createPinia, setActivePinia } from 'pinia'
 import { flushPromises, mount } from '@vue/test-utils'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createRouter, createWebHashHistory } from 'vue-router'
+import { services } from '@/mocks'
+import { useBookingStore } from '@/stores/booking'
+import BookingConfirmView from '@/views/BookingConfirmView.vue'
 import OrderConfirmView from '@/views/OrderConfirmView.vue'
 
 const userApi = vi.hoisted(() => ({
@@ -156,5 +159,27 @@ describe('bottom submit bar layout', () => {
     expect(wrapper.classes()).toContain('page-with-submit-bar')
     expect(wrapper.find('.page-submit-bar .sticky-bar').exists()).toBe(true)
     expect(wrapper.find('.sticky-bar .button-primary').exists()).toBe(true)
+  })
+
+  it('uses the shared sticky bar on the booking confirmation page and gates submit on readiness', async () => {
+    const bookingStore = useBookingStore()
+    bookingStore.prepareFromService(services[0])
+
+    const router = createTestRouter(BookingConfirmView)
+    await router.isReady()
+
+    const wrapper = mount(BookingConfirmView, {
+      global: {
+        plugins: [router]
+      }
+    })
+
+    await flushPromises()
+
+    expect(wrapper.classes()).toContain('page-with-submit-bar')
+    expect(wrapper.find('.page-submit-bar .sticky-bar').exists()).toBe(true)
+
+    const submitButton = wrapper.get('.sticky-bar .button-primary')
+    expect(submitButton.attributes('disabled')).toBeDefined()
   })
 })
