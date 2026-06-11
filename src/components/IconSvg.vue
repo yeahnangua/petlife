@@ -276,6 +276,51 @@ const props = defineProps({
       <path d="M12 15v6M9 19h6" />
     </template>
 
+    <!-- trash -->
+    <template v-else-if="name === 'trash'">
+      <path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
+      <path d="M6 7l1 13a1 1 0 0 0 1 .9h8a1 1 0 0 0 1-.9l1-13" />
+      <path d="M10 11v6M14 11v6" />
+    </template>
+
+    <!-- phone -->
+    <template v-else-if="name === 'phone'">
+      <path d="M5 4h4l1.5 5-2.5 1.5a12 12 0 0 0 5.5 5.5L15 13.5l5 1.5v4a1 1 0 0 1-1 1A16 16 0 0 1 4 5a1 1 0 0 1 1-1z" />
+    </template>
+
+    <!-- truck -->
+    <template v-else-if="name === 'truck'">
+      <path d="M3 6h11v10H3V6zM14 10h4l3 3v3h-7v-6z" />
+      <circle cx="7" cy="18.5" r="1.6" />
+      <circle cx="17" cy="18.5" r="1.6" />
+    </template>
+
+    <!-- wallet -->
+    <template v-else-if="name === 'wallet'">
+      <path d="M4 7a2 2 0 0 1 2-2h12v3" />
+      <path d="M4 7v10a2 2 0 0 0 2 2h13a1 1 0 0 0 1-1V9a1 1 0 0 0-1-1H6a2 2 0 0 1-2-2z" />
+      <circle cx="16" cy="13.5" r="1.2" />
+    </template>
+
+    <!-- logout -->
+    <template v-else-if="name === 'logout'">
+      <path d="M14 4H6a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h8" />
+      <path d="M10 12h10M17 8.5l3.5 3.5-3.5 3.5" />
+    </template>
+
+    <!-- shield -->
+    <template v-else-if="name === 'shield'">
+      <path d="M12 3l8 3v6c0 4.5-3.2 7.7-8 9-4.8-1.3-8-4.5-8-9V6l8-3z" />
+      <path d="M8.5 12l2.5 2.5 4.5-5" />
+    </template>
+
+    <!-- image -->
+    <template v-else-if="name === 'image'">
+      <rect x="3.5" y="5" width="17" height="14" rx="2" />
+      <circle cx="9" cy="10" r="1.5" />
+      <path d="M3.5 16l5-4 4 3 3-2.5 5 3.5" />
+    </template>
+
     <!-- default fallback -->
     <template v-else>
       <circle cx="12" cy="12" r="4" />
