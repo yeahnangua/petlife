@@ -1,48 +1,52 @@
 /* =========================================================
- * PetLife · Design Tokens
- * 温暖 / 专业 / 轻疗愈 / 品牌感
- * 配色: 鼠尾草绿 + 奶油白 + 珊瑚橙
+ * PetLife · Design Tokens v2 — 暖色品牌进化
+ * 现代暖色 / 编辑杂志式排版 / 安静的精致
+ * 深苔绿 #28402F · 暖米白 #FAF8F3 · 珊瑚橙 #D9714E
  * ========================================================= */
 
 :root {
   /* ---------- Color · Surface ---------- */
-  --color-bg: #F4EFE4;            /* 奶油燕麦主背景 */
-  --color-bg-deep: #EDE5D3;       /* 略深底色 */
+  --color-bg: #FAF8F3;            /* 暖米白主背景 */
+  --color-bg-deep: #F3EFE6;       /* 略深底，分区用 */
   --color-surface: #FFFFFF;
-  --color-surface-soft: #FBF7EE;  /* 卡片柔色底 */
-  --color-surface-warm: #F2EADB;  /* 嵌套模块底 */
+  --color-surface-soft: #FCFBF7;  /* 卡内嵌套底 */
+  --color-surface-warm: #F4F0E7;  /* 暖灰嵌套模块底 */
 
   /* ---------- Color · Brand ---------- */
-  --color-primary: #6A8572;       /* 主色 · 鼠尾草绿 */
-  --color-primary-deep: #3F5A48;  /* 深苔绿, 主CTA/深文字 */
-  --color-primary-soft: #DCE6DD;  /* 极浅 sage, tag/hover */
-  --color-primary-tint: #EEF3EC;  /* sage 极浅底色 */
+  --color-primary: #4A6B57;       /* 中调鼠尾草绿 */
+  --color-primary-deep: #28402F;  /* 深苔绿 · 主CTA/深色块 */
+  --color-primary-soft: #DFE9E0;  /* 浅 sage · 选中底/标签 */
+  --color-primary-tint: #F0F4EE;  /* sage 极浅底 */
 
   /* ---------- Color · Accent ---------- */
-  --color-coral: #D97757;         /* 珊瑚橙, 强调/价格/促销 */
-  --color-coral-soft: #F3DFD0;
-  --color-amber: #D4A44C;         /* 琥珀黄, 会员/标签 */
-  --color-amber-soft: #F2E3C1;
-  --color-clay: #B58463;          /* 暖陶土, 宠物档案点缀 */
-  --color-sky: #8AA3B4;           /* 雾青, 服务相关点缀 */
+  --color-coral: #D9714E;         /* 珊瑚橙 · 仅价格/促销 */
+  --color-coral-soft: #F8E3D8;
+  --color-amber: #C99A45;         /* 琥珀金 · 仅会员 */
+  --color-amber-soft: #F4E7CC;
+  --color-clay: #B58463;          /* 暖陶土 · 宠物档案点缀 */
+  --color-sky: #87A0B2;           /* 雾青 · 服务信息点缀 */
 
   /* ---------- Color · Text ---------- */
-  --color-text: #2B2A26;          /* 主文字, 暖黑棕 */
-  --color-text-soft: #595650;     /* 次文字 */
-  --color-text-mute: #8D8880;     /* 弱化文字 */
-  --color-text-tint: #B9B4AB;     /* 极弱 */
-  --color-text-invert: #FBF7EE;   /* 深底反白 */
+  --color-text: #23211C;          /* 暖墨 */
+  --color-text-soft: #57544C;
+  --color-text-mute: #8B867C;
+  --color-text-tint: #BBB5A9;
+  --color-text-invert: #F7F4EC;   /* 深底反白 */
 
-  /* ---------- Color · Divider / Border ---------- */
-  --color-border: #E6DDCB;
-  --color-border-soft: #EEE7D9;
-  --color-divider: #EBE3D2;
+  /* ---------- Color · Border ---------- */
+  --color-border: #E9E3D6;
+  --color-border-soft: #F0EBE0;
+  --color-divider: #EDE8DC;
 
   /* ---------- Color · State ---------- */
-  --color-success: #5C8A6A;
-  --color-warning: #D4A44C;
-  --color-danger: #C26553;
-  --color-info: #8AA3B4;
+  --color-success: #4F7F60;
+  --color-success-soft: #E2EEE5;
+  --color-warning: #C99A45;
+  --color-warning-soft: #F4E7CC;
+  --color-danger: #C25B49;
+  --color-danger-soft: #F6E0DB;
+  --color-info: #87A0B2;
+  --color-info-soft: #E5ECF1;
   --color-disabled: #C9C3B7;
 
   /* ---------- Radius ---------- */
@@ -50,11 +54,11 @@
   --radius-sm: 12px;
   --radius-md: 16px;
   --radius-lg: 20px;
-  --radius-xl: 28px;
-  --radius-2xl: 36px;
+  --radius-xl: 26px;
+  --radius-2xl: 32px;
   --radius-full: 999px;
 
-  /* ---------- Spacing (4pt grid) ---------- */
+  /* ---------- Spacing (4pt) ---------- */
   --space-1: 4px;
   --space-2: 8px;
   --space-3: 12px;
@@ -68,15 +72,15 @@
   --space-14: 56px;
   --space-16: 64px;
 
-  /* ---------- Shadow ---------- */
-  --shadow-xs: 0 1px 2px rgba(43, 42, 38, 0.04);
-  --shadow-sm: 0 2px 8px rgba(43, 42, 38, 0.05), 0 1px 2px rgba(43, 42, 38, 0.03);
-  --shadow-md: 0 6px 20px rgba(43, 42, 38, 0.07), 0 2px 6px rgba(43, 42, 38, 0.04);
-  --shadow-lg: 0 16px 40px rgba(43, 42, 38, 0.10), 0 4px 12px rgba(43, 42, 38, 0.05);
-  --shadow-float: 0 12px 32px rgba(63, 90, 72, 0.12);
-  --shadow-brand: 0 10px 24px rgba(106, 133, 114, 0.28);
-  --shadow-coral: 0 10px 24px rgba(217, 119, 87, 0.25);
-  --shadow-inset: inset 0 0 0 1px rgba(43, 42, 38, 0.05);
+  /* ---------- Shadow（细描边+低调单层） ---------- */
+  --shadow-xs: 0 1px 2px rgba(35, 33, 28, 0.05);
+  --shadow-sm: 0 2px 6px rgba(35, 33, 28, 0.06);
+  --shadow-md: 0 6px 16px rgba(35, 33, 28, 0.07);
+  --shadow-lg: 0 14px 32px rgba(35, 33, 28, 0.10);
+  --shadow-float: 0 10px 26px rgba(40, 64, 47, 0.16);
+  --shadow-brand: 0 8px 20px rgba(40, 64, 47, 0.22);
+  --shadow-coral: 0 8px 20px rgba(217, 113, 78, 0.22);
+  --shadow-inset: inset 0 0 0 1px rgba(35, 33, 28, 0.05);
 
   /* ---------- Typography ---------- */
   --font-display: 'Fraunces', 'Noto Serif SC', 'Songti SC', serif;
@@ -113,16 +117,17 @@
   --tracking-wider: 0.1em;
 
   /* ---------- Layout ---------- */
-  --mobile-max: 440px;
+  --mobile-max: 430px;
   --page-padding: 20px;
-  --safe-bottom: env(safe-area-inset-bottom, 0);
-  --safe-top: env(safe-area-inset-top, 0);
-  --tabbar-height: 64px;
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-top: env(safe-area-inset-top, 0px);
+  --tabbar-height: 62px;
   --action-bar-height: 64px;
 
   /* ---------- Motion ---------- */
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
   --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --ease-spring: cubic-bezier(0.34, 1.3, 0.5, 1);
   --dur-fast: 140ms;
   --dur-base: 220ms;
   --dur-slow: 360ms;
