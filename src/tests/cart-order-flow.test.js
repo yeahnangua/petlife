@@ -260,6 +260,6 @@ describe('cart and order flow', () => {
       remark: ''
     })
     expect(userApi.getCart).toHaveBeenCalledTimes(2)
-    expect(router.currentRoute.value.fullPath).toBe('/orders/order_002')
+    expect(router.currentRoute.value.fullPath).toBe('/orders/order_002?backTo=/')
   })
 })

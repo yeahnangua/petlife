@@ -503,8 +503,12 @@ describe('frontend api client', () => {
       statusLabel: '已完成',
       createdAt: '2026-04-02 12:08',
       totalAmount: 248,
+      subtotalAmount: 248,
+      shippingAmount: 12,
+      payableAmount: 260,
       itemCount: 1,
       address: '上海市 静安区 南京西路街道 梅园里小区 12 号 3B 室',
+      remark: undefined,
       items: [{
         id: 'p-001-3kg · 鸡肉',
         productId: 'p-001',

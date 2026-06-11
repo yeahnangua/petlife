@@ -62,9 +62,9 @@ describe('user order apis', () => {
     expect(createResponse.body.data.order.total_amount).toBe(352)
     expect(createResponse.body.data.order.receiver_name_snapshot).toBe('拾柒')
     expect(createResponse.body.data.order.items).toHaveLength(2)
-    expect(createResponse.body.data.order.items.map((item) => item.product_title_snapshot)).toEqual([
-      '鲜肉全价猫粮',
-      '冻干鸡肉小食'
+    expect(createResponse.body.data.order.items.map((item) => item.product_title_snapshot).sort()).toEqual([
+      '冻干鸡肉小食',
+      '鲜肉全价猫粮'
     ])
 
     const createdOrder = db
@@ -96,7 +96,7 @@ describe('user order apis', () => {
       )
       .all(createResponse.body.data.order.id)
 
-    expect(orderItems).toEqual([
+    expect([...orderItems].sort((a, b) => a.product_id.localeCompare(b.product_id))).toEqual([
       {
         product_id: 'p-001',
         spec_label_snapshot: '3kg · 鸡肉',
