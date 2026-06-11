@@ -3,7 +3,8 @@ import { computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import EmptyState from '@/components/EmptyState.vue'
 import ServiceCard from '@/components/ServiceCard.vue'
-import PetChipSwitch from '@/components/PetChipSwitch.vue'
+import ChipSwitch from '@/components/ChipSwitch.vue'
+import SkeletonBlock from '@/components/SkeletonBlock.vue'
 import IconSvg from '@/components/IconSvg.vue'
 import { serviceCategories } from '@/content/catalog'
 import { useCatalogStore } from '@/stores/catalog'
@@ -13,6 +14,17 @@ const route = useRoute()
 const router = useRouter()
 const catalogStore = useCatalogStore()
 const profileStore = useProfileStore()
+
+const petOptions = [
+  { value: 'cat', label: '猫咪' },
+  { value: 'dog', label: '狗狗' }
+]
+
+const guarantees = [
+  { icon: 'shield', label: '门店专业认证' },
+  { icon: 'leaf', label: '温和低应激' },
+  { icon: 'heart', label: '全程可陪同' }
+]
 
 function replaceQuery(nextQuery) {
   const mergedQuery = {
@@ -63,90 +75,104 @@ function goToPage(page) {
 </script>
 
 <template>
-  <div class="service page-pad page-stack">
-    <section class="service__hero surface-card">
-      <div>
-        <p class="section-heading__meta">门店服务</p>
-        <h2 class="section-heading__title">洗护、美容、护理和寄养都可以线上预约</h2>
-        
+  <div class="service">
+    <!-- 头部 -->
+    <header class="service__head page-pad">
+      <div class="service__head-row">
+        <div>
+          <p class="service__eyebrow">SERVICES</p>
+          <h1 class="service__title font-display">门店服务<br />线上轻松预约</h1>
+        </div>
+        <ChipSwitch v-model="activePet" :options="petOptions" />
       </div>
-      <PetChipSwitch v-model="activePet" />
-    </section>
+      <div class="service__guarantee">
+        <span v-for="item in guarantees" :key="item.label" class="service__guarantee-item">
+          <IconSvg :name="item.icon" :size="14" :stroke="1.9" />
+          {{ item.label }}
+        </span>
+      </div>
+    </header>
 
-    <section class="surface-card service__categories">
-      <button
-        type="button"
-        class="service__category"
-        :class="{ 'is-active': !activeCategory }"
-        @click="activeCategory = ''"
-      >
-        <IconSvg name="service" :size="18" />
-        全部
-      </button>
-      <button
-        v-for="item in serviceCategories"
-        :key="item.id"
-        type="button"
-        class="service__category"
-        :class="{ 'is-active': activeCategory === item.id }"
-        @click="activeCategory = item.id"
-      >
-        <IconSvg :name="item.icon" :size="18" />
-        {{ item.label }}
-      </button>
-    </section>
+    <div class="service__body page-pad">
+      <!-- 分类 -->
+      <section class="service__categories hide-scroll">
+        <button
+          type="button"
+          class="service__category"
+          :class="{ 'service__category--active': !activeCategory }"
+          @click="activeCategory = ''"
+        >
+          <IconSvg name="service" :size="16" :stroke="1.8" />
+          全部
+        </button>
+        <button
+          v-for="item in serviceCategories"
+          :key="item.id"
+          type="button"
+          class="service__category"
+          :class="{ 'service__category--active': activeCategory === item.id }"
+          @click="activeCategory = item.id"
+        >
+          <IconSvg :name="item.icon" :size="16" :stroke="1.8" />
+          {{ item.label }}
+        </button>
+      </section>
 
-    <div v-if="catalogStore.loading.services" class="surface-card service__state">
-      正在加载服务目录...
-    </div>
-    <EmptyState
-      v-else-if="catalogStore.error.services"
-      icon="service"
-      title="服务目录加载失败"
-      :description="catalogStore.error.services"
-      action-label="重试"
-      @action="catalogStore.fetchServiceList({ petType: activePet, category: activeCategory, page: currentPage, pageSize: 20 })"
-    />
-    <EmptyState
-      v-else-if="!catalogStore.serviceList.length"
-      icon="service"
-      title="这个筛选下还没有服务"
-      description="切换宠物类型或服务分类试试看。"
-      action-label="查看全部"
-      @action="activeCategory = ''"
-    />
-    <section v-else class="page-stack">
-      <ServiceCard
-        v-for="serviceItem in catalogStore.serviceList"
-        :key="serviceItem.id"
-        :service="serviceItem"
+      <!-- 列表 -->
+      <div v-if="catalogStore.loading.services" class="service__list">
+        <SkeletonBlock variant="card" />
+        <SkeletonBlock variant="card" />
+      </div>
+      <EmptyState
+        v-else-if="catalogStore.error.services"
+        icon="service"
+        title="服务目录加载失败"
+        :description="catalogStore.error.services"
+        action-label="重试"
+        @action="catalogStore.fetchServiceList({ petType: activePet, category: activeCategory, page: currentPage, pageSize: 20 })"
       />
-    </section>
+      <EmptyState
+        v-else-if="!catalogStore.serviceList.length"
+        icon="service"
+        title="这个筛选下还没有服务"
+        description="切换宠物类型或服务分类试试看。"
+        action-label="查看全部"
+        @action="activeCategory = ''"
+      />
+      <section v-else class="service__list">
+        <ServiceCard
+          v-for="serviceItem in catalogStore.serviceList"
+          :key="serviceItem.id"
+          :service="serviceItem"
+        />
+      </section>
 
-    <section
-      v-if="catalogStore.servicePagination.totalPages > 1"
-      class="surface-card service__pagination"
-    >
-      <button
-        type="button"
-        class="button-secondary"
-        :disabled="catalogStore.servicePagination.page <= 1"
-        @click="goToPage(catalogStore.servicePagination.page - 1)"
-      >
-        上一页
-      </button>
-      <span>
-        第 {{ catalogStore.servicePagination.page }} / {{ catalogStore.servicePagination.totalPages }} 页
-      </span>
-      <button
-        type="button"
-        class="button-secondary"
-        :disabled="catalogStore.servicePagination.page >= catalogStore.servicePagination.totalPages"
-        @click="goToPage(catalogStore.servicePagination.page + 1)"
-      >
-        下一页
-      </button>
-    </section>
+      <!-- 分页 -->
+      <nav v-if="catalogStore.servicePagination.totalPages > 1" class="service__pager" aria-label="分页">
+        <button
+          type="button"
+          class="service__pager-btn"
+          :disabled="catalogStore.servicePagination.page <= 1"
+          aria-label="上一页"
+          @click="goToPage(catalogStore.servicePagination.page - 1)"
+        >
+          <IconSvg name="back" :size="16" :stroke="2.2" />
+        </button>
+        <span class="service__pager-info">
+          <strong class="font-display">{{ catalogStore.servicePagination.page }}</strong>
+          / {{ catalogStore.servicePagination.totalPages }}
+        </span>
+        <button
+          type="button"
+          class="service__pager-btn"
+          :disabled="catalogStore.servicePagination.page >= catalogStore.servicePagination.totalPages"
+          aria-label="下一页"
+          @click="goToPage(catalogStore.servicePagination.page + 1)"
+        >
+          <IconSvg name="arrow-right" :size="16" :stroke="2.2" />
+        </button>
+      </nav>
+    </div>
   </div>
 </template>
 
@@ -155,57 +181,127 @@ function goToPage(page) {
   padding-bottom: var(--space-6);
 }
 
-.service__hero {
+.service__head {
   display: grid;
   gap: var(--space-4);
-  padding: var(--space-5);
-  background:
-    radial-gradient(circle at top right, rgba(106, 133, 114, 0.18), transparent 32%),
-    linear-gradient(135deg, rgba(255, 255, 255, 0.82), rgba(242, 234, 219, 0.86));
+  padding-top: calc(var(--safe-top) + var(--space-5));
+  padding-bottom: var(--space-5);
+  background: linear-gradient(180deg, var(--color-primary-tint), transparent);
 }
 
-.service__hero-copy {
-  color: var(--color-text-soft);
+.service__head-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.service__eyebrow {
+  color: var(--color-primary);
+  font-size: var(--text-2xs);
+  font-weight: var(--weight-bold);
+  letter-spacing: var(--tracking-wider);
+}
+
+.service__title {
+  margin-top: 2px;
+  font-size: var(--text-3xl);
+  font-weight: var(--weight-semibold);
+  line-height: 1.2;
+}
+
+.service__guarantee {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-4);
+}
+
+.service__guarantee-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--color-primary-deep);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-medium);
+}
+
+.service__body {
+  display: grid;
+  gap: var(--space-4);
 }
 
 .service__categories {
   display: flex;
-  flex-wrap: wrap;
   gap: var(--space-2);
-  padding: var(--space-3);
+  overflow-x: auto;
+  padding-bottom: 2px;
 }
 
 .service__category {
+  flex-shrink: 0;
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  min-height: 36px;
-  padding: 0 var(--space-3);
+  min-height: 38px;
+  padding: 0 var(--space-4);
+  border: 1px solid var(--color-border-soft);
   border-radius: var(--radius-full);
-  background: var(--color-surface-soft);
+  background: var(--color-surface);
   color: var(--color-text-soft);
   font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  transition: all var(--dur-base) var(--ease-out);
 }
 
-.service__category.is-active {
+.service__category--active {
+  border-color: var(--color-primary-deep);
   background: var(--color-primary-deep);
   color: var(--color-text-invert);
 }
 
-.service__state,
-.service__pagination {
-  padding: var(--space-4);
+.service__list {
+  display: grid;
+  gap: var(--space-3);
 }
 
-.service__state {
-  color: var(--color-text-soft);
-  text-align: center;
-}
-
-.service__pagination {
+.service__pager {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: var(--space-3);
+  justify-content: center;
+  gap: var(--space-5);
+  padding: var(--space-2) 0;
+}
+
+.service__pager-btn {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-full);
+  background: var(--color-surface);
+  color: var(--color-text);
+  box-shadow: var(--shadow-xs);
+  transition: transform var(--dur-fast) var(--ease-spring), opacity var(--dur-base) var(--ease-out);
+}
+
+.service__pager-btn:active {
+  transform: scale(0.9);
+}
+
+.service__pager-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.service__pager-info {
+  color: var(--color-text-mute);
+  font-size: var(--text-sm);
+}
+
+.service__pager-info strong {
+  color: var(--color-text);
+  font-size: var(--text-lg);
 }
 </style>
