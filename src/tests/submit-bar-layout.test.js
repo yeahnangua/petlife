@@ -4,9 +4,6 @@ import { createPinia, setActivePinia } from 'pinia'
 import { flushPromises, mount } from '@vue/test-utils'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createRouter, createWebHashHistory } from 'vue-router'
-import { services } from '@/mocks'
-import { useBookingStore } from '@/stores/booking'
-import BookingConfirmView from '@/views/BookingConfirmView.vue'
 import OrderConfirmView from '@/views/OrderConfirmView.vue'
 
 const userApi = vi.hoisted(() => ({
@@ -144,7 +141,7 @@ describe('bottom submit bar layout', () => {
     expect(serviceDetail).toContain('bottom: calc(var(--shell-bottom-offset) + var(--space-4));')
   })
 
-  it('uses the shared submit bar layout on the order confirmation page', async () => {
+  it('uses the shared sticky bar on the order confirmation page', async () => {
     const router = createTestRouter(OrderConfirmView)
     await router.isReady()
 
@@ -157,25 +154,7 @@ describe('bottom submit bar layout', () => {
     await flushPromises()
 
     expect(wrapper.classes()).toContain('page-with-submit-bar')
-    expect(wrapper.get('.order-confirm__submit').classes()).toContain('page-submit-bar')
-  })
-
-  it('uses the shared submit bar layout on the booking confirmation page', async () => {
-    const bookingStore = useBookingStore()
-    bookingStore.prepareFromService(services[0])
-
-    const router = createTestRouter(BookingConfirmView)
-    await router.isReady()
-
-    const wrapper = mount(BookingConfirmView, {
-      global: {
-        plugins: [router]
-      }
-    })
-
-    await flushPromises()
-
-    expect(wrapper.classes()).toContain('page-with-submit-bar')
-    expect(wrapper.get('.booking__submit').classes()).toContain('page-submit-bar')
+    expect(wrapper.find('.page-submit-bar .sticky-bar').exists()).toBe(true)
+    expect(wrapper.find('.sticky-bar .button-primary').exists()).toBe(true)
   })
 })

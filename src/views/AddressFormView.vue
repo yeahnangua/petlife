@@ -1,6 +1,8 @@
 <script setup>
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import FormField from '@/components/FormField.vue'
+import SkeletonBlock from '@/components/SkeletonBlock.vue'
 import { createAddress, getAddresses, updateAddress } from '@/api/user'
 import { adaptAddress } from '@/adapters/profile'
 
@@ -21,6 +23,7 @@ const form = reactive({
 })
 
 const isEdit = computed(() => Boolean(route.params.id))
+const canSubmit = computed(() => Boolean(form.name && form.phone && form.region && form.detail))
 
 function hydrateForm(address) {
   form.name = address.name || ''
@@ -90,107 +93,157 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="address-form page-pad page-stack">
-    <section class="surface-card address-form__card">
-      <div class="section-heading">
-        <div>
-          <p class="section-heading__meta">地址信息</p>
-          <h2 class="section-heading__title">{{ isEdit ? '编辑地址' : '新增地址' }}</h2>
-        </div>
-      </div>
+  <div class="aform page-pad">
+    <div v-if="loading" class="aform__stack">
+      <SkeletonBlock variant="text" :lines="5" />
+    </div>
 
-      <div v-if="loading" class="address-form__state">正在加载地址...</div>
-
-      <template v-else>
-        <label class="address-form__field">
-          <span>收货人</span>
+    <template v-else>
+      <section class="aform__card surface-card">
+        <FormField label="收货人" required>
           <input v-model="form.name" placeholder="例如 拾柒" />
-        </label>
+        </FormField>
 
-        <label class="address-form__field">
-          <span>联系电话</span>
-          <input v-model="form.phone" placeholder="例如 13527882788" />
-        </label>
+        <FormField label="联系电话" required>
+          <input v-model="form.phone" type="tel" placeholder="例如 13527882788" />
+        </FormField>
 
-        <label class="address-form__field">
-          <span>所在地区</span>
+        <FormField label="所在地区" required>
           <input v-model="form.region" placeholder="例如 上海市 静安区 南京西路街道" />
-        </label>
+        </FormField>
 
-        <label class="address-form__field">
-          <span>详细地址</span>
+        <FormField label="详细地址" required>
           <textarea v-model="form.detail" rows="3" placeholder="例如 梅园里小区 12 号 3B 室" />
-        </label>
+        </FormField>
 
-        <label class="address-form__field">
-          <span>地址标签</span>
-          <input v-model="form.tag" placeholder="例如 家 / 公司" />
-        </label>
+        <FormField label="地址标签" hint="方便区分，比如 家 / 公司">
+          <input v-model="form.tag" placeholder="例如 家" />
+        </FormField>
 
-        <label class="address-form__checkbox">
-          <input v-model="form.isDefault" type="checkbox" />
-          <span>设为默认地址</span>
-        </label>
+        <button
+          type="button"
+          class="aform__default"
+          :class="{ 'aform__default--on': form.isDefault }"
+          @click="form.isDefault = !form.isDefault"
+        >
+          <span class="aform__default-info">
+            <strong>设为默认地址</strong>
+            <small>下单时优先使用这个地址</small>
+          </span>
+          <span class="aform__switch" :class="{ 'aform__switch--on': form.isDefault }">
+            <i class="aform__switch-knob" />
+          </span>
+        </button>
 
-        <p v-if="error" class="address-form__error">{{ error }}</p>
+        <p v-if="error" class="aform__error">{{ error }}</p>
+      </section>
 
-        <div class="address-form__actions">
-          <button type="button" class="button-secondary" @click="router.back()">取消</button>
-          <button
-            type="button"
-            class="button-primary"
-            :disabled="saving || !form.name || !form.phone || !form.region || !form.detail"
-            @click="submitForm"
-          >
-            {{ saving ? '保存中...' : '保存地址' }}
-          </button>
-        </div>
-      </template>
-    </section>
+      <div class="aform__actions">
+        <button type="button" class="button-secondary aform__cancel" @click="router.back()">取消</button>
+        <button
+          type="button"
+          class="button-primary aform__save"
+          :disabled="saving || !canSubmit"
+          @click="submitForm"
+        >
+          {{ saving ? '保存中…' : '保存地址' }}
+        </button>
+      </div>
+    </template>
   </div>
 </template>
 
 <style scoped>
-.address-form {
-  padding-bottom: var(--space-6);
-}
-
-.address-form__card {
+.aform {
   display: grid;
   gap: var(--space-4);
-  padding: var(--space-4);
+  padding-top: var(--space-2);
+  padding-bottom: var(--space-6);
+  align-content: start;
 }
 
-.address-form__field {
+.aform__stack {
+  padding-top: var(--space-4);
+}
+
+.aform__card {
   display: grid;
-  gap: var(--space-2);
+  gap: var(--space-5);
+  padding: var(--space-5);
+  border-radius: var(--radius-xl);
 }
 
-.address-form__field input,
-.address-form__field textarea {
-  width: 100%;
-  padding: var(--space-3);
-  border-radius: var(--radius-lg);
-  background: var(--color-surface-soft);
-}
-
-.address-form__checkbox,
-.address-form__actions {
+.aform__default {
   display: flex;
   align-items: center;
-  gap: var(--space-3);
-}
-
-.address-form__actions {
   justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-soft);
+  border: 1px solid var(--color-border-soft);
+  text-align: left;
+  transition: border-color var(--dur-base) var(--ease-out);
 }
 
-.address-form__state,
-.address-form__error {
-  color: var(--color-text-soft);
+.aform__default--on {
+  border-color: var(--color-primary-soft);
+  background: var(--color-primary-tint);
 }
 
-.address-form__error {
-  color: var(--color-coral);
+.aform__default-info {
+  display: grid;
+  gap: 2px;
+}
+
+.aform__default-info strong {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+}
+
+.aform__default-info small {
+  color: var(--color-text-mute);
+  font-size: var(--text-xs);
+}
+
+.aform__switch {
+  position: relative;
+  width: 44px;
+  height: 26px;
+  flex-shrink: 0;
+  border-radius: var(--radius-full);
+  background: var(--color-border);
+  transition: background-color var(--dur-base) var(--ease-out);
+}
+
+.aform__switch--on {
+  background: var(--color-primary-deep);
+}
+
+.aform__switch-knob {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 20px;
+  height: 20px;
+  border-radius: var(--radius-full);
+  background: #fff;
+  box-shadow: var(--shadow-sm);
+  transition: transform var(--dur-base) var(--ease-spring);
+}
+
+.aform__switch--on .aform__switch-knob {
+  transform: translateX(18px);
+}
+
+.aform__error {
+  color: var(--color-danger);
+  font-size: var(--text-sm);
+}
+
+.aform__actions {
+  display: grid;
+  grid-template-columns: 1fr 1.6fr;
+  gap: var(--space-3);
 }
 </style>
