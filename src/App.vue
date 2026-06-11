@@ -3,6 +3,7 @@ import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 import TopBar from '@/components/TopBar.vue'
 import TabBar from '@/components/TabBar.vue'
+import Toast from '@/components/Toast.vue'
 
 const route = useRoute()
 
@@ -25,6 +26,7 @@ const shellBottomOffset = computed(() =>
         </router-view>
       </main>
       <TabBar v-if="isTabRoute" />
+      <Toast />
     </div>
   </div>
 </template>
