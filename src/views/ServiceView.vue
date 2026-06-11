@@ -68,9 +68,7 @@ function goToPage(page) {
       <div>
         <p class="section-heading__meta">门店服务</p>
         <h2 class="section-heading__title">洗护、美容、护理和寄养都可以线上预约</h2>
-        <p class="service__hero-copy">
-          服务不混入购物车，直接预约到时间、门店和宠物档案，更贴近真实业务链路。
-        </p>
+        
       </div>
       <PetChipSwitch v-model="activePet" />
     </section>

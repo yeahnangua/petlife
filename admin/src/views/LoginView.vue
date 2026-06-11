@@ -26,7 +26,7 @@ function submitLogin() {
     <form class="login-view__card" @submit.prevent="submitLogin">
       <p class="login-view__eyebrow">PetLife Admin</p>
       <h1>管理员登录</h1>
-      <p class="login-view__copy">输入本地演示环境的 `x-admin-key` 后进入后台。</p>
+      <p class="login-view__copy">请输入您的管理员密钥</p>
       <label class="login-view__field">
         <span>Admin Key</span>
         <input v-model="adminKey" type="password" placeholder="请输入 x-admin-key" />

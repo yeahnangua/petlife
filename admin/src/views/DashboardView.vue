@@ -66,10 +66,7 @@ onMounted(() => {
     <div class="dashboard-view__hero">
       <div>
         <p class="dashboard-view__eyebrow">运营概览</p>
-        <h2>后台数据入口已经接上真实 `/api/admin`。</h2>
-        <p class="dashboard-view__copy">
-          当前阶段先聚合分类、商品、服务、门店、待发货订单和待服务预约，后续各管理页在此基础上展开增删改查。
-        </p>
+        
       </div>
       <button type="button" class="dashboard-view__refresh" @click="loadDashboard">
         刷新概览

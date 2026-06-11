@@ -62,7 +62,7 @@ function openQuickEntry(entry) {
     <section class="home__hero surface-card">
       <div class="home__hero-copy">
         <span class="pill">PetLife · 春季关怀季</span>
-        <h2 class="font-display">把照顾宠物这件事，做得更温柔一点。</h2>
+        <h2 class="font-display">把照顾宠物这件事做得更温柔一点</h2>
         <p>
           商品、洗护、美容、寄养与会员权益集中在同一个移动端体验里，
           面向真正重视陪伴感的养宠人群。
