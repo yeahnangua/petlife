@@ -2,7 +2,9 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import EmptyState from '@/components/EmptyState.vue'
+import FormField from '@/components/FormField.vue'
 import ImageUploadField from '@/components/ImageUploadField.vue'
+import SkeletonBlock from '@/components/SkeletonBlock.vue'
 import { useProfileStore } from '@/stores/profile'
 
 const route = useRoute()
@@ -93,144 +95,87 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="profile-edit page-pad page-stack">
-    <section class="surface-card profile-edit__card">
-      <div class="section-heading">
-        <div>
-          <p class="section-heading__meta">个人资料</p>
-          <h2 class="section-heading__title">编辑资料</h2>
+  <div class="pedit page-pad">
+    <div v-if="loading" class="pedit__stack">
+      <SkeletonBlock variant="avatar" />
+      <SkeletonBlock variant="text" :lines="3" />
+    </div>
+
+    <EmptyState
+      v-else-if="error && !profile"
+      title="个人资料加载失败"
+      :description="error"
+      action-label="重试"
+      @action="loadProfile()"
+    />
+
+    <template v-else>
+      <section class="pedit__card surface-card">
+        <div class="pedit__avatar-row">
+          <ImageUploadField v-model="form.avatar" label="头像" hint="JPG / PNG" />
         </div>
+
+        <FormField label="昵称" required>
+          <input v-model="form.nickname" placeholder="想被怎么称呼？" />
+        </FormField>
+
+        <FormField label="手机号" required hint="11 位手机号，用于门店联系">
+          <input v-model="form.phone" type="tel" placeholder="例如 13527882788" />
+        </FormField>
+
+        <p v-if="error" class="pedit__error">{{ error }}</p>
+      </section>
+
+      <div class="pedit__actions">
+        <button type="button" class="button-secondary" @click="goBack">取消</button>
+        <button
+          type="button"
+          class="button-primary"
+          :disabled="submitDisabled"
+          @click="submitForm"
+        >
+          {{ profileStore.saving ? '保存中…' : '保存资料' }}
+        </button>
       </div>
-
-      <div v-if="loading" class="profile-edit__state">正在加载资料...</div>
-
-      <EmptyState
-        v-else-if="error && !profile"
-        title="个人资料加载失败"
-        :description="error"
-        action-label="重试"
-        @action="loadProfile()"
-      />
-
-      <template v-else>
-        <ImageUploadField
-          v-model="form.avatar"
-          label="头像"
-          hint="支持 JPG / PNG，上传后会直接写入个人资料。"
-        />
-
-        <label class="profile-edit__field">
-          <span>昵称</span>
-          <input v-model="form.nickname" maxlength="20" placeholder="例如 拾柒" />
-        </label>
-
-        <label class="profile-edit__field">
-          <span>手机号</span>
-          <input
-            v-model="form.phone"
-            inputmode="numeric"
-            maxlength="11"
-            placeholder="例如 13527882788"
-            @input="form.phone = form.phone.replace(/\D/g, '').slice(0, 11)"
-          />
-        </label>
-
-        <div v-if="profile" class="profile-edit__readonly">
-          <div class="profile-edit__readonly-copy">
-            <p class="section-heading__meta">会员信息</p>
-            <h3>以下字段保持只读</h3>
-          </div>
-          <div class="profile-edit__readonly-row">
-            <span>会员等级</span>
-            <strong>{{ profile.level }}</strong>
-          </div>
-          <div class="profile-edit__readonly-row">
-            <span>当前积分</span>
-            <strong>{{ profile.points }}</strong>
-          </div>
-          <div class="profile-edit__readonly-row">
-            <span>入会时间</span>
-            <strong>{{ profile.joinDate }}</strong>
-          </div>
-        </div>
-
-        <p v-if="error" class="profile-edit__error">{{ error }}</p>
-
-        <div class="profile-edit__actions">
-          <button type="button" class="button-secondary" @click="goBack">取消</button>
-          <button
-            type="button"
-            class="button-primary"
-            :disabled="submitDisabled"
-            @click="submitForm"
-          >
-            {{ profileStore.saving ? '保存中...' : '保存资料' }}
-          </button>
-        </div>
-      </template>
-    </section>
+    </template>
   </div>
 </template>
 
 <style scoped>
-.profile-edit {
-  padding-bottom: var(--space-6);
-}
-
-.profile-edit__card {
+.pedit {
   display: grid;
   gap: var(--space-4);
-  padding: var(--space-4);
+  padding-top: var(--space-2);
+  padding-bottom: var(--space-6);
+  align-content: start;
 }
 
-.profile-edit__field {
+.pedit__stack {
   display: grid;
-  gap: var(--space-2);
+  gap: var(--space-4);
+  padding-top: var(--space-4);
 }
 
-.profile-edit__field input {
-  width: 100%;
-  padding: var(--space-3);
-  border-radius: var(--radius-lg);
-  background: var(--color-surface-soft);
-}
-
-.profile-edit__readonly {
+.pedit__card {
   display: grid;
-  gap: var(--space-3);
-  padding: var(--space-4);
+  gap: var(--space-5);
+  padding: var(--space-5);
   border-radius: var(--radius-xl);
-  background: var(--color-surface-soft);
 }
 
-.profile-edit__readonly-copy {
+.pedit__avatar-row {
   display: grid;
-  gap: 4px;
+  justify-items: start;
 }
 
-.profile-edit__readonly-copy h3 {
-  font-size: var(--text-base);
+.pedit__error {
+  color: var(--color-danger);
+  font-size: var(--text-sm);
 }
 
-.profile-edit__readonly-row,
-.profile-edit__actions {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+.pedit__actions {
+  display: grid;
+  grid-template-columns: 1fr 1.6fr;
   gap: var(--space-3);
-}
-
-.profile-edit__readonly-row span,
-.profile-edit__state {
-  color: var(--color-text-soft);
-}
-
-.profile-edit__state,
-.profile-edit__error {
-  text-align: center;
-}
-
-.profile-edit__error {
-  color: var(--color-coral);
 }
 </style>
