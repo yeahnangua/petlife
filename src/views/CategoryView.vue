@@ -3,6 +3,7 @@ import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import EmptyState from '@/components/EmptyState.vue'
 import ProductCard from '@/components/ProductCard.vue'
+import SkeletonBlock from '@/components/SkeletonBlock.vue'
 import { primaryCategories } from '@/content/catalog'
 import { useCatalogStore } from '@/stores/catalog'
 
@@ -64,38 +65,44 @@ function setSecondary(id) {
 </script>
 
 <template>
-  <div class="category page-pad">
-    <div class="category__layout">
-      <aside class="category__sidebar surface-card">
+  <div class="category">
+    <header class="category__head page-pad">
+      <p class="category__eyebrow">CATALOG</p>
+      <h1 class="category__title font-display">分类选购</h1>
+    </header>
+
+    <div class="category__layout page-pad">
+      <aside class="category__rail">
         <button
           v-for="item in primaryCategories"
           :key="item.id"
           type="button"
           class="category__primary"
-          :class="{ 'is-active': activePrimary === item.id }"
+          :class="{ 'category__primary--active': activePrimary === item.id }"
           @click="setPrimary(item.id)"
         >
-          <span>{{ item.emoji }}</span>
+          <span class="category__primary-emoji">{{ item.emoji }}</span>
           <span>{{ item.label }}</span>
         </button>
       </aside>
 
-      <section class="category__content page-stack">
-        <div class="surface-card category__chip-card">
+      <section class="category__content">
+        <div class="category__chips hide-scroll">
           <button
             v-for="item in secondaryOptions"
             :key="item.id"
             type="button"
             class="category__chip"
-            :class="{ 'is-active': activeSecondary === item.id }"
+            :class="{ 'category__chip--active': activeSecondary === item.id }"
             @click="setSecondary(item.id)"
           >
             {{ item.label || item.name }}
           </button>
         </div>
 
-        <div v-if="catalogStore.loading.products" class="surface-card category__state">
-          正在加载分类商品...
+        <div v-if="catalogStore.loading.products" class="category__grid">
+          <SkeletonBlock variant="card" />
+          <SkeletonBlock variant="card" />
         </div>
         <EmptyState
           v-else-if="catalogStore.error.products"
@@ -106,7 +113,8 @@ function setSecondary(id) {
         />
         <EmptyState
           v-else-if="!catalogStore.productList.length"
-          title="这个分类下还没有商品"
+          icon="box"
+          title="这个分类还没有商品"
           description="换个分类看看，或者稍后再来。"
           action-label="查看全部"
           @action="router.push('/products')"
@@ -128,56 +136,96 @@ function setSecondary(id) {
   padding-bottom: var(--space-6);
 }
 
-.category__layout {
-  display: grid;
-  grid-template-columns: 96px minmax(0, 1fr);
-  gap: var(--space-4);
+.category__head {
+  padding-top: calc(var(--safe-top) + var(--space-5));
+  padding-bottom: var(--space-4);
 }
 
-.category__sidebar {
+.category__eyebrow {
+  color: var(--color-primary);
+  font-size: var(--text-2xs);
+  font-weight: var(--weight-bold);
+  letter-spacing: var(--tracking-wider);
+}
+
+.category__title {
+  margin-top: 2px;
+  font-size: var(--text-3xl);
+  font-weight: var(--weight-semibold);
+}
+
+.category__layout {
+  display: grid;
+  grid-template-columns: 88px minmax(0, 1fr);
+  gap: var(--space-4);
+  align-items: start;
+}
+
+.category__rail {
+  position: sticky;
+  top: var(--space-4);
   display: grid;
   gap: var(--space-2);
-  align-content: start;
-  padding: var(--space-3);
+  padding: var(--space-2);
+  border: 1px solid var(--color-border-soft);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-xs);
 }
 
 .category__primary {
   display: grid;
   justify-items: center;
-  gap: 6px;
+  gap: 4px;
   padding: var(--space-3) 0;
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-md);
   color: var(--color-text-soft);
   font-size: var(--text-sm);
   font-weight: var(--weight-medium);
+  transition: background-color var(--dur-base) var(--ease-out), color var(--dur-base) var(--ease-out), transform var(--dur-fast) var(--ease-spring);
 }
 
-.category__primary.is-active {
+.category__primary:active {
+  transform: scale(0.94);
+}
+
+.category__primary--active {
   background: var(--color-primary-deep);
   color: var(--color-text-invert);
+  box-shadow: var(--shadow-brand);
+}
+
+.category__primary-emoji {
+  font-size: var(--text-lg);
 }
 
 .category__content {
+  display: grid;
+  gap: var(--space-3);
   min-width: 0;
 }
 
-.category__chip-card {
+.category__chips {
   display: flex;
-  flex-wrap: wrap;
   gap: var(--space-2);
-  padding: var(--space-3);
+  overflow-x: auto;
+  padding-bottom: 2px;
 }
 
 .category__chip {
+  flex-shrink: 0;
   min-height: 32px;
   padding: 0 var(--space-3);
+  border: 1px solid var(--color-border-soft);
   border-radius: var(--radius-full);
-  background: var(--color-surface-soft);
+  background: var(--color-surface);
   color: var(--color-text-soft);
   font-size: var(--text-sm);
+  transition: all var(--dur-base) var(--ease-out);
 }
 
-.category__chip.is-active {
+.category__chip--active {
+  border-color: var(--color-primary-soft);
   background: var(--color-primary-tint);
   color: var(--color-primary-deep);
   font-weight: var(--weight-semibold);
@@ -185,12 +233,7 @@ function setSecondary(id) {
 
 .category__grid {
   display: grid;
-  gap: var(--space-3);
-}
-
-.category__state {
-  padding: var(--space-5);
-  color: var(--color-text-soft);
-  text-align: center;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-2);
 }
 </style>
