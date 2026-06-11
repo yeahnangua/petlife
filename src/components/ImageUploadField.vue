@@ -1,6 +1,7 @@
 <script setup>
 import { ref } from 'vue'
 import { uploadImage } from '@/api/upload'
+import IconSvg from './IconSvg.vue'
 
 const props = defineProps({
   modelValue: {
@@ -13,7 +14,7 @@ const props = defineProps({
   },
   hint: {
     type: String,
-    default: '支持 JPG / PNG，上传后会自动保存到当前档案。'
+    default: '支持 JPG / PNG'
   }
 })
 
@@ -44,85 +45,104 @@ async function handleChange(event) {
 </script>
 
 <template>
-  <div class="image-upload-field">
-    <div class="image-upload-field__header">
-      <span>{{ label }}</span>
-      <label class="image-upload-field__trigger">
-        <input type="file" accept="image/*" @change="handleChange" />
-        <span>{{ uploading ? '上传中...' : (modelValue ? '重新上传' : '选择图片') }}</span>
-      </label>
-    </div>
-
-    <div v-if="modelValue" class="image-upload-field__preview">
-      <img :src="modelValue" :alt="label" />
-      <p class="image-upload-field__url">{{ modelValue }}</p>
-    </div>
-    <p v-else class="image-upload-field__hint">{{ hint }}</p>
-
-    <p v-if="error" class="image-upload-field__hint is-error">{{ error }}</p>
+  <div class="upload-field">
+    <span class="upload-field__label">{{ label }}</span>
+    <label class="upload-field__tile" :class="{ 'upload-field__tile--filled': modelValue }">
+      <input type="file" accept="image/*" @change="handleChange" />
+      <img v-if="modelValue" :src="modelValue" :alt="label" />
+      <span v-else class="upload-field__placeholder">
+        <IconSvg name="camera" :size="22" :stroke="1.6" />
+        <i>{{ hint }}</i>
+      </span>
+      <span class="upload-field__action">
+        <template v-if="uploading">上传中…</template>
+        <template v-else-if="modelValue">更换</template>
+        <template v-else>选择图片</template>
+      </span>
+    </label>
+    <p v-if="error" class="upload-field__error">{{ error }}</p>
   </div>
 </template>
 
 <style scoped>
-.image-upload-field {
+.upload-field {
   display: grid;
-  gap: var(--space-3);
+  gap: var(--space-2);
 }
 
-.image-upload-field__header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-3);
-}
-
-.image-upload-field__trigger {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 40px;
-  padding: 0 var(--space-4);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-full);
-  background: rgba(255, 255, 255, 0.72);
-  color: var(--color-primary-deep);
+.upload-field__label {
   font-size: var(--text-sm);
   font-weight: var(--weight-semibold);
-  overflow: hidden;
+  color: var(--color-text-soft);
+  letter-spacing: var(--tracking-wide);
 }
 
-.image-upload-field__trigger input {
+.upload-field__tile {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 108px;
+  height: 108px;
+  border: 1.5px dashed var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface-soft);
+  overflow: hidden;
+  cursor: pointer;
+  transition: border-color var(--dur-base) var(--ease-out);
+}
+
+.upload-field__tile:active {
+  border-color: var(--color-primary);
+}
+
+.upload-field__tile--filled {
+  border-style: solid;
+  border-color: var(--color-border-soft);
+}
+
+.upload-field__tile input {
   position: absolute;
   inset: 0;
   opacity: 0;
   cursor: pointer;
 }
 
-.image-upload-field__preview {
-  display: grid;
-  gap: var(--space-3);
-}
-
-.image-upload-field__preview img {
-  width: 96px;
-  height: 96px;
-  border-radius: var(--radius-xl);
+.upload-field__tile img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
   object-fit: cover;
-  background: var(--color-surface-soft);
 }
 
-.image-upload-field__hint,
-.image-upload-field__url {
-  color: var(--color-text-soft);
-  font-size: var(--text-sm);
+.upload-field__placeholder {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-1);
+  color: var(--color-text-tint);
 }
 
-.image-upload-field__url {
-  overflow-wrap: anywhere;
+.upload-field__placeholder i {
+  font-style: normal;
+  font-size: var(--text-2xs);
 }
 
-.image-upload-field__hint.is-error {
-  color: var(--color-coral);
+.upload-field__action {
+  position: absolute;
+  inset-inline: 0;
+  bottom: 0;
+  padding: 4px 0;
+  background: rgba(35, 33, 28, 0.55);
+  color: var(--color-text-invert);
+  font-size: var(--text-2xs);
+  font-weight: var(--weight-semibold);
+  text-align: center;
+  backdrop-filter: blur(3px);
+  pointer-events: none;
+}
+
+.upload-field__error {
+  color: var(--color-danger);
+  font-size: var(--text-xs);
 }
 </style>

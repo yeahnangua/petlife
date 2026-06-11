@@ -1,129 +1,257 @@
 <script setup>
-import { formatCurrency } from '@/lib/pricing'
-import IconSvg from '@/components/IconSvg.vue'
+import { useRouter } from 'vue-router'
+import IconSvg from './IconSvg.vue'
+import PriceText from './PriceText.vue'
 
-defineProps({
-  service: {
-    type: Object,
-    required: true
-  }
+const props = defineProps({
+  service: { type: Object, required: true },
+  layout: { type: String, default: 'row' }
 })
+
+const router = useRouter()
+
+function open() {
+  router.push({ name: 'service-detail', params: { id: props.service.id } })
+}
 </script>
 
 <template>
-  <RouterLink :to="`/service/${service.id}`" class="service-card surface-card">
-    <div
-      class="service-card__cover"
-      :style="{
-        background: `linear-gradient(135deg, ${service.gradient?.[0] || '#DCE6DD'}, ${service.gradient?.[1] || '#F5EFE7'})`
-      }"
-    >
+  <article v-if="layout === 'hero'" class="service-hero" @click="open">
+    <img :src="service.cover" :alt="service.title" loading="lazy" />
+    <div class="service-hero__scrim" />
+    <span v-if="service.badge" class="service-hero__badge">{{ service.badge }}</span>
+    <div class="service-hero__body">
+      <h3 class="service-hero__title font-display">{{ service.title }}</h3>
+      <p class="service-hero__meta">
+        <IconSvg name="clock" :size="12" :stroke="2" />
+        {{ service.duration }} 分钟
+        <i class="service-hero__sep" />
+        <IconSvg name="star" :size="12" :stroke="2" />
+        {{ service.rating }}
+      </p>
+      <div class="service-hero__foot">
+        <PriceText :value="service.memberPrice" size="md" :original="service.originalPrice" />
+        <span class="service-hero__cta">立即预约</span>
+      </div>
+    </div>
+  </article>
+
+  <article v-else class="service-row" @click="open">
+    <div class="service-row__media">
       <img :src="service.cover" :alt="service.title" loading="lazy" />
     </div>
-    <div class="service-card__content">
-      <div class="service-card__row">
-        <span class="pill">{{ service.tagline }}</span>
-        <span class="service-card__rating">
-          <IconSvg name="star" :size="14" />
-          {{ service.rating }}
+    <div class="service-row__body">
+      <div class="service-row__head">
+        <h3 class="service-row__title">{{ service.title }}</h3>
+        <span v-if="service.badge" class="service-row__badge">{{ service.badge }}</span>
+      </div>
+      <p v-if="service.tagline" class="service-row__tagline">{{ service.tagline }}</p>
+      <p class="service-row__meta">
+        <IconSvg name="clock" :size="12" :stroke="2" />
+        {{ service.duration }} 分钟
+        <i class="service-row__sep" />
+        <IconSvg name="star" :size="12" :stroke="2" />
+        {{ service.rating }}
+        <template v-if="service.reviewCount">（{{ service.reviewCount }}）</template>
+      </p>
+      <div class="service-row__foot">
+        <PriceText :value="service.memberPrice" size="sm" :original="service.originalPrice" />
+        <span class="service-row__cta">
+          预约
+          <IconSvg name="arrow-right" :size="12" :stroke="2.4" />
         </span>
       </div>
-      <h3 class="service-card__title">{{ service.title }}</h3>
-      <ul class="service-card__includes">
-        <li v-for="item in service.includes.slice(0, 2)" :key="item">{{ item }}</li>
-      </ul>
-      <div class="service-card__footer">
-        <div>
-          <strong>{{ formatCurrency(service.memberPrice ?? service.price) }}</strong>
-          <span>{{ service.duration }} 分钟</span>
-        </div>
-        <span class="service-card__cta">预约</span>
-      </div>
     </div>
-  </RouterLink>
+  </article>
 </template>
 
 <style scoped>
-.service-card {
-  display: grid;
-  grid-template-columns: 120px minmax(0, 1fr);
-  gap: var(--space-3);
+/* ---------- hero ---------- */
+.service-hero {
+  position: relative;
   overflow: hidden;
-  padding: var(--space-3);
-  color: inherit;
+  aspect-ratio: 16 / 10.5;
+  border-radius: var(--radius-xl);
+  cursor: pointer;
+  transition: transform var(--dur-fast) var(--ease-spring);
 }
 
-.service-card__cover {
-  aspect-ratio: 0.88;
-  border-radius: calc(var(--radius-lg) - 2px);
-  overflow: hidden;
+.service-hero:active {
+  transform: scale(0.98);
 }
 
-.service-card__cover img {
+.service-hero img {
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
   object-fit: cover;
 }
 
-.service-card__content {
+.service-hero__scrim {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(178deg, rgba(35, 33, 28, 0) 30%, rgba(28, 38, 30, 0.86) 88%);
+}
+
+.service-hero__badge {
+  position: absolute;
+  top: var(--space-3);
+  left: var(--space-3);
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
+  background: rgba(250, 248, 243, 0.92);
+  color: var(--color-primary-deep);
+  font-size: var(--text-2xs);
+  font-weight: var(--weight-bold);
+  letter-spacing: var(--tracking-wide);
+}
+
+.service-hero__body {
+  position: absolute;
+  inset-inline: 0;
+  bottom: 0;
   display: grid;
-  gap: var(--space-2);
+  gap: 4px;
+  padding: var(--space-4);
+  color: var(--color-text-invert);
+}
+
+.service-hero__title {
+  font-size: var(--text-xl);
+  font-weight: var(--weight-semibold);
+}
+
+.service-hero__meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: rgba(247, 244, 236, 0.82);
+  font-size: var(--text-xs);
+}
+
+.service-hero__sep,
+.service-row__sep {
+  width: 3px;
+  height: 3px;
+  border-radius: var(--radius-full);
+  background: currentColor;
+  opacity: 0.5;
+}
+
+.service-hero__foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: var(--space-1);
+}
+
+.service-hero__foot :deep(.price) {
+  color: #FFD9C4;
+}
+
+.service-hero__cta {
+  padding: 7px 14px;
+  border-radius: var(--radius-full);
+  background: var(--color-text-invert);
+  color: var(--color-primary-deep);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-bold);
+}
+
+/* ---------- row ---------- */
+.service-row {
+  display: grid;
+  grid-template-columns: 104px minmax(0, 1fr);
+  gap: var(--space-3);
+  padding: var(--space-3);
+  border: 1px solid var(--color-border-soft);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-xs);
+  cursor: pointer;
+  transition: transform var(--dur-fast) var(--ease-spring);
+}
+
+.service-row:active {
+  transform: scale(0.98);
+}
+
+.service-row__media {
+  overflow: hidden;
+  border-radius: var(--radius-md);
+  aspect-ratio: 1;
+  background: var(--color-surface-warm);
+}
+
+.service-row__media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.service-row__body {
+  display: grid;
+  align-content: space-between;
+  gap: 3px;
   min-width: 0;
 }
 
-.service-card__row {
+.service-row__head {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: var(--space-2);
 }
 
-.service-card__rating {
+.service-row__title {
+  font-size: var(--text-body);
+  font-weight: var(--weight-semibold);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.service-row__badge {
+  flex-shrink: 0;
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  background: var(--color-coral-soft);
+  color: var(--color-coral);
+  font-size: var(--text-2xs);
+  font-weight: var(--weight-bold);
+}
+
+.service-row__tagline {
+  color: var(--color-text-mute);
+  font-size: var(--text-xs);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.service-row__meta {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  color: var(--color-text-soft);
-  font-size: var(--text-sm);
+  gap: 5px;
+  color: var(--color-text-tint);
+  font-size: var(--text-xs);
 }
 
-.service-card__title {
-  font-size: var(--text-lg);
-  font-weight: var(--weight-semibold);
-}
-
-.service-card__includes {
-  display: grid;
-  gap: 4px;
-  color: var(--color-text-soft);
-  font-size: var(--text-sm);
-}
-
-.service-card__includes li::before {
-  content: '·';
-  margin-right: 6px;
-}
-
-.service-card__footer {
+.service-row__foot {
   display: flex;
-  align-items: end;
+  align-items: center;
   justify-content: space-between;
-  gap: var(--space-2);
-  margin-top: auto;
 }
 
-.service-card__footer strong {
-  display: block;
-  color: var(--color-coral);
-  font-size: var(--text-xl);
-}
-
-.service-card__footer span {
-  color: var(--color-text-mute);
-  font-size: var(--text-sm);
-}
-
-.service-card__cta {
+.service-row__cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 6px 12px;
+  border-radius: var(--radius-full);
+  background: var(--color-primary-tint);
   color: var(--color-primary-deep);
-  font-weight: var(--weight-semibold);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-bold);
 }
 </style>
