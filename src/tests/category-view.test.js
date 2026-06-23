@@ -84,13 +84,14 @@ describe('CategoryView', () => {
     document.body.innerHTML = ''
   })
 
-  it('keeps product cards visible while a category refresh is loading', async () => {
+  it('keeps product cards visible without showing refresh text while a category refresh is loading', async () => {
     const { wrapper } = await mountCategoryView({ loadingProducts: true })
 
     expect(wrapper.find('.product-card').exists()).toBe(true)
     expect(wrapper.text()).toContain('鲜肉全价猫粮')
     expect(wrapper.find('.skeleton-block').exists()).toBe(false)
-    expect(wrapper.find('.category__refreshing').exists()).toBe(true)
+    expect(wrapper.find('.category__refreshing').exists()).toBe(false)
+    expect(wrapper.text()).not.toContain('正在更新')
 
     wrapper.unmount()
   })

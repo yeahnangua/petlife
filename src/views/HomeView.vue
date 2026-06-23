@@ -8,8 +8,8 @@ import ChipSwitch from '@/components/ChipSwitch.vue'
 import SectionHeading from '@/components/SectionHeading.vue'
 import SkeletonBlock from '@/components/SkeletonBlock.vue'
 import IconSvg from '@/components/IconSvg.vue'
-import { bundles, quickEntries } from '@/content/catalog'
-import { getMarketingRecommendation, getRecommendedBundles } from '@/lib/catalog'
+import { quickEntries } from '@/content/catalog'
+import { getMarketingRecommendation } from '@/lib/catalog'
 import { useCatalogStore } from '@/stores/catalog'
 import { useCartStore } from '@/stores/cart'
 import { useProfileStore } from '@/stores/profile'
@@ -31,7 +31,6 @@ const activePetType = computed({
 
 const featuredProducts = computed(() => catalogStore.homeProducts.slice(0, 4))
 const featuredServices = computed(() => catalogStore.homeServices.slice(0, 2))
-const recommendedBundles = computed(() => getRecommendedBundles(bundles, activePetType.value))
 const marketingRecommendation = computed(() => getMarketingRecommendation({
   petType: activePetType.value,
   products: catalogStore.homeProducts,
@@ -228,28 +227,6 @@ function openQuickEntry(entry) {
             layout="hero"
           />
         </div>
-      </section>
-
-      <!-- 场景组合 -->
-      <section class="home__section anim-fade-up">
-        <SectionHeading eyebrow="按场景选购" title="组合推荐" />
-        <article
-          v-for="bundle in recommendedBundles"
-          :key="bundle.id"
-          class="home__bundle"
-        >
-          <img :src="bundle.image" :alt="bundle.title" loading="lazy" />
-          <div class="home__bundle-copy">
-            <span class="home__bundle-tag">{{ bundle.tag }}</span>
-            <h3>{{ bundle.title }}</h3>
-            <p>{{ bundle.subtitle }}</p>
-            <div class="home__bundle-foot">
-              <span class="home__bundle-price font-display">¥{{ bundle.price }}</span>
-              <del class="home__bundle-original">¥{{ bundle.originalPrice }}</del>
-              <span class="home__bundle-count">{{ bundle.itemCount }} 件好物</span>
-            </div>
-          </div>
-        </article>
       </section>
 
       <!-- 热卖商品 -->
@@ -735,80 +712,6 @@ function openQuickEntry(entry) {
 
 .home__ai-reasons li::marker {
   color: var(--color-primary);
-}
-
-/* ---------- 组合推荐 ---------- */
-.home__bundle {
-  display: grid;
-  grid-template-columns: 96px minmax(0, 1fr);
-  gap: var(--space-4);
-  padding: var(--space-3);
-  border: 1px solid var(--color-border-soft);
-  border-radius: var(--radius-lg);
-  background: var(--color-surface);
-  box-shadow: var(--shadow-xs);
-}
-
-.home__bundle img {
-  width: 96px;
-  height: 96px;
-  border-radius: var(--radius-md);
-  object-fit: cover;
-  background: var(--color-surface-warm);
-}
-
-.home__bundle-copy {
-  display: grid;
-  align-content: center;
-  gap: 4px;
-  min-width: 0;
-}
-
-.home__bundle-tag {
-  justify-self: start;
-  padding: 2px 9px;
-  border-radius: var(--radius-full);
-  background: var(--color-amber-soft);
-  color: #8C6A23;
-  font-size: var(--text-2xs);
-  font-weight: var(--weight-bold);
-}
-
-.home__bundle-copy h3 {
-  font-size: var(--text-body);
-  font-weight: var(--weight-semibold);
-}
-
-.home__bundle-copy p {
-  color: var(--color-text-mute);
-  font-size: var(--text-xs);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.home__bundle-foot {
-  display: flex;
-  align-items: baseline;
-  gap: var(--space-2);
-  margin-top: 2px;
-}
-
-.home__bundle-price {
-  color: var(--color-coral);
-  font-size: var(--text-xl);
-  font-weight: var(--weight-semibold);
-}
-
-.home__bundle-original {
-  color: var(--color-text-tint);
-  font-size: var(--text-xs);
-}
-
-.home__bundle-count {
-  margin-left: auto;
-  color: var(--color-text-tint);
-  font-size: var(--text-2xs);
 }
 
 /* ---------- 商品 ---------- */

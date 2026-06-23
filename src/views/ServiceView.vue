@@ -1,11 +1,12 @@
 <script setup>
-import { computed, watch } from 'vue'
+import { computed, nextTick, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import EmptyState from '@/components/EmptyState.vue'
 import ServiceCard from '@/components/ServiceCard.vue'
 import ChipSwitch from '@/components/ChipSwitch.vue'
 import SkeletonBlock from '@/components/SkeletonBlock.vue'
 import IconSvg from '@/components/IconSvg.vue'
+import { useDragScroll } from '@/composables/useDragScroll'
 import { serviceCategories } from '@/content/catalog'
 import { useCatalogStore } from '@/stores/catalog'
 import { useProfileStore } from '@/stores/profile'
@@ -55,6 +56,15 @@ const activeCategory = computed({
 })
 
 const currentPage = computed(() => Number(route.query.page || 1))
+const isInitialServiceLoad = computed(() => catalogStore.loading.services && catalogStore.serviceList.length === 0)
+const {
+  scroller: categoryScroller,
+  isDragging: isDraggingCategories,
+  startDrag: startCategoryDrag,
+  drag: dragCategories,
+  endDrag: endCategoryDrag,
+  blockClickAfterDrag: blockCategoryClickAfterDrag
+} = useDragScroll()
 
 watch(
   [activePet, activeCategory, currentPage],
@@ -68,6 +78,13 @@ watch(
   },
   { immediate: true }
 )
+
+watch(activeCategory, () => {
+  nextTick(() => {
+    const activeButton = categoryScroller.value?.querySelector('.service__category--active')
+    activeButton?.scrollIntoView?.({ behavior: 'smooth', block: 'nearest', inline: 'center' })
+  })
+})
 
 function goToPage(page) {
   replaceQuery({ page })
@@ -95,7 +112,20 @@ function goToPage(page) {
 
     <div class="service__body page-pad">
       <!-- 分类 -->
-      <section class="service__categories hide-scroll">
+      <section
+        ref="categoryScroller"
+        class="service__categories hide-scroll"
+        :class="{ 'service__categories--dragging': isDraggingCategories }"
+        role="group"
+        aria-label="服务分类"
+        data-draggable-scroll="true"
+        @pointerdown="startCategoryDrag"
+        @pointermove="dragCategories"
+        @pointerup="endCategoryDrag"
+        @pointercancel="endCategoryDrag"
+        @pointerleave="endCategoryDrag"
+        @click.capture="blockCategoryClickAfterDrag"
+      >
         <button
           type="button"
           class="service__category"
@@ -119,7 +149,7 @@ function goToPage(page) {
       </section>
 
       <!-- 列表 -->
-      <div v-if="catalogStore.loading.services" class="service__list">
+      <div v-if="isInitialServiceLoad" class="service__list">
         <SkeletonBlock variant="card" />
         <SkeletonBlock variant="card" />
       </div>
@@ -233,8 +263,24 @@ function goToPage(page) {
 .service__categories {
   display: flex;
   gap: var(--space-2);
+  max-width: 100%;
+  min-width: 0;
   overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scroll-behavior: smooth;
+  scroll-padding-inline: var(--space-3);
+  touch-action: pan-y;
+  cursor: grab;
+  mask-image: linear-gradient(90deg, transparent 0, #000 10px, #000 calc(100% - 22px), transparent 100%);
   padding-bottom: 2px;
+  user-select: none;
+  -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 10px, #000 calc(100% - 22px), transparent 100%);
+  -webkit-overflow-scrolling: touch;
+}
+
+.service__categories--dragging {
+  cursor: grabbing;
+  scroll-behavior: auto;
 }
 
 .service__category {
