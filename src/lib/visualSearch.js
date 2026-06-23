@@ -1,9 +1,13 @@
 /**
  * 视觉搜索工具函数
- * 提供图像识别、Mock 数据生成等功能
+ * 提供商品相似度排序和图搜历史管理。
  */
 
 const HISTORY_LIMIT = 20
+const DEFAULT_SIMILARITY_WEIGHTS = {
+  image: 0.6,
+  tag: 0.4
+}
 
 const categoryLabelMap = {
   food: '主粮',
@@ -33,8 +37,40 @@ function normalizeTokens(value = '') {
   return String(value).toLowerCase().split(/[\s._-]+/).filter(Boolean)
 }
 
-function scoreProduct(product, { petType, imageName }) {
+function unique(values) {
+  return [...new Set(values.filter(Boolean))]
+}
+
+function resolveRecognitionTokens(recognition = {}) {
+  return unique([
+    ...(recognition.keywords || []),
+    ...(recognition.labels || []).flatMap((label) => normalizeTokens(label))
+  ].map((token) => String(token).toLowerCase()))
+}
+
+function resolveWeights(weights = {}) {
+  const image = Number.isFinite(Number(weights.image)) ? Number(weights.image) : DEFAULT_SIMILARITY_WEIGHTS.image
+  const tag = Number.isFinite(Number(weights.tag)) ? Number(weights.tag) : DEFAULT_SIMILARITY_WEIGHTS.tag
+  const total = image + tag
+
+  if (total <= 0) return DEFAULT_SIMILARITY_WEIGHTS
+
+  return {
+    image: image / total,
+    tag: tag / total
+  }
+}
+
+function resolveImageSimilarity(imageSimilarities = {}, productId) {
+  const value = imageSimilarities[productId]
+  if (!Number.isFinite(Number(value))) return null
+  return Math.max(0, Math.min(100, Number(value)))
+}
+
+function scoreProduct(product, { petType, imageName, recognition }) {
   const tokens = normalizeTokens(imageName)
+  const recognitionTokens = resolveRecognitionTokens(recognition)
+  const categoryHints = recognition?.categoryHints || []
   const searchable = [
     product.title,
     product.subtitle,
@@ -51,11 +87,19 @@ function scoreProduct(product, { petType, imageName }) {
     if (searchable.includes(token)) score += 12
   })
 
+  recognitionTokens.forEach((token) => {
+    if (searchable.includes(token)) score += 10
+  })
+
+  if (categoryHints.includes(product.category)) score += 24
+
   if (petType === 'cat' && /cat|猫/.test(imageName)) score += product.petType === 'cat' ? 10 : 0
   if (petType === 'dog' && /dog|犬|狗/.test(imageName)) score += product.petType === 'dog' ? 10 : 0
   if (/food|粮|package|包装/.test(imageName) && product.category === 'food') score += 16
   if (/toy|玩具/.test(imageName) && product.category === 'toy') score += 14
   if (/clean|洗护|shampoo/.test(imageName) && product.category === 'clean') score += 14
+  if (recognitionTokens.includes('cat')) score += product.petType === 'cat' ? 8 : 0
+  if (recognitionTokens.includes('dog')) score += product.petType === 'dog' ? 8 : 0
 
   score += Math.min(Number(product.rating || 4.5) * 2, 10)
   score += Math.min(Number(product.sold || 0) / 3000, 8)
@@ -63,19 +107,42 @@ function scoreProduct(product, { petType, imageName }) {
   return Math.round(Math.min(score, 96))
 }
 
-export function rankVisualSearchMatches({ products = [], petType = 'cat', imageName = '', limit = 6 } = {}) {
+export function rankVisualSearchMatches({
+  products = [],
+  petType = 'cat',
+  imageName = '',
+  recognition = {},
+  imageSimilarities = {},
+  weights = DEFAULT_SIMILARITY_WEIGHTS,
+  limit = 6
+} = {}) {
+  const activePetType = recognition.petType || petType
+  const recognitionLabels = recognition.labels || []
+  const resolvedWeights = resolveWeights(weights)
+
   return products
     .filter((product) => product.stockStatus !== 'soldOut')
-    .filter((product) => product.petType === petType || product.petType === 'all')
+    .filter((product) => product.petType === activePetType || product.petType === 'all')
     .map((product) => {
-      const similarity = scoreProduct(product, { petType, imageName })
+      const tagSimilarity = scoreProduct(product, { petType: activePetType, imageName, recognition })
+      const imageSimilarity = resolveImageSimilarity(imageSimilarities, product.id)
+      const similarity = imageSimilarity === null
+        ? tagSimilarity
+        : Math.round((imageSimilarity * resolvedWeights.image) + (tagSimilarity * resolvedWeights.tag))
       const label = categoryLabelMap[product.category] || '商品'
+      const labels = unique([productPetLabel(product), label, ...recognitionLabels]).slice(0, 5)
+      const reasonPrefix = recognitionLabels.length ? 'AI识别' : productPetLabel(product)
+      const scoreReason = imageSimilarity === null
+        ? `标签 ${tagSimilarity}%`
+        : `图片 ${imageSimilarity}% · 标签 ${tagSimilarity}%`
 
       return {
         product,
         similarity,
-        labels: [productPetLabel(product), label],
-        reason: `${productPetLabel(product)}适用 · ${label}特征匹配 · 相似度 ${similarity}%`
+        imageSimilarity,
+        tagSimilarity,
+        labels,
+        reason: `${reasonPrefix} · ${scoreReason} · ${label}特征匹配 · 相似度 ${similarity}%`
       }
     })
     .sort((left, right) => right.similarity - left.similarity)
@@ -142,104 +209,6 @@ export function saveVisualSearchHistory(history = [], storage = globalThis.local
   if (!storage) return history
   storage.setItem(key, JSON.stringify(history.slice(0, HISTORY_LIMIT)))
   return history
-}
-
-/**
- * 模拟图像识别接口
- * 实际项目中应调用后端 API
- * @param {File|string} imageSource - 图片文件或 URL
- * @returns {Promise<Object>} 识别结果
- */
-export async function mockImageRecognition(imageSource) {
-  // 模拟网络延迟
-  await sleep(1500)
-
-  // Mock 商品数据
-  const mockProducts = [
-    {
-      id: 1,
-      name: '皇家猫粮 鲜肉全价成猫粮 2kg',
-      image: 'https://picsum.photos/seed/cat-food-1/400/400',
-      price: 128,
-      originalPrice: 158,
-      category: '猫粮',
-      similarity: 95
-    },
-    {
-      id: 2,
-      name: '皇家猫粮 室内成猫粮 2kg',
-      image: 'https://picsum.photos/seed/cat-food-2/400/400',
-      price: 135,
-      originalPrice: 165,
-      category: '猫粮',
-      similarity: 92
-    },
-    {
-      id: 3,
-      name: '皇家猫粮 美毛成猫粮 2kg',
-      image: 'https://picsum.photos/seed/cat-food-3/400/400',
-      price: 142,
-      originalPrice: 172,
-      category: '猫粮',
-      similarity: 89
-    },
-    {
-      id: 4,
-      name: '渴望猫粮 六种鱼全猫粮 1.8kg',
-      image: 'https://picsum.photos/seed/cat-food-4/400/400',
-      price: 268,
-      originalPrice: 298,
-      category: '猫粮',
-      similarity: 87
-    },
-    {
-      id: 5,
-      name: '爱肯拿猫粮 鸭肉梨全猫粮 1.8kg',
-      image: 'https://picsum.photos/seed/cat-food-5/400/400',
-      price: 258,
-      originalPrice: 288,
-      category: '猫粮',
-      similarity: 85
-    },
-    {
-      id: 6,
-      name: '纽顿猫粮 T24鸡肉全猫粮 1.8kg',
-      image: 'https://picsum.photos/seed/cat-food-6/400/400',
-      price: 248,
-      originalPrice: 278,
-      category: '猫粮',
-      similarity: 83
-    },
-    {
-      id: 7,
-      name: '百利猫粮 无谷鸡肉全猫粮 2.2kg',
-      image: 'https://picsum.photos/seed/cat-food-7/400/400',
-      price: 198,
-      originalPrice: 228,
-      category: '猫粮',
-      similarity: 81
-    },
-    {
-      id: 8,
-      name: '麻利猫粮 本能生鲜全猫粮 2kg',
-      image: 'https://picsum.photos/seed/cat-food-8/400/400',
-      price: 218,
-      originalPrice: 248,
-      category: '猫粮',
-      similarity: 79
-    }
-  ]
-
-  // 随机返回 4-8 个商品
-  const count = Math.floor(Math.random() * 5) + 4
-  const shuffled = mockProducts.sort(() => 0.5 - Math.random())
-  const selected = shuffled.slice(0, count)
-
-  return {
-    success: true,
-    labels: ['猫粮', '鲜肉味', '全价猫粮'],
-    products: selected
-  }
 }
 
 /**
@@ -384,15 +353,6 @@ export async function detectImageBlur(imageUrl) {
 
     img.onerror = () => resolve(false)
   })
-}
-
-/**
- * 延迟函数
- * @param {number} ms - 延迟毫秒数
- * @returns {Promise<void>}
- */
-function sleep(ms) {
-  return new Promise((resolve) => setTimeout(resolve, ms))
 }
 
 /**

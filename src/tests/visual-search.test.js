@@ -23,6 +23,52 @@ describe('visual search helpers', () => {
     expect(matches.every((match) => match.product.stockStatus !== 'soldOut')).toBe(true)
   })
 
+  it('uses recognition keywords and category hints when ranking matches', () => {
+    const matches = rankVisualSearchMatches({
+      products,
+      petType: 'dog',
+      imageName: 'uploaded-photo.jpg',
+      recognition: {
+        labels: ['tennis ball', 'rubber toy'],
+        keywords: ['tennis', 'ball', 'rubber', 'toy'],
+        categoryHints: ['toy']
+      },
+      limit: 2
+    })
+
+    expect(matches[0].product.id).toBe('p-006')
+    expect(matches[0].labels).toEqual(expect.arrayContaining(['狗狗', '玩具']))
+    expect(matches[0].reason).toContain('AI识别')
+  })
+
+  it('combines image similarity and tag similarity with configurable weights', () => {
+    const matches = rankVisualSearchMatches({
+      products,
+      petType: 'dog',
+      imageName: 'uploaded-photo.jpg',
+      recognition: {
+        labels: ['rubber toy'],
+        keywords: ['rubber', 'toy'],
+        categoryHints: ['toy']
+      },
+      imageSimilarities: {
+        'p-005': 96,
+        'p-006': 50
+      },
+      weights: {
+        image: 0.8,
+        tag: 0.2
+      },
+      limit: 2
+    })
+
+    expect(matches[0].product.id).toBe('p-005')
+    expect(matches[0].imageSimilarity).toBe(96)
+    expect(matches[0].tagSimilarity).toBeLessThan(matches[1].tagSimilarity)
+    expect(matches[0].reason).toContain('图片 96%')
+    expect(matches[0].reason).toContain('标签')
+  })
+
   it('prepends a new history record and limits history to twenty items', () => {
     const existing = Array.from({ length: 20 }, (_, index) =>
       createVisualSearchRecord({

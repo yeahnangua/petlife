@@ -6,6 +6,7 @@ import EmptyState from '@/components/EmptyState.vue'
 import IconSvg from '@/components/IconSvg.vue'
 import PriceText from '@/components/PriceText.vue'
 import { products } from '@/mocks'
+import { buildProductImageSimilarities, recognizeImageElement } from '@/lib/imageRecognition'
 import {
   loadVisualSearchHistory,
   rankVisualSearchMatches,
@@ -22,9 +23,12 @@ const visualSearchStatus = ref('idle')
 const showActionSheet = ref(false)
 const showHistory = ref(false)
 const fileInputRef = ref(null)
+const previewImageRef = ref(null)
 const previewUrl = ref('')
 const selectedImageName = ref('cat-food-package.jpg')
 const selectedPetType = ref('cat')
+const recognitionResult = ref(null)
+const recognitionError = ref('')
 const matches = ref([])
 const history = ref([])
 
@@ -74,6 +78,8 @@ function useDemoImage() {
   revokePreview()
   selectedPetType.value = 'cat'
   selectedImageName.value = 'cat-food-package.jpg'
+  recognitionResult.value = null
+  recognitionError.value = ''
   previewUrl.value = products[0]?.cover || ''
   visualSearchStatus.value = 'preview'
 }
@@ -88,6 +94,7 @@ function handleFileSelect(event) {
   if (!file) return
 
   if (!file.type.startsWith('image/')) {
+    recognitionError.value = '请选择 JPG、PNG 或 WebP 图片后重试。'
     visualSearchStatus.value = 'error'
     return
   }
@@ -95,6 +102,8 @@ function handleFileSelect(event) {
   revokePreview()
   selectedImageName.value = file.name
   selectedPetType.value = /dog|犬|狗/.test(file.name.toLowerCase()) ? 'dog' : 'cat'
+  recognitionResult.value = null
+  recognitionError.value = ''
   previewUrl.value = URL.createObjectURL(file)
   visualSearchStatus.value = 'preview'
   event.target.value = ''
@@ -102,26 +111,39 @@ function handleFileSelect(event) {
 
 async function confirmVisualSearch() {
   visualSearchStatus.value = 'recognizing'
-  await new Promise((resolve) => setTimeout(resolve, 500))
+  recognitionError.value = ''
 
-  const rankedMatches = rankVisualSearchMatches({
-    products,
-    petType: selectedPetType.value,
-    imageName: selectedImageName.value,
-    limit: 6
-  })
+  try {
+    const recognition = await recognizeImageElement(previewImageRef.value)
+    recognitionResult.value = recognition
+    selectedPetType.value = recognition.petType || selectedPetType.value
+    const imageSimilarities = await buildProductImageSimilarities(products, recognition.embedding || [])
 
-  matches.value = rankedMatches
-  visualSearchStatus.value = rankedMatches.length ? 'success' : 'empty'
-
-  if (rankedMatches.length) {
-    history.value = upsertVisualSearchHistory(history.value, {
-      imageUrl: previewUrl.value,
-      labels: labels.value,
-      matches: rankedMatches,
-      searchedAt: new Date().toISOString()
+    const rankedMatches = rankVisualSearchMatches({
+      products,
+      petType: selectedPetType.value,
+      imageName: selectedImageName.value,
+      recognition,
+      imageSimilarities,
+      limit: 6
     })
-    saveVisualSearchHistory(history.value)
+
+    matches.value = rankedMatches
+    visualSearchStatus.value = rankedMatches.length ? 'success' : 'empty'
+
+    if (rankedMatches.length) {
+      history.value = upsertVisualSearchHistory(history.value, {
+        imageUrl: previewUrl.value,
+        labels: labels.value,
+        matches: rankedMatches,
+        searchedAt: new Date().toISOString()
+      })
+      saveVisualSearchHistory(history.value)
+    }
+  } catch (error) {
+    matches.value = []
+    recognitionError.value = error instanceof Error ? error.message : '识图模型加载失败，请检查网络后重试'
+    visualSearchStatus.value = 'error'
   }
 }
 
@@ -151,6 +173,8 @@ function clearHistory() {
 function resetVisualSearch() {
   revokePreview()
   previewUrl.value = ''
+  recognitionResult.value = null
+  recognitionError.value = ''
   matches.value = []
   visualSearchStatus.value = 'idle'
 }
@@ -220,7 +244,7 @@ function formatTime(value) {
 
     <section v-if="visualSearchStatus === 'preview'" class="search__preview">
       <div class="search__preview-media">
-        <img :src="previewUrl" alt="待识别商品图片" />
+        <img ref="previewImageRef" :src="previewUrl" crossorigin="anonymous" alt="待识别商品图片" />
       </div>
       <div class="search__preview-body">
         <p class="search__hint">请确认商品主体清晰可见</p>
@@ -234,7 +258,7 @@ function formatTime(value) {
     <section v-if="visualSearchStatus === 'recognizing'" class="search__loading">
       <span class="search__spinner" />
       <strong>正在识别商品特征</strong>
-      <p>模拟提取图片向量、匹配商品库并计算相似度。</p>
+      <p>MobileNet 正在分析图片标签，并对比商品主图相似度。</p>
     </section>
 
     <section v-if="visualSearchStatus === 'success'" class="search__results">
@@ -276,7 +300,7 @@ function formatTime(value) {
       v-if="visualSearchStatus === 'error'"
       icon="image"
       title="图片无法识别"
-      description="请选择 JPG、PNG 或 WebP 图片后重试。"
+      :description="recognitionError || '请选择 JPG、PNG 或 WebP 图片后重试。'"
       action-label="重新选择图片"
       @action="openVisualActions"
     />
