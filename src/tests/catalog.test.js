@@ -3,6 +3,7 @@ import { products, bundles } from '@/mocks'
 import {
   filterProductsByPetType,
   getFeaturedProducts,
+  getMarketingRecommendation,
   getRecommendedBundles
 } from '@/lib/catalog'
 
@@ -25,5 +26,21 @@ describe('catalog helpers', () => {
 
     expect(items.length).toBeGreaterThan(0)
     expect(items.every((item) => item.petType === 'dog' || item.petType === 'all')).toBe(true)
+  })
+
+  it('builds a cart-aware marketing recommendation for active pet type', () => {
+    const recommendation = getMarketingRecommendation({
+      petType: 'dog',
+      products,
+      services: [{ id: 's-1', title: '狗狗精洗护理', petType: 'dog' }],
+      profile: { level: '铂金会员', points: 2680, stats: { orderCount: 12 } },
+      cartItems: [{ id: 'c-1', valid: true }, { id: 'c-2', valid: false }]
+    })
+
+    expect(recommendation.profileTags).toContain('高复购用户')
+    expect(recommendation.profileTags).toContain('购物车待转化')
+    expect(recommendation.coupon.title).toBe('铂金专属加购券')
+    expect(recommendation.product.petType).toBe('dog')
+    expect(recommendation.service.title).toBe('狗狗精洗护理')
   })
 })
