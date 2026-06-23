@@ -12,7 +12,9 @@ const categoryKeywordMap = {
   litter: ['litter', 'sand', 'tray'],
   toy: ['toy', 'ball', 'rubber', 'stick', 'teddy', 'frisbee'],
   clean: ['shampoo', 'soap', 'lotion', 'spray', 'bottle'],
-  travel: ['backpack', 'carrier', 'crate', 'bag']
+  travel: ['backpack', 'carrier', 'crate', 'bag', 'harness'],
+  care: ['supplement', 'medicine', 'tube', 'health'],
+  home: ['fountain', 'water', 'bowl', 'dispenser']
 }
 
 function unique(values) {

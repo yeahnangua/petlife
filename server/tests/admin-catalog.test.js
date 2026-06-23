@@ -95,7 +95,7 @@ describe('admin upload and catalog apis', () => {
       ctx,
       request(app).post('/api/admin/categories').send({
         name: '玩具',
-        slug: 'toy',
+        slug: 'toy-extra',
         pet_type: 'all',
         sort_order: 9,
         cover_url: '/uploads/2026/04/toy.png',
@@ -104,13 +104,13 @@ describe('admin upload and catalog apis', () => {
     )
 
     expect(createCategory.status).toBe(201)
-    expect(createCategory.body.data.item.slug).toBe('toy')
+    expect(createCategory.body.data.item.slug).toBe('toy-extra')
 
     const updateCategory = await withAdminKey(
       ctx,
       request(app).put(`/api/admin/categories/${createCategory.body.data.item.id}`).send({
         name: '互动玩具',
-        slug: 'toy',
+        slug: 'toy-extra',
         pet_type: 'all',
         sort_order: 7,
         cover_url: '/uploads/2026/04/toy-updated.png',

@@ -1,9 +1,31 @@
 import { fileURLToPath } from 'node:url'
+import { products as catalogProducts } from '../../../src/mocks/products.js'
 import { loadEnv } from '../config/env.js'
 import { createDatabase } from './index.js'
 import { migrate } from './migrate.js'
 
 const timestamp = '2026-04-21 09:00:00'
+
+const productById = new Map(catalogProducts.map((product) => [product.id, product]))
+const productCategoryIds = {
+  food: 'cat-food',
+  snack: 'cat-snack',
+  litter: 'cat-litter',
+  toy: 'all-toy',
+  clean: 'all-clean',
+  travel: 'all-travel',
+  care: 'all-care',
+  home: 'all-home'
+}
+const productStockById = {
+  'p-001': 48,
+  'p-002': 120,
+  'p-008': 0
+}
+
+function coverForCategory(category) {
+  return catalogProducts.find((product) => product.category === category)?.cover || catalogProducts[0].cover
+}
 
 const users = [
   {
@@ -75,9 +97,9 @@ const categories = [
     id: 'cat-food',
     name: '主粮',
     slug: 'food',
-    pet_type: 'cat',
+    pet_type: 'all',
     sort_order: 1,
-    cover_url: 'https://images.unsplash.com/photo-1592194996308-7b43878e84a6?auto=format&fit=crop&w=600&q=70',
+    cover_url: coverForCategory('food'),
     is_enabled: 1,
     created_at: timestamp,
     updated_at: timestamp
@@ -86,9 +108,31 @@ const categories = [
     id: 'cat-snack',
     name: '零食',
     slug: 'snack',
-    pet_type: 'cat',
+    pet_type: 'all',
     sort_order: 2,
-    cover_url: 'https://images.unsplash.com/photo-1615485290382-441e4d049cb5?auto=format&fit=crop&w=600&q=70',
+    cover_url: coverForCategory('snack'),
+    is_enabled: 1,
+    created_at: timestamp,
+    updated_at: timestamp
+  },
+  {
+    id: 'cat-litter',
+    name: '猫砂',
+    slug: 'litter',
+    pet_type: 'cat',
+    sort_order: 3,
+    cover_url: coverForCategory('litter'),
+    is_enabled: 1,
+    created_at: timestamp,
+    updated_at: timestamp
+  },
+  {
+    id: 'all-toy',
+    name: '玩具',
+    slug: 'toy',
+    pet_type: 'all',
+    sort_order: 4,
+    cover_url: coverForCategory('toy'),
     is_enabled: 1,
     created_at: timestamp,
     updated_at: timestamp
@@ -98,8 +142,8 @@ const categories = [
     name: '清洁护理',
     slug: 'clean',
     pet_type: 'all',
-    sort_order: 3,
-    cover_url: 'https://images.unsplash.com/photo-1585155770447-2f66e2a397b5?auto=format&fit=crop&w=600&q=70',
+    sort_order: 5,
+    cover_url: coverForCategory('clean'),
     is_enabled: 1,
     created_at: timestamp,
     updated_at: timestamp
@@ -109,110 +153,77 @@ const categories = [
     name: '出行用品',
     slug: 'travel',
     pet_type: 'all',
-    sort_order: 4,
-    cover_url: 'https://images.unsplash.com/photo-1587729927069-a58e9fa1a0db?auto=format&fit=crop&w=600&q=70',
+    sort_order: 6,
+    cover_url: coverForCategory('travel'),
+    is_enabled: 1,
+    created_at: timestamp,
+    updated_at: timestamp
+  },
+  {
+    id: 'all-care',
+    name: '营养保健',
+    slug: 'care',
+    pet_type: 'all',
+    sort_order: 7,
+    cover_url: coverForCategory('care'),
+    is_enabled: 1,
+    created_at: timestamp,
+    updated_at: timestamp
+  },
+  {
+    id: 'all-home',
+    name: '居家用品',
+    slug: 'home',
+    pet_type: 'all',
+    sort_order: 8,
+    cover_url: coverForCategory('home'),
     is_enabled: 1,
     created_at: timestamp,
     updated_at: timestamp
   }
 ]
 
-const products = [
-  {
-    id: 'p-001',
-    category_id: 'cat-food',
-    title: '鲜肉全价猫粮',
-    subtitle: '低敏冷鲜配方 · 成猫通用',
-    pet_type: 'cat',
-    price: 268,
-    member_price: 248,
-    original_price: 298,
-    stock: 48,
-    stock_status: 'inStock',
-    badge: '热卖',
-    tags_json: JSON.stringify(['低敏', '无谷', '鲜肉70%']),
-    specs_json: JSON.stringify([
-      { group: '规格', options: ['1.5kg', '3kg', '6kg'] },
-      { group: '口味', options: ['鸡肉', '三文鱼', '牛肉'] }
-    ]),
-    summary_json: JSON.stringify([
-      '鲜肉含量 70%，保留原始营养',
-      '低敏配方，适合肠胃敏感猫咪',
-      '自研冷鲜锁鲜工艺'
-    ]),
-    suitable_text: '适合 1-8 岁成猫 / 全品种',
-    cover_url: 'https://images.unsplash.com/photo-1592194996308-7b43878e84a6?auto=format&fit=crop&w=600&q=70',
-    status: 'active',
-    rating: 4.9,
-    review_count: 1283,
-    sold_count: 12800,
-    created_at: timestamp,
-    updated_at: timestamp
-  },
-  {
-    id: 'p-002',
-    category_id: 'cat-snack',
-    title: '冻干鸡肉小食',
-    subtitle: '单一原料 · 无添加',
-    pet_type: 'cat',
-    price: 58,
-    member_price: 52,
-    original_price: 68,
-    stock: 120,
-    stock_status: 'inStock',
-    badge: '',
-    tags_json: JSON.stringify(['单一原料', '高蛋白', '训练奖励']),
-    specs_json: JSON.stringify([{ group: '规格', options: ['60g', '120g', '三袋装'] }]),
-    summary_json: JSON.stringify([
-      '单一鸡胸肉原料',
-      '-40℃ 真空冻干',
-      '开袋即可训练奖励'
-    ]),
-    suitable_text: '适合 3 月龄以上',
-    cover_url: 'https://images.unsplash.com/photo-1615485290382-441e4d049cb5?auto=format&fit=crop&w=600&q=70',
-    status: 'active',
-    rating: 4.8,
-    review_count: 862,
-    sold_count: 9200,
-    created_at: timestamp,
-    updated_at: timestamp
-  },
-  {
-    id: 'p-008',
-    category_id: 'all-travel',
-    title: '便携外出包',
-    subtitle: '透气 · 防走失 · 双背面',
-    pet_type: 'all',
-    price: 298,
-    member_price: 268,
-    original_price: 328,
-    stock: 0,
-    stock_status: 'soldOut',
-    badge: '',
-    tags_json: JSON.stringify(['透气', '双背面', '2-8kg']),
-    specs_json: JSON.stringify([{ group: '颜色', options: ['苔绿色', '燕麦色', '深灰'] }]),
-    summary_json: JSON.stringify([
-      '双向开口便于互动',
-      '承重 2-8kg',
-      '附走失防护扣'
-    ]),
-    suitable_text: '猫犬通用',
-    cover_url: 'https://images.unsplash.com/photo-1587729927069-a58e9fa1a0db?auto=format&fit=crop&w=600&q=70',
-    status: 'active',
-    rating: 4.8,
-    review_count: 245,
-    sold_count: 1800,
-    created_at: timestamp,
-    updated_at: timestamp
-  }
-]
+const products = catalogProducts.map((product, index) => ({
+  id: product.id,
+  category_id: productCategoryIds[product.category],
+  title: product.title,
+  subtitle: product.subtitle,
+  pet_type: product.petType,
+  price: product.price,
+  member_price: product.memberPrice ?? product.price,
+  original_price: product.originalPrice ?? product.price,
+  stock: productStockById[product.id] ?? (product.stockStatus === 'soldOut' ? 0 : 36 + index * 7),
+  stock_status: product.stockStatus,
+  badge: product.badge || '',
+  tags_json: JSON.stringify(product.tags || []),
+  specs_json: JSON.stringify(product.specs || []),
+  summary_json: JSON.stringify(product.summary || []),
+  suitable_text: product.suitable || '',
+  cover_url: product.cover,
+  status: 'active',
+  rating: product.rating ?? 0,
+  review_count: product.reviewCount ?? 0,
+  sold_count: product.sold ?? 0,
+  created_at: timestamp,
+  updated_at: timestamp
+}))
 
-const productImages = [
-  { id: 'pi_001', product_id: 'p-001', image_url: 'https://images.unsplash.com/photo-1592194996308-7b43878e84a6?auto=format&fit=crop&w=800&q=70', sort_order: 1 },
-  { id: 'pi_002', product_id: 'p-001', image_url: 'https://images.unsplash.com/photo-1587300003388-59208cc962cb?auto=format&fit=crop&w=800&q=70', sort_order: 2 },
-  { id: 'pi_003', product_id: 'p-002', image_url: 'https://images.unsplash.com/photo-1615485290382-441e4d049cb5?auto=format&fit=crop&w=800&q=70', sort_order: 1 },
-  { id: 'pi_004', product_id: 'p-008', image_url: 'https://images.unsplash.com/photo-1587729927069-a58e9fa1a0db?auto=format&fit=crop&w=800&q=70', sort_order: 1 }
-]
+let productImageSequence = 1
+const productImages = catalogProducts.flatMap((product) => {
+  const images = product.images?.length ? product.images : [product.cover]
+
+  return images.map((imageUrl, index) => {
+    const id = `pi_${String(productImageSequence).padStart(3, '0')}`
+    productImageSequence += 1
+
+    return {
+      id,
+      product_id: product.id,
+      image_url: imageUrl,
+      sort_order: index + 1
+    }
+  })
+})
 
 const services = [
   {
@@ -391,8 +402,8 @@ const orderItems = [
     id: 'order_item_001',
     order_id: 'order_001',
     product_id: 'p-001',
-    product_title_snapshot: '鲜肉全价猫粮',
-    product_cover_snapshot: 'https://images.unsplash.com/photo-1592194996308-7b43878e84a6?auto=format&fit=crop&w=600&q=70',
+    product_title_snapshot: productById.get('p-001').title,
+    product_cover_snapshot: productById.get('p-001').cover,
     spec_label_snapshot: '3kg · 鸡肉',
     unit_price_snapshot: 248,
     quantity: 1,

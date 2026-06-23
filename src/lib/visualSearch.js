@@ -15,7 +15,9 @@ const categoryLabelMap = {
   litter: '猫砂',
   toy: '玩具',
   clean: '洗护',
-  travel: '出行'
+  travel: '出行',
+  care: '保健',
+  home: '居家'
 }
 
 const categoryKeywordMap = {
@@ -24,7 +26,9 @@ const categoryKeywordMap = {
   litter: ['litter', '猫砂', '豆腐砂'],
   toy: ['toy', '玩具', '逗猫', '洁齿'],
   clean: ['clean', '洗护', '沐浴', 'shampoo'],
-  travel: ['travel', '外出', '背包', 'bag']
+  travel: ['travel', '外出', '背包', 'bag', 'harness', 'carrier'],
+  care: ['care', 'health', 'supplement', '益生菌', '营养膏', '保健'],
+  home: ['home', 'fountain', 'water', '饮水机', '居家']
 }
 
 function productPetLabel(product) {
@@ -98,6 +102,8 @@ function scoreProduct(product, { petType, imageName, recognition }) {
   if (/food|粮|package|包装/.test(imageName) && product.category === 'food') score += 16
   if (/toy|玩具/.test(imageName) && product.category === 'toy') score += 14
   if (/clean|洗护|shampoo/.test(imageName) && product.category === 'clean') score += 14
+  if (/care|health|supplement|益生菌|营养/.test(imageName) && product.category === 'care') score += 14
+  if (/home|fountain|water|饮水/.test(imageName) && product.category === 'home') score += 14
   if (recognitionTokens.includes('cat')) score += product.petType === 'cat' ? 8 : 0
   if (recognitionTokens.includes('dog')) score += product.petType === 'dog' ? 8 : 0
 

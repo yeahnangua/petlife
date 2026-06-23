@@ -45,7 +45,11 @@ describe('public catalog apis', () => {
     expect(response.body.data.list.map((item) => item.id)).toEqual([
       'cat-food',
       'cat-snack',
-      'all-travel'
+      'cat-litter',
+      'all-toy',
+      'all-travel',
+      'all-care',
+      'all-home'
     ])
   })
 
@@ -74,9 +78,9 @@ describe('public catalog apis', () => {
 
     expect(response.status).toBe(200)
     expect(response.body.data.item.id).toBe('p-001')
-    expect(response.body.data.item.product_images).toHaveLength(2)
+    expect(response.body.data.item.product_images).toHaveLength(1)
     expect(response.body.data.item.product_images[0].image_url).toContain(
-      'photo-1592194996308-7b43878e84a6'
+      '/images/products/cat-food.svg'
     )
   })
 

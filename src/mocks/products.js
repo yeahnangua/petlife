@@ -1,11 +1,9 @@
 /**
  * 商品 mock
- * 图片使用 unsplash 的稳定 id, 若离线则各卡片会以渐变底兜底。
- * 接入 Codex 时建议把 imagery 抽象成 service 层。
+ * 前台图搜直接使用这份数据；后端 seed 中保留同款商品和配图。
  */
 
-const img = (id, w = 800) =>
-  `https://images.unsplash.com/${id}?auto=format&fit=crop&w=${w}&q=70`
+const productImage = (key) => `/images/products/${key}.svg`
 
 export const products = [
   {
@@ -17,14 +15,14 @@ export const products = [
     price: 268,
     memberPrice: 248,
     originalPrice: 298,
-    tags: ['低敏', '无谷', '鲜肉70%'],
+    tags: ['低敏', '无谷', '鲜肉70%', '猫粮'],
     badge: '热卖',
     specs: [
       { group: '规格', options: ['1.5kg', '3kg', '6kg'] },
       { group: '口味', options: ['鸡肉', '三文鱼', '牛肉'] }
     ],
-    images: [img('photo-1592194996308-7b43878e84a6'), img('photo-1587300003388-59208cc962cb')],
-    cover: img('photo-1592194996308-7b43878e84a6', 600),
+    images: [productImage('cat-food')],
+    cover: productImage('cat-food'),
     stockStatus: 'inStock',
     rating: 4.9,
     reviewCount: 1283,
@@ -42,18 +40,18 @@ export const products = [
     price: 58,
     memberPrice: 52,
     originalPrice: 68,
-    tags: ['单一原料', '高蛋白', '训练奖励'],
+    tags: ['单一原料', '高蛋白', '训练奖励', '冻干'],
     specs: [
       { group: '规格', options: ['60g', '120g', '三袋装'] }
     ],
-    images: [img('photo-1615485290382-441e4d049cb5')],
-    cover: img('photo-1615485290382-441e4d049cb5', 600),
+    images: [productImage('cat-snack')],
+    cover: productImage('cat-snack'),
     stockStatus: 'inStock',
     rating: 4.8,
     reviewCount: 862,
     sold: 9200,
     summary: ['单一鸡胸肉原料', '-40℃ 真空冻干', '开袋即可训练奖励'],
-    suitable: '适合 3 月龄以上',
+    suitable: '适合 3 月龄以上猫咪',
     gradient: ['#D4A44C', '#F2E3C1']
   },
   {
@@ -64,40 +62,40 @@ export const products = [
     category: 'litter',
     price: 68,
     memberPrice: 62,
-    tags: ['可冲厕', '低粉尘', '强除臭'],
+    tags: ['可冲厕', '低粉尘', '强除臭', '猫砂'],
     specs: [
       { group: '规格', options: ['2.5kg', '6包装'] },
       { group: '香型', options: ['原味', '绿茶', '桃香'] }
     ],
-    images: [img('photo-1606471191009-63994c53433b')],
-    cover: img('photo-1606471191009-63994c53433b', 600),
+    images: [productImage('cat-litter')],
+    cover: productImage('cat-litter'),
     stockStatus: 'inStock',
     rating: 4.7,
     reviewCount: 2041,
     sold: 22000,
     summary: ['纯天然豆腐渣原料', '结团迅速，方便清理', '可直接冲入马桶'],
-    suitable: '通用',
+    suitable: '猫咪通用',
     gradient: ['#C8D5CA', '#F4EFE4']
   },
   {
     id: 'p-004',
-    title: '慢食逗猫玩具',
-    subtitle: '益智互动 · 抗抑郁',
+    title: '羽毛逗猫棒套装',
+    subtitle: '替换羽片 · 互动消耗',
     petType: 'cat',
     category: 'toy',
-    price: 89,
-    memberPrice: 82,
-    tags: ['互动', '益智', '缓解焦虑'],
+    price: 49,
+    memberPrice: 42,
+    tags: ['逗猫', '羽毛', '互动', '玩具'],
     specs: [
-      { group: '颜色', options: ['燕麦色', '苔绿色', '珊瑚橙'] }
+      { group: '款式', options: ['经典羽毛', '铃铛羽毛', '替换羽片装'] }
     ],
-    images: [img('photo-1514888286974-6c03e2ca1dba')],
-    cover: img('photo-1514888286974-6c03e2ca1dba', 600),
+    images: [productImage('cat-wand')],
+    cover: productImage('cat-wand'),
     stockStatus: 'inStock',
     rating: 4.6,
     reviewCount: 432,
     sold: 3200,
-    summary: ['手工编织材质', '多关卡益智设计', '缓解独处焦虑'],
+    summary: ['弹性杆身不易折', '可替换羽片，延长使用周期', '增加追逐跳跃运动量'],
     suitable: '全年龄猫咪',
     gradient: ['#E9A68B', '#F4DFD1']
   },
@@ -110,14 +108,14 @@ export const products = [
     price: 328,
     memberPrice: 298,
     originalPrice: 368,
-    tags: ['低敏', '护肠胃', '鲜肉'],
+    tags: ['低敏', '护肠胃', '鲜肉', '狗粮'],
     badge: '新品',
     specs: [
       { group: '规格', options: ['2kg', '5kg', '10kg'] },
       { group: '阶段', options: ['幼犬', '成犬', '老年犬'] }
     ],
-    images: [img('photo-1601758123927-196d5d02d63e')],
-    cover: img('photo-1601758123927-196d5d02d63e', 600),
+    images: [productImage('dog-food')],
+    cover: productImage('dog-food'),
     stockStatus: 'inStock',
     rating: 4.9,
     reviewCount: 961,
@@ -134,17 +132,17 @@ export const products = [
     category: 'toy',
     price: 78,
     memberPrice: 72,
-    tags: ['耐咬', '洁齿', '中大型犬'],
+    tags: ['耐咬', '洁齿', '橡胶', '玩具'],
     specs: [
       { group: '尺码', options: ['S', 'M', 'L'] }
     ],
-    images: [img('photo-1583337130417-3346a1be7dee')],
-    cover: img('photo-1583337130417-3346a1be7dee', 600),
+    images: [productImage('dog-chew')],
+    cover: productImage('dog-chew'),
     stockStatus: 'inStock',
     rating: 4.8,
     reviewCount: 712,
     sold: 5800,
-    summary: ['医用级天然橡胶', '独立凹槽储藏零食', '缓解啃咬破坏行为'],
+    summary: ['医用级天然橡胶', '独立凹槽可藏零食', '缓解啃咬破坏行为'],
     suitable: '中大型犬',
     gradient: ['#D97757', '#F3DFD0']
   },
@@ -156,12 +154,12 @@ export const products = [
     category: 'clean',
     price: 128,
     memberPrice: 118,
-    tags: ['弱酸性', '燕麦精华', '柔顺'],
+    tags: ['弱酸性', '燕麦精华', '柔顺', '沐浴露'],
     specs: [
       { group: '适用', options: ['猫咪', '犬类', '敏感肌'] }
     ],
-    images: [img('photo-1585155770447-2f66e2a397b5')],
-    cover: img('photo-1585155770447-2f66e2a397b5', 600),
+    images: [productImage('shampoo')],
+    cover: productImage('shampoo'),
     stockStatus: 'inStock',
     rating: 4.7,
     reviewCount: 523,
@@ -178,12 +176,13 @@ export const products = [
     category: 'travel',
     price: 298,
     memberPrice: 268,
-    tags: ['透气', '双背面', '2-8kg'],
+    originalPrice: 328,
+    tags: ['透气', '双背面', '2-8kg', '外出包'],
     specs: [
       { group: '颜色', options: ['苔绿色', '燕麦色', '深灰'] }
     ],
-    images: [img('photo-1587729927069-a58e9fa1a0db')],
-    cover: img('photo-1587729927069-a58e9fa1a0db', 600),
+    images: [productImage('carrier')],
+    cover: productImage('carrier'),
     stockStatus: 'soldOut',
     rating: 4.8,
     reviewCount: 245,
@@ -191,6 +190,145 @@ export const products = [
     summary: ['双向开口便于互动', '承重 2-8kg', '附走失防护扣'],
     suitable: '猫犬通用',
     gradient: ['#8AA3B4', '#E5ECEF']
+  },
+  {
+    id: 'p-009',
+    title: '猫薄荷毛绒鱼',
+    subtitle: '可拆洗内胆 · 自带铃纸',
+    petType: 'cat',
+    category: 'toy',
+    price: 39,
+    memberPrice: 35,
+    tags: ['猫薄荷', '毛绒', '抓咬', '玩具'],
+    badge: '加购',
+    specs: [
+      { group: '尺寸', options: ['20cm', '30cm'] }
+    ],
+    images: [productImage('cat-fish-toy')],
+    cover: productImage('cat-fish-toy'),
+    stockStatus: 'inStock',
+    rating: 4.7,
+    reviewCount: 389,
+    sold: 5100,
+    summary: ['内置猫薄荷包', '外层短绒不易掉毛', '可替换内胆重复使用'],
+    suitable: '适合爱抓咬猫咪',
+    gradient: ['#A9C0AD', '#EEE4D1']
+  },
+  {
+    id: 'p-010',
+    title: '益生菌营养膏',
+    subtitle: '肠胃调理 · 换粮过渡',
+    petType: 'all',
+    category: 'care',
+    price: 96,
+    memberPrice: 88,
+    originalPrice: 118,
+    tags: ['益生菌', '营养膏', '肠胃', '保健'],
+    specs: [
+      { group: '规格', options: ['80g', '三支装'] }
+    ],
+    images: [productImage('supplement')],
+    cover: productImage('supplement'),
+    stockStatus: 'inStock',
+    rating: 4.8,
+    reviewCount: 658,
+    sold: 6700,
+    summary: ['复合益生菌配方', '换粮期帮助肠胃适应', '猫犬均可舔食'],
+    suitable: '猫犬通用 / 3 月龄以上',
+    gradient: ['#B7BFA9', '#EEE8D8']
+  },
+  {
+    id: 'p-011',
+    title: '鸡肉训练奖励粒',
+    subtitle: '小颗粒 · 外出训练',
+    petType: 'dog',
+    category: 'snack',
+    price: 69,
+    memberPrice: 62,
+    originalPrice: 79,
+    tags: ['训练奖励', '鸡肉', '低脂', '狗零食'],
+    specs: [
+      { group: '规格', options: ['100g', '250g', '四袋装'] }
+    ],
+    images: [productImage('dog-treat')],
+    cover: productImage('dog-treat'),
+    stockStatus: 'inStock',
+    rating: 4.7,
+    reviewCount: 512,
+    sold: 4600,
+    summary: ['小颗粒便于随身携带', '鸡胸肉低脂配方', '训练回馈不粘手'],
+    suitable: '适合 3 月龄以上犬类',
+    gradient: ['#D8B08C', '#F7E8D7']
+  },
+  {
+    id: 'p-012',
+    title: '静音自动饮水机',
+    subtitle: '循环活水 · 2L 容量',
+    petType: 'all',
+    category: 'home',
+    price: 188,
+    memberPrice: 168,
+    originalPrice: 228,
+    tags: ['饮水机', '静音', '循环过滤', '居家'],
+    specs: [
+      { group: '颜色', options: ['奶白', '雾蓝'] }
+    ],
+    images: [productImage('fountain')],
+    cover: productImage('fountain'),
+    stockStatus: 'inStock',
+    rating: 4.8,
+    reviewCount: 744,
+    sold: 3900,
+    summary: ['2L 大容量水箱', '三层滤芯循环过滤', '低噪水泵适合夜间使用'],
+    suitable: '猫犬通用',
+    gradient: ['#8AA3B4', '#E5ECEF']
+  },
+  {
+    id: 'p-013',
+    title: '防滑牵引胸背带',
+    subtitle: '轻量透气 · 夜间反光',
+    petType: 'dog',
+    category: 'travel',
+    price: 138,
+    memberPrice: 126,
+    originalPrice: 158,
+    tags: ['胸背带', '牵引', '反光', '出行'],
+    specs: [
+      { group: '尺码', options: ['S', 'M', 'L', 'XL'] },
+      { group: '颜色', options: ['苔绿色', '岩灰', '橙红'] }
+    ],
+    images: [productImage('harness')],
+    cover: productImage('harness'),
+    stockStatus: 'inStock',
+    rating: 4.6,
+    reviewCount: 276,
+    sold: 2100,
+    summary: ['胸背受力减少勒颈', '夜间反光织带', '快拆扣便于穿脱'],
+    suitable: '小中大型犬',
+    gradient: ['#B58463', '#F2E2D0']
+  },
+  {
+    id: 'p-014',
+    title: '宠物除味喷雾',
+    subtitle: '猫砂盆 · 窝垫可用',
+    petType: 'all',
+    category: 'clean',
+    price: 76,
+    memberPrice: 68,
+    originalPrice: 88,
+    tags: ['除味', '喷雾', '清洁', '猫砂盆'],
+    specs: [
+      { group: '香型', options: ['无香', '绿茶', '白茶'] }
+    ],
+    images: [productImage('deodorizer')],
+    cover: productImage('deodorizer'),
+    stockStatus: 'inStock',
+    rating: 4.6,
+    reviewCount: 418,
+    sold: 3600,
+    summary: ['可用于猫砂盆和窝垫', '植物来源除味成分', '不含刺激性酒精'],
+    suitable: '猫犬家庭通用',
+    gradient: ['#A9C0AD', '#F4EFE4']
   }
 ]
 
@@ -208,35 +346,35 @@ export const bundles = [
     originalPrice: 528,
     itemCount: 6,
     tag: '新人必备',
-    productIds: ['p-001', 'p-003', 'p-004', 'p-007'],
+    productIds: ['p-001', 'p-003', 'p-004', 'p-007', 'p-009'],
     gradient: ['#A9C0AD', '#EEE4D1'],
-    image: img('photo-1533738363-b7f9aef128ce')
+    image: productImage('cat-bundle')
   },
   {
     id: 'b-002',
     title: '换季护理组合',
-    subtitle: '驱虫 · 沐浴 · 营养保健',
+    subtitle: '洗护 · 营养膏 · 除味喷雾',
     petType: 'all',
     price: 266,
     originalPrice: 328,
     itemCount: 4,
     tag: '季节推荐',
-    productIds: ['p-007'],
+    productIds: ['p-007', 'p-010', 'p-014'],
     gradient: ['#D97757', '#F3DFD0'],
-    image: img('photo-1415369629372-26f2fe60c467')
+    image: productImage('care-bundle')
   },
   {
     id: 'b-003',
     title: '出行无忧套装',
-    subtitle: '外出包 · 洁齿棒 · 便携碗',
+    subtitle: '外出包 · 胸背带 · 便携奖励',
     petType: 'dog',
     price: 488,
     originalPrice: 628,
     itemCount: 5,
     tag: '出行',
-    productIds: ['p-008', 'p-006'],
+    productIds: ['p-008', 'p-011', 'p-013'],
     gradient: ['#B58463', '#F2E2D0'],
-    image: img('photo-1548199973-03cce0bbc87b')
+    image: productImage('travel-bundle')
   }
 ]
 
@@ -255,7 +393,7 @@ export const productReviews = {
         user: '橘子的铲屎官',
         avatar: 'https://i.pravatar.cc/80?img=32',
         content: '我家橘猫吃了两个月，毛色明显变好，肠胃也没出过问题。',
-        images: [img('photo-1592194996308-7b43878e84a6', 400)],
+        images: [productImage('cat-food')],
         date: '2026-03-22',
         spec: '3kg · 三文鱼'
       },

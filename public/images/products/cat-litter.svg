@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="600" height="552" viewBox="0 0 800 736" role="img" aria-label="豆腐猫砂">
+      <defs>
+        <linearGradient id="bg" x1="0" x2="1" y1="0" y2="1">
+          <stop offset="0%" stop-color="#EDF1E7"/>
+          <stop offset="100%" stop-color="#fffaf2"/>
+        </linearGradient>
+        <filter id="shadow" x="-30%" y="-30%" width="160%" height="160%">
+          <feDropShadow dx="0" dy="18" stdDeviation="18" flood-color="#4b4035" flood-opacity=".18"/>
+        </filter>
+      </defs>
+      <rect width="800" height="736" rx="0" fill="url(#bg)"/>
+      <circle cx="112" cy="112" r="72" fill="#ffffff" opacity=".42"/>
+      <circle cx="692" cy="150" r="104" fill="#6A8572" opacity=".10"/>
+      <circle cx="682" cy="610" r="82" fill="#A9C0AD" opacity=".16"/>
+      <g transform="translate(400 328)" filter="url(#shadow)">
+        
+      <path d="M-160 -16h320l-28 168c-5 30-31 52-62 52H-70c-31 0-57-22-62-52z" fill="#fffaf2" stroke="#6A8572" stroke-width="16"/>
+      <ellipse cx="0" cy="-16" rx="158" ry="46" fill="#A9C0AD" opacity=".38"/>
+      <circle cx="-72" cy="-20" r="12" fill="#6A8572" opacity=".65"/>
+      <circle cx="-18" cy="-34" r="10" fill="#6A8572" opacity=".52"/>
+      <circle cx="42" cy="-18" r="13" fill="#6A8572" opacity=".6"/>
+      <circle cx="94" cy="-30" r="9" fill="#6A8572" opacity=".5"/>
+      <path d="M64 -98l116 -42" stroke="#6A8572" stroke-width="18" stroke-linecap="round"/>
+      <rect x="138" y="-168" width="54" height="72" rx="14" fill="#fffaf2" stroke="#6A8572" stroke-width="14"/>
+    
+      </g>
+      <text x="400" y="598" text-anchor="middle" fill="#2f2a24" font-family="Arial, 'PingFang SC', sans-serif" font-size="46" font-weight="700">豆腐猫砂</text>
+      <text x="400" y="642" text-anchor="middle" fill="#6f6256" font-family="Arial, 'PingFang SC', sans-serif" font-size="26" font-weight="600">低尘除臭</text>
+    </svg>
+  
