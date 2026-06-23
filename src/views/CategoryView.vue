@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref, watch } from 'vue'
+import { computed, nextTick, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import EmptyState from '@/components/EmptyState.vue'
 import ProductCard from '@/components/ProductCard.vue'
@@ -13,6 +13,13 @@ const catalogStore = useCatalogStore()
 
 const activePrimary = ref(route.query.pet || 'cat')
 const activeSecondary = ref('')
+const chipScroller = ref(null)
+const isDraggingChips = ref(false)
+const chipDragStartX = ref(0)
+const chipDragStartScrollLeft = ref(0)
+const draggedChips = ref(false)
+const chipPointerId = ref(null)
+const hasCapturedChipPointer = ref(false)
 
 watch(
   () => route.query.pet,
@@ -22,6 +29,8 @@ watch(
 )
 
 const secondaryOptions = computed(() => catalogStore.categoriesByPetType(activePrimary.value))
+const isInitialProductLoad = computed(() => catalogStore.loading.products && catalogStore.productList.length === 0)
+const isRefreshingProducts = computed(() => catalogStore.loading.products && catalogStore.productList.length > 0)
 
 watch(
   [secondaryOptions, () => route.query.category],
@@ -52,6 +61,78 @@ watch(
   },
   { immediate: true }
 )
+
+watch(activeSecondary, () => {
+  nextTick(() => {
+    const activeChip = chipScroller.value?.querySelector('.category__chip--active')
+    activeChip?.scrollIntoView?.({ behavior: 'smooth', block: 'nearest', inline: 'center' })
+  })
+})
+
+function startChipDrag(event) {
+  if (!chipScroller.value) {
+    return
+  }
+
+  isDraggingChips.value = true
+  draggedChips.value = false
+  hasCapturedChipPointer.value = false
+  chipPointerId.value = event.pointerId
+  chipDragStartX.value = event.clientX
+  chipDragStartScrollLeft.value = chipScroller.value.scrollLeft
+}
+
+function dragChips(event) {
+  if (!isDraggingChips.value || !chipScroller.value) {
+    return
+  }
+
+  const distance = event.clientX - chipDragStartX.value
+  if (Math.abs(distance) > 6) {
+    if (!hasCapturedChipPointer.value) {
+      try {
+        chipScroller.value.setPointerCapture?.(event.pointerId)
+        hasCapturedChipPointer.value = true
+      } catch {
+        hasCapturedChipPointer.value = false
+      }
+    }
+    draggedChips.value = true
+  }
+
+  chipScroller.value.scrollLeft = chipDragStartScrollLeft.value - distance
+}
+
+function endChipDrag() {
+  if (!isDraggingChips.value) {
+    return
+  }
+
+  if (
+    chipPointerId.value !== null &&
+    hasCapturedChipPointer.value &&
+    chipScroller.value?.hasPointerCapture?.(chipPointerId.value)
+  ) {
+    chipScroller.value?.releasePointerCapture?.(chipPointerId.value)
+  }
+
+  isDraggingChips.value = false
+  chipPointerId.value = null
+  hasCapturedChipPointer.value = false
+  window.setTimeout(() => {
+    draggedChips.value = false
+  }, 0)
+}
+
+function blockClickAfterDrag(event) {
+  if (!draggedChips.value) {
+    return
+  }
+
+  event.preventDefault()
+  event.stopPropagation()
+  draggedChips.value = false
+}
 
 function setPrimary(id) {
   activePrimary.value = id
@@ -87,7 +168,20 @@ function setSecondary(id) {
       </aside>
 
       <section class="category__content">
-        <div class="category__chips hide-scroll">
+        <div
+          ref="chipScroller"
+          class="category__chips hide-scroll"
+          :class="{ 'category__chips--dragging': isDraggingChips }"
+          role="group"
+          aria-label="商品二级分类"
+          data-draggable-scroll="true"
+          @pointerdown="startChipDrag"
+          @pointermove="dragChips"
+          @pointerup="endChipDrag"
+          @pointercancel="endChipDrag"
+          @pointerleave="endChipDrag"
+          @click.capture="blockClickAfterDrag"
+        >
           <button
             v-for="item in secondaryOptions"
             :key="item.id"
@@ -100,7 +194,7 @@ function setSecondary(id) {
           </button>
         </div>
 
-        <div v-if="catalogStore.loading.products" class="category__grid">
+        <div v-if="isInitialProductLoad" class="category__grid">
           <SkeletonBlock variant="card" />
           <SkeletonBlock variant="card" />
         </div>
@@ -119,12 +213,21 @@ function setSecondary(id) {
           action-label="查看全部"
           @action="router.push('/products')"
         />
-        <div v-else class="category__grid">
-          <ProductCard
-            v-for="product in catalogStore.productList"
-            :key="product.id"
-            :product="product"
-          />
+        <div
+          v-else
+          class="category__results"
+          :class="{ 'category__results--refreshing': isRefreshingProducts }"
+        >
+          <div v-if="isRefreshingProducts" class="category__refreshing" role="status" aria-live="polite">
+            正在更新
+          </div>
+          <div class="category__grid">
+            <ProductCard
+              v-for="product in catalogStore.productList"
+              :key="product.id"
+              :product="product"
+            />
+          </div>
         </div>
       </section>
     </div>
@@ -208,8 +311,24 @@ function setSecondary(id) {
 .category__chips {
   display: flex;
   gap: var(--space-2);
+  max-width: 100%;
+  min-width: 0;
   overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scroll-behavior: smooth;
+  scroll-padding-inline: var(--space-3);
+  touch-action: pan-y;
+  cursor: grab;
+  mask-image: linear-gradient(90deg, transparent 0, #000 10px, #000 calc(100% - 22px), transparent 100%);
   padding-bottom: 2px;
+  user-select: none;
+  -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 10px, #000 calc(100% - 22px), transparent 100%);
+  -webkit-overflow-scrolling: touch;
+}
+
+.category__chips--dragging {
+  cursor: grabbing;
+  scroll-behavior: auto;
 }
 
 .category__chip {
@@ -229,6 +348,27 @@ function setSecondary(id) {
   background: var(--color-primary-tint);
   color: var(--color-primary-deep);
   font-weight: var(--weight-semibold);
+}
+
+.category__results {
+  position: relative;
+  display: grid;
+  gap: var(--space-2);
+}
+
+.category__refreshing {
+  justify-self: start;
+  padding: 3px 9px;
+  border-radius: var(--radius-full);
+  background: var(--color-primary-tint);
+  color: var(--color-primary-deep);
+  font-size: var(--text-2xs);
+  font-weight: var(--weight-semibold);
+}
+
+.category__results--refreshing .category__grid {
+  opacity: 0.72;
+  transition: opacity var(--dur-base) var(--ease-out);
 }
 
 .category__grid {

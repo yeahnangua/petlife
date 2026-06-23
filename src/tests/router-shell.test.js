@@ -1,4 +1,4 @@
-import { mount } from '@vue/test-utils'
+import { flushPromises, mount } from '@vue/test-utils'
 import { createPinia } from 'pinia'
 import { createRouter, createWebHashHistory } from 'vue-router'
 import { describe, expect, it } from 'vitest'
@@ -34,5 +34,27 @@ describe('app shell', () => {
     expect(wrapper.find('.top-bar').exists()).toBe(true)
     expect(wrapper.find('.top-bar').text()).toContain('商品详情')
     expect(wrapper.find('.app').attributes('style')).toContain('--shell-bottom-offset: var(--safe-bottom)')
+  })
+
+  it('keeps the current page component mounted when only route query changes', async () => {
+    let mountCount = 0
+    const CategoryStub = {
+      template: '<section>category</section>',
+      mounted() {
+        mountCount += 1
+      }
+    }
+    const router = makeRouter([
+      { path: '/category', component: CategoryStub, meta: { tab: 'category', title: '分类' } }
+    ])
+
+    router.push('/category?pet=cat')
+    await router.isReady()
+    mount(App, { global: { plugins: [router, createPinia()] } })
+
+    await router.replace('/category?pet=dog')
+    await flushPromises()
+
+    expect(mountCount).toBe(1)
   })
 })

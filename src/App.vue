@@ -21,7 +21,7 @@ const shellBottomOffset = computed(() =>
       <main class="app__viewport">
         <router-view v-slot="{ Component }">
           <transition :name="route.meta.transition || 'fade-slide'" mode="out-in">
-            <component :is="Component" :key="route.fullPath" />
+            <component :is="Component" :key="route.path" />
           </transition>
         </router-view>
       </main>
