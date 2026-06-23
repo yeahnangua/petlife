@@ -9,3 +9,10 @@ export function uploadImage(file) {
     body: formData
   })
 }
+
+export function uploadImageFromUrl(url) {
+  return request('/api/admin/uploads/images/from-url', {
+    method: 'POST',
+    body: { url }
+  })
+}

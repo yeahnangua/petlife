@@ -40,7 +40,7 @@ import {
   listAdminTimeSlots,
   updateTimeSlot
 } from '../controllers/adminTimeSlotController.js'
-import { uploadImageFile } from '../controllers/adminUploadController.js'
+import { uploadImageFile, uploadImageFromUrl } from '../controllers/adminUploadController.js'
 import { uploadImage } from '../middleware/uploadImage.js'
 
 export function createAdminRouter() {
@@ -48,6 +48,7 @@ export function createAdminRouter() {
 
   router.use(adminAuth)
   router.post('/uploads/images', uploadImage, uploadImageFile)
+  router.post('/uploads/images/from-url', uploadImageFromUrl)
 
   router.get('/categories', listAdminCategories)
   router.post('/categories', createCategory)

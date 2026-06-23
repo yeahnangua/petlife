@@ -1,4 +1,5 @@
 import { existsSync } from 'node:fs'
+import { createServer } from 'node:http'
 import { join } from 'node:path'
 import request from 'supertest'
 import { afterEach, describe, expect, it } from 'vitest'
@@ -35,6 +36,20 @@ function createSeededApp(cleanups) {
 
 function withAdminKey(ctx, builder) {
   return builder.set('x-admin-key', ctx.adminKey)
+}
+
+function createImageServer(handler) {
+  const server = createServer(handler)
+
+  return new Promise((resolve) => {
+    server.listen(0, '127.0.0.1', () => {
+      const address = server.address()
+      resolve({
+        url: `http://127.0.0.1:${address.port}/remote-product.png`,
+        close: () => new Promise((done) => server.close(done))
+      })
+    })
+  })
 }
 
 describe('admin upload and catalog apis', () => {
@@ -85,6 +100,32 @@ describe('admin upload and catalog apis', () => {
     expect(uploadResponse.body.data.file.url).toMatch(/^\/uploads\/\d{4}\/\d{2}\//)
 
     const relativePath = uploadResponse.body.data.file.url.replace('/uploads/', '')
+    expect(existsSync(join(ctx.uploadDir, relativePath))).toBe(true)
+  })
+
+  it('downloads remote image uploads into the local uploads directory', async () => {
+    const { app, ctx } = createSeededApp(cleanups)
+    const imageServer = await createImageServer((_req, res) => {
+      res.writeHead(200, {
+        'Content-Type': 'image/png',
+        'Content-Length': PNG_1X1.length
+      })
+      res.end(PNG_1X1)
+    })
+    cleanups.push(() => imageServer.close())
+
+    const response = await withAdminKey(
+      ctx,
+      request(app)
+        .post('/api/admin/uploads/images/from-url')
+        .send({ url: imageServer.url })
+    )
+
+    expect(response.status).toBe(200)
+    expect(response.body.data.file.url).toMatch(/^\/uploads\/\d{4}\/\d{2}\//)
+    expect(response.body.data.file.mime_type).toBe('image/png')
+
+    const relativePath = response.body.data.file.url.replace('/uploads/', '')
     expect(existsSync(join(ctx.uploadDir, relativePath))).toBe(true)
   })
 

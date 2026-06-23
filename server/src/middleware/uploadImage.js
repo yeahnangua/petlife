@@ -3,8 +3,7 @@ import { extname, join } from 'node:path'
 import { mkdirSync } from 'node:fs'
 import multer from 'multer'
 import { AppError } from '../utils/appError.js'
-
-const MAX_IMAGE_SIZE = 5 * 1024 * 1024
+import { MAX_IMAGE_SIZE } from '../services/uploadService.js'
 
 function getNowParts() {
   const date = new Date()
