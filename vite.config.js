@@ -11,10 +11,21 @@ export default defineConfig({
   },
   test: {
     environment: 'jsdom',
-    globals: true
+    globals: true,
+    include: ['src/tests/**/*.test.js']
   },
   server: {
     port: 5173,
-    host: '0.0.0.0'
+    host: '0.0.0.0',
+    proxy: {
+      '/api': {
+        target: 'http://127.0.0.1:8787',
+        changeOrigin: true
+      },
+      '/uploads': {
+        target: 'http://127.0.0.1:8787',
+        changeOrigin: true
+      }
+    }
   }
 })

@@ -1,15 +1,27 @@
 <script setup>
-import { computed, ref, watch } from 'vue'
+import { computed, nextTick, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import EmptyState from '@/components/EmptyState.vue'
 import ProductCard from '@/components/ProductCard.vue'
-import { primaryCategories, products, secondaryCategories } from '@/mocks'
-import { getProductsByCategory } from '@/lib/catalog'
+import SkeletonBlock from '@/components/SkeletonBlock.vue'
+import { useDragScroll } from '@/composables/useDragScroll'
+import { primaryCategories } from '@/content/catalog'
+import { useCatalogStore } from '@/stores/catalog'
 
 const route = useRoute()
 const router = useRouter()
+const catalogStore = useCatalogStore()
 
 const activePrimary = ref(route.query.pet || 'cat')
 const activeSecondary = ref('')
+const {
+  scroller: chipScroller,
+  isDragging: isDraggingChips,
+  startDrag: startChipDrag,
+  drag: dragChips,
+  endDrag: endChipDrag,
+  blockClickAfterDrag
+} = useDragScroll()
 
 watch(
   () => route.query.pet,
@@ -18,11 +30,19 @@ watch(
   }
 )
 
-const secondaryOptions = computed(() => secondaryCategories[activePrimary.value] ?? [])
+const secondaryOptions = computed(() => catalogStore.categoriesByPetType(activePrimary.value))
+const isInitialProductLoad = computed(() => catalogStore.loading.products && catalogStore.productList.length === 0)
 
 watch(
-  secondaryOptions,
-  (options) => {
+  [secondaryOptions, () => route.query.category],
+  ([options, routeCategory]) => {
+    const resolvedCategoryId = catalogStore.resolveCategoryId(routeCategory, activePrimary.value)
+
+    if (resolvedCategoryId && options.find((item) => item.id === resolvedCategoryId)) {
+      activeSecondary.value = resolvedCategoryId
+      return
+    }
+
     if (!options.find((item) => item.id === activeSecondary.value)) {
       activeSecondary.value = options[0]?.id ?? ''
     }
@@ -30,58 +50,113 @@ watch(
   { immediate: true }
 )
 
-const normalizedCategory = computed(() => {
-  const current = activeSecondary.value.split('-').pop()
-  return current === 'home' || current === 'gift' ? '' : current
-})
-
-const filteredProducts = computed(() =>
-  getProductsByCategory(products, activePrimary.value, normalizedCategory.value)
+watch(
+  [activePrimary, activeSecondary],
+  ([petType, categoryId]) => {
+    catalogStore.fetchProductList({
+      petType,
+      categoryId,
+      page: 1,
+      pageSize: 20
+    })
+  },
+  { immediate: true }
 )
+
+watch(activeSecondary, () => {
+  nextTick(() => {
+    const activeChip = chipScroller.value?.querySelector('.category__chip--active')
+    activeChip?.scrollIntoView?.({ behavior: 'smooth', block: 'nearest', inline: 'center' })
+  })
+})
 
 function setPrimary(id) {
   activePrimary.value = id
   router.replace({ path: '/category', query: { pet: id } })
 }
+
+function setSecondary(id) {
+  activeSecondary.value = id
+  router.replace({ path: '/category', query: { pet: activePrimary.value, category: id } })
+}
 </script>
 
 <template>
-  <div class="category page-pad">
-    <div class="category__layout">
-      <aside class="category__sidebar surface-card">
+  <div class="category">
+    <header class="category__head page-pad">
+      <p class="category__eyebrow">CATALOG</p>
+      <h1 class="category__title font-display">分类选购</h1>
+    </header>
+
+    <div class="category__layout page-pad">
+      <aside class="category__rail">
         <button
           v-for="item in primaryCategories"
           :key="item.id"
           type="button"
           class="category__primary"
-          :class="{ 'is-active': activePrimary === item.id }"
+          :class="{ 'category__primary--active': activePrimary === item.id }"
           @click="setPrimary(item.id)"
         >
-          <span>{{ item.emoji }}</span>
+          <span class="category__primary-emoji">{{ item.emoji }}</span>
           <span>{{ item.label }}</span>
         </button>
       </aside>
 
-      <section class="category__content page-stack">
-        <div class="surface-card category__chip-card">
+      <section class="category__content">
+        <div
+          ref="chipScroller"
+          class="category__chips hide-scroll"
+          :class="{ 'category__chips--dragging': isDraggingChips }"
+          role="group"
+          aria-label="商品二级分类"
+          data-draggable-scroll="true"
+          @pointerdown="startChipDrag"
+          @pointermove="dragChips"
+          @pointerup="endChipDrag"
+          @pointercancel="endChipDrag"
+          @pointerleave="endChipDrag"
+          @click.capture="blockClickAfterDrag"
+        >
           <button
             v-for="item in secondaryOptions"
             :key="item.id"
             type="button"
             class="category__chip"
-            :class="{ 'is-active': activeSecondary === item.id }"
-            @click="activeSecondary = item.id"
+            :class="{ 'category__chip--active': activeSecondary === item.id }"
+            @click="setSecondary(item.id)"
           >
-            {{ item.label }}
+            {{ item.label || item.name }}
           </button>
         </div>
 
-        <div class="category__grid">
-          <ProductCard
-            v-for="product in filteredProducts"
-            :key="product.id"
-            :product="product"
-          />
+        <div v-if="isInitialProductLoad" class="category__grid">
+          <SkeletonBlock variant="card" />
+          <SkeletonBlock variant="card" />
+        </div>
+        <EmptyState
+          v-else-if="catalogStore.error.products"
+          title="分类加载失败"
+          :description="catalogStore.error.products"
+          action-label="重试"
+          @action="catalogStore.fetchProductList({ petType: activePrimary, categoryId: activeSecondary, page: 1, pageSize: 20 })"
+        />
+        <EmptyState
+          v-else-if="!catalogStore.productList.length"
+          icon="box"
+          title="这个分类还没有商品"
+          description="换个分类看看，或者稍后再来。"
+          action-label="查看全部"
+          @action="router.push('/products')"
+        />
+        <div v-else class="category__results">
+          <div class="category__grid">
+            <ProductCard
+              v-for="product in catalogStore.productList"
+              :key="product.id"
+              :product="product"
+            />
+          </div>
         </div>
       </section>
     </div>
@@ -93,63 +168,126 @@ function setPrimary(id) {
   padding-bottom: var(--space-6);
 }
 
-.category__layout {
-  display: grid;
-  grid-template-columns: 96px minmax(0, 1fr);
-  gap: var(--space-4);
+.category__head {
+  padding-top: calc(var(--safe-top) + var(--space-5));
+  padding-bottom: var(--space-4);
 }
 
-.category__sidebar {
+.category__eyebrow {
+  color: var(--color-primary);
+  font-size: var(--text-2xs);
+  font-weight: var(--weight-bold);
+  letter-spacing: var(--tracking-wider);
+}
+
+.category__title {
+  margin-top: 2px;
+  font-size: var(--text-3xl);
+  font-weight: var(--weight-semibold);
+}
+
+.category__layout {
+  display: grid;
+  grid-template-columns: 88px minmax(0, 1fr);
+  gap: var(--space-4);
+  align-items: start;
+}
+
+.category__rail {
+  position: sticky;
+  top: var(--space-4);
   display: grid;
   gap: var(--space-2);
-  align-content: start;
-  padding: var(--space-3);
+  padding: var(--space-2);
+  border: 1px solid var(--color-border-soft);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-xs);
 }
 
 .category__primary {
   display: grid;
   justify-items: center;
-  gap: 6px;
+  gap: 4px;
   padding: var(--space-3) 0;
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-md);
   color: var(--color-text-soft);
   font-size: var(--text-sm);
   font-weight: var(--weight-medium);
+  transition: background-color var(--dur-base) var(--ease-out), color var(--dur-base) var(--ease-out), transform var(--dur-fast) var(--ease-spring);
 }
 
-.category__primary.is-active {
+.category__primary:active {
+  transform: scale(0.94);
+}
+
+.category__primary--active {
   background: var(--color-primary-deep);
   color: var(--color-text-invert);
+  box-shadow: var(--shadow-brand);
+}
+
+.category__primary-emoji {
+  font-size: var(--text-lg);
 }
 
 .category__content {
+  display: grid;
+  gap: var(--space-3);
   min-width: 0;
 }
 
-.category__chip-card {
+.category__chips {
   display: flex;
-  flex-wrap: wrap;
   gap: var(--space-2);
-  padding: var(--space-3);
+  max-width: 100%;
+  min-width: 0;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scroll-behavior: smooth;
+  scroll-padding-inline: var(--space-3);
+  touch-action: pan-y;
+  cursor: grab;
+  mask-image: linear-gradient(90deg, transparent 0, #000 10px, #000 calc(100% - 22px), transparent 100%);
+  padding-bottom: 2px;
+  user-select: none;
+  -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 10px, #000 calc(100% - 22px), transparent 100%);
+  -webkit-overflow-scrolling: touch;
+}
+
+.category__chips--dragging {
+  cursor: grabbing;
+  scroll-behavior: auto;
 }
 
 .category__chip {
+  flex-shrink: 0;
   min-height: 32px;
   padding: 0 var(--space-3);
+  border: 1px solid var(--color-border-soft);
   border-radius: var(--radius-full);
-  background: var(--color-surface-soft);
+  background: var(--color-surface);
   color: var(--color-text-soft);
   font-size: var(--text-sm);
+  transition: all var(--dur-base) var(--ease-out);
 }
 
-.category__chip.is-active {
+.category__chip--active {
+  border-color: var(--color-primary-soft);
   background: var(--color-primary-tint);
   color: var(--color-primary-deep);
   font-weight: var(--weight-semibold);
 }
 
+.category__results {
+  position: relative;
+  display: grid;
+  gap: var(--space-2);
+}
+
 .category__grid {
   display: grid;
-  gap: var(--space-3);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-2);
 }
 </style>

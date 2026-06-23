@@ -6,18 +6,27 @@
   "description": "PetLife 宠物生活馆 · 移动端 Web 作品集项目",
   "scripts": {
     "dev": "vite",
+    "dev:client": "vite",
+    "dev:admin": "npm --prefix admin run dev",
+    "dev:server": "npm --prefix server run dev",
     "build": "vite build",
+    "build:admin": "npm --prefix admin run build",
     "preview": "vite preview",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:client": "vitest run",
+    "test:admin": "npm --prefix admin run test",
+    "test:server": "npm --prefix server run test"
   },
   "dependencies": {
+    "@tensorflow-models/mobilenet": "^2.1.1",
+    "@tensorflow/tfjs": "^4.22.0",
     "pinia": "^2.1.7",
     "vue": "^3.4.21",
     "vue-router": "^4.3.0"
   },
   "devDependencies": {
-    "@vue/test-utils": "^2.4.6",
     "@vitejs/plugin-vue": "^5.0.4",
+    "@vue/test-utils": "^2.4.6",
     "jsdom": "^24.1.3",
     "vite": "^5.2.8",
     "vitest": "^1.6.1"

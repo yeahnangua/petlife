@@ -1,5 +1,5 @@
 /* =========================================================
- * PetLife · Base / Reset / Global typography
+ * PetLife · Base / Reset / Global utilities v2
  * ========================================================= */
 
 *,
@@ -49,6 +49,7 @@ button {
   border: none;
   padding: 0;
   cursor: pointer;
+  touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
 }
 
@@ -77,6 +78,10 @@ input, textarea, select {
 
 ::placeholder {
   color: var(--color-text-tint);
+}
+
+::selection {
+  background: var(--color-primary-soft);
 }
 
 /* Fraunces display helper */
@@ -118,12 +123,12 @@ input, textarea, select {
   border: 0;
 }
 
+/* 白卡：纯白 + 细暖描边 + 低调阴影（弃用玻璃拟态） */
 .surface-card {
-  border: 1px solid rgba(255, 255, 255, 0.7);
-  border-radius: var(--radius-xl);
-  background: rgba(255, 255, 255, 0.72);
-  box-shadow: var(--shadow-sm);
-  backdrop-filter: blur(12px);
+  border: 1px solid var(--color-border-soft);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-xs);
 }
 
 .pill {
@@ -167,11 +172,18 @@ input, textarea, select {
   border-radius: var(--radius-full);
   font-size: var(--text-md);
   font-weight: var(--weight-semibold);
+  letter-spacing: var(--tracking-wide);
   transition:
-    transform var(--dur-base) var(--ease-out),
+    transform var(--dur-fast) var(--ease-spring),
     background-color var(--dur-base) var(--ease-out),
     color var(--dur-base) var(--ease-out),
-    border-color var(--dur-base) var(--ease-out);
+    border-color var(--dur-base) var(--ease-out),
+    box-shadow var(--dur-base) var(--ease-out);
+}
+
+.button-primary:active,
+.button-secondary:active {
+  transform: scale(0.97);
 }
 
 .button-primary {
@@ -184,12 +196,19 @@ input, textarea, select {
   background: var(--color-disabled);
   box-shadow: none;
   cursor: not-allowed;
+  transform: none;
 }
 
 .button-secondary {
   border: 1px solid var(--color-border);
-  background: rgba(255, 255, 255, 0.72);
+  background: var(--color-surface);
   color: var(--color-text);
+}
+
+.button-secondary:disabled {
+  color: var(--color-text-tint);
+  cursor: not-allowed;
+  transform: none;
 }
 
 .page-stack {
@@ -216,8 +235,44 @@ input, textarea, select {
   padding-bottom: var(--space-1);
 }
 
-/* Skeleton shimmer (used by placeholders) */
+/* ---------- Motion ---------- */
+
 @keyframes petlife-shimmer {
   0% { background-position: -200% 0; }
   100% { background-position: 200% 0; }
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pop-in {
+  0% {
+    opacity: 0;
+    transform: scale(0.94);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.anim-fade-up {
+  animation: fade-up var(--dur-slow) var(--ease-out) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
 }

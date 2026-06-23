@@ -18,6 +18,12 @@ const routes = [
     meta: { tab: 'category', title: '分类' }
   },
   {
+    path: '/search',
+    name: 'search',
+    component: () => import('@/views/SearchView.vue'),
+    meta: { title: '拍照搜商品' }
+  },
+  {
     path: '/products',
     name: 'product-list',
     component: () => import('@/views/ProductListView.vue'),
@@ -54,10 +60,34 @@ const routes = [
     meta: { title: '确认订单' }
   },
   {
+    path: '/addresses',
+    name: 'address-list',
+    component: () => import('@/views/AddressListView.vue'),
+    meta: { title: '地址管理' }
+  },
+  {
+    path: '/addresses/new',
+    name: 'address-new',
+    component: () => import('@/views/AddressFormView.vue'),
+    meta: { title: '新增地址' }
+  },
+  {
+    path: '/addresses/:id/edit',
+    name: 'address-edit',
+    component: () => import('@/views/AddressFormView.vue'),
+    meta: { title: '编辑地址' }
+  },
+  {
     path: '/booking/confirm',
     name: 'booking-confirm',
     component: () => import('@/views/BookingConfirmView.vue'),
     meta: { title: '预约确认' }
+  },
+  {
+    path: '/bookings/:id',
+    name: 'booking-detail',
+    component: () => import('@/views/BookingDetailView.vue'),
+    meta: { title: '预约详情' }
   },
   {
     path: '/orders',
@@ -66,10 +96,22 @@ const routes = [
     meta: { tab: 'orders', title: '订单' }
   },
   {
+    path: '/orders/:id',
+    name: 'order-detail',
+    component: () => import('@/views/OrderDetailView.vue'),
+    meta: { title: '订单详情' }
+  },
+  {
     path: '/profile',
     name: 'profile',
     component: () => import('@/views/ProfileView.vue'),
     meta: { tab: 'profile', title: '我的' }
+  },
+  {
+    path: '/profile/edit',
+    name: 'profile-edit',
+    component: () => import('@/views/ProfileEditView.vue'),
+    meta: { title: '编辑资料' }
   },
   {
     path: '/pets',

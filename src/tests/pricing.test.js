@@ -19,6 +19,8 @@ describe('pricing helpers', () => {
 
   it('recomputes totals when a cart item is toggled on', () => {
     const store = useCartStore()
+    store.items = structuredClone(cartItems)
+    store.hydrated = false
 
     store.toggleSelection('ci-3')
 

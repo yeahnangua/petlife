@@ -1,0 +1,216 @@
+移动应用项目课程报告
+
+PetLife 宠物生活馆移动端 Web 与后台管理系统设计与实现报告
+
+班级：____________________
+小组成员：____________________
+组长：____________________
+完成日期：2026-04-23
+
+一、项目简介、项目目录和文件结构说明
+PetLife 宠物生活馆项目围绕“商品购买 + 服务预约 + 宠物档案 + 会员权益 + 后台运营”展开，面向真实养宠场景设计移动端 Web 应用。当前项目包含用户前台、后台管理端和 Node/SQLite 后端的完整示例项目，具备前后端联调、数据持久化和基础内容运营能力。
+从应用意义上看，该项目不再停留在普通商城页面展示，而是把商品零售、洗护美容等服务、宠物档案管理和后台内容运维整合在同一体系中，能够较完整地体现移动项目开发中常见的业务分析、页面组织、状态管理、接口设计、数据库设计和测试验证全过程。
+技术层
+技术栈
+作用
+移动端前台
+Vue 3、Vite、Vue Router、Pinia
+负责用户购买、预约、会员和宠物档案体验。
+后台管理端
+Vue 3、Vite、Vue Router、Pinia
+负责内容管理和运营管理。
+后端服务
+Node.js、Express、better-sqlite3、multer、dotenv
+负责目录、订单、预约、上传和持久化。
+数据库
+SQLite
+提供轻量可移植的数据持久化方案。
+测试
+Vitest、Supertest、@vue/test-utils
+覆盖前台、后台与服务端接口验证。
+
+项目主目录结构：
+根目录按“前台 src / 后台 admin / 服务端 server / 文档 docs”四大板块组织，便于分层开发与协同维护。
+petlife/ ├── src/                    # 移动端用户前台 │   ├── components/         # 公共组件，如 AppShell、ProductCard、ServiceCard │   ├── views/              # 页面级视图 │   ├── stores/             # Pinia 状态管理 │   ├── api/                # 前台接口调用层 │   ├── adapters/           # 后端数据到前端视图模型的适配 │   ├── content/            # 页面静态内容与文案 │   ├── mocks/              # 早期 mock 数据 │   └── tests/              # 前台单元测试与流程测试 ├── admin/                  # 后台管理端 │   ├── src/router/         # 后台路由与登录守卫 │   ├── src/views/          # 分类、商品、服务、门店、时段、订单、预约页面 │   ├── src/components/     # 表单弹窗、上传组件、状态标签 │   ├── src/stores/         # 后台 catalog / operations / session 状态 │   └── src/tests/          # 后台测试 ├── server/                 # Node.js + Express + SQLite 后端 │   ├── src/routes/         # public / user / admin 路由入口 │   ├── src/controllers/    # 控制器层 │   ├── src/services/       # 业务服务层 │   ├── src/repositories/   # 数据访问层 │   ├── src/db/             # 数据库连接、迁移、种子数据、SQL │   ├── src/middleware/     # 鉴权、上传、异常处理中间件 │   └── tests/              # API 与业务测试 └── docs/                   # 设计稿、实现计划、课程报告等文档 
+
+目录/文件
+职责
+说明
+src/
+移动端前台主目录
+包含页面、组件、状态管理、API 适配与测试。
+admin/
+后台管理端
+用于分类、商品、服务、门店、时段、订单和预约管理。
+server/
+后端服务
+提供公开接口、用户接口、管理接口、SQLite 持久化和上传能力。
+public/
+静态资源
+提供网站图标等基础静态文件。
+docs/
+设计与实现文档
+保留设计说明、实现计划与本次课程报告。
+vite.config.js / admin/vite.config.js
+构建与代理配置
+定义前后台开发端口和 `/api`、`/uploads` 代理。
+package.json / admin/package.json / server/package.json
+脚本和依赖入口
+统一管理开发、测试和构建脚本。
+
+二、需求分析
+本项目的用户可以分为普通用户和管理员两类。普通用户主要关注选购商品、预约服务、维护宠物档案和查看会员权益；管理员主要关注商品目录维护、门店与时段配置以及订单履约。由于系统同时支持商品链路和服务链路，所以需求分析必须强调不同场景下的功能差异。
+用户角色
+使用场景
+对应功能
+普通用户
+第一次进入首页，希望快速理解平台功能
+首页展示品牌主视觉、快捷入口、热门服务、热卖商品、会员信息
+商品购买用户
+浏览商品并完成下单
+分类、商品列表、商品详情、购物车、确认订单、订单详情
+服务预约用户
+为宠物预约洗护/美容/寄养
+服务页、服务详情、预约确认、预约详情
+养宠用户
+需要长期维护宠物信息
+宠物档案新增/编辑、资料切换、预约依赖宠物档案
+会员用户
+关注权益和历史订单
+会员权益页、订单中心、我的页面
+管理员
+维护目录、门店和时段，跟进履约
+后台概览、分类/商品/服务/门店/时段管理、订单管理、预约管理
+
+从用户端页面看，系统目前已经具备较完整的业务页面矩阵：
+页面
+功能概述
+首页
+展示品牌主视觉、快捷入口、热门服务、热卖商品与会员信息。
+分类页
+按宠物类型与分类快速切换商品目录。
+商品列表页
+支持按宠物类型、分类、关键词分页筛选商品。
+商品详情页
+展示图集、价格、规格、摘要、评价与相关推荐。
+服务页
+展示热门服务与服务分类入口。
+服务详情页
+展示服务内容、门店、日期、时间段与预约入口。
+购物车页
+展示购物车商品、失效商品、金额汇总与结算入口。
+确认订单页
+完成地址选择、备注填写与商品下单。
+预约确认页
+完成宠物、门店、时段与联系方式确认。
+订单中心页
+展示商品订单和服务预约的列表与状态。
+订单详情 / 预约详情页
+展示订单快照、服务信息与状态流转。
+我的 / 宠物档案 / 会员权益 / 地址管理
+完成用户资料维护和个性化服务支撑。
+
+其中，商品购买链路强调“浏览、加入购物车、确认订单、查看订单”；服务预约链路强调“查看服务、选择门店和时段、选择宠物档案、提交预约、查看预约详情”。宠物档案既是独立资料页，也是预约功能的前置条件，这使项目更接近真实的宠物生活服务平台。
+三、项目分析与设计
+项目整体采用三端协同架构：移动端前台负责用户体验，后台管理端负责目录维护和运营数据处理，Node.js 后端负责 API、业务规则和 SQLite 持久化。这样既能保持移动端页面开发效率，也能保证订单、预约和库存等关键数据有统一的后端来源。
+
+图 1  项目总体架构图
+在页面设计上，移动端将首页、分类、商品、服务、订单、我的等页面统一纳入 AppShell，底部 TabBar 提供主导航，详情页和确认页则通过独立路由承载深层业务操作。
+
+图 2  移动端页面结构图
+首页是项目的核心入口页，既承担品牌展示，也承担业务分流。根据 `HomeView.vue` 的真实实现，首页模块结构由主视觉、宠物切换、快捷入口、热门服务、组合推荐、热卖商品和会员信息组成。
+
+图 3  首页功能模块结构图
+服务端采用典型的分层设计，路由层只负责 URL 入口，控制器层负责请求/响应，服务层负责业务规则，repository 层负责 SQL 访问。这种结构能减少耦合，便于后续继续扩展后台运营能力。
+
+图 4  后端分层结构图
+技术难点
+问题表现
+解决方法
+多端协同复杂
+项目同时包含用户端、管理端和服务端。
+采用前后台分目录组织，前台走 `/api/public`、`/api/user`，后台走 `/api/admin`，接口职责清晰。
+商品购买与服务预约链路差异大
+商品走购物车和订单，服务走宠物+门店+时段预约。
+前台拆分 `cart`、`booking` 两套 Pinia store，避免状态耦合。
+数据一致性
+下单涉及库存扣减，取消订单涉及库存回滚；预约涉及时段余量。
+后端在 `orderService.js`、`bookingService.js` 中使用事务和快照字段保证一致性。
+前后端数据模型不完全一致
+后端字段为 snake_case，前端展示更偏视图模型。
+使用 `src/adapters/` 统一做字段适配，降低页面复杂度。
+移动端页面复用与品牌统一
+页面数量多，容易风格碎片化。
+通过 `AppShell`、`BottomTabBar`、`ProductCard`、`ServiceCard` 等组件复用统一 UI。
+后台内容维护与图片上传
+管理端既要做 CRUD，也要处理图片上传。
+通过 `multer` 中间件解析上传，再由 admin API 返回图片 URL。
+
+四、项目实现与关键代码
+项目实现可以概括为三条主线：前台页面与状态组织、后台管理路由与表单维护、后端业务处理与数据持久化。其中，商品购买流程和服务预约流程是最重要的两条业务链路。
+
+图 5  商品购买流程图
+
+图 6  服务预约流程图
+前台路由组织：统一管理页面入口（src/router/index.js:7-55）
+该段代码将首页、商品、服务、购物车、订单、个人中心等页面集中交给 Vue Router 管理，是移动端用户流程的总入口。
+   7  const routes = [    8    {    9      path: '/',   10      name: 'home',   11      component: () => import('@/views/HomeView.vue'),   12      meta: { tab: 'home', title: '首页' }   13    },   14    {   15      path: '/category',   16      name: 'category',   17      component: () => import('@/views/CategoryView.vue'),   18      meta: { tab: 'category', title: '分类' }   19    },   20    {   21      path: '/products',   22      name: 'product-list',   23      component: () => import('@/views/ProductListView.vue'),   24      meta: { title: '商品列表' }   25    },   26    {   27      path: '/product/:id',   28      name: 'product-detail',   29      component: () => import('@/views/ProductDetailView.vue'),   30      meta: { title: '商品详情' }   31    },   32    {   33      path: '/service',   34      name: 'service',   35      component: () => import('@/views/ServiceView.vue'),   36      meta: { tab: 'service', title: '服务' }   37    },   38    {   39      path: '/service/:id',   40      name: 'service-detail',   41      component: () => import('@/views/ServiceDetailView.vue'),   42      meta: { title: '服务详情' }   43    },   44    {   45      path: '/cart',   46      name: 'cart',   47      component: () => import('@/views/CartView.vue'),   48      meta: { title: '购物车' }   49    },   50    {   51      path: '/order/confirm',   52      name: 'order-confirm',   53      component: () => import('@/views/OrderConfirmView.vue'),   54      meta: { title: '确认订单' }   55    },
+
+后台管理路由：登录守卫与业务页面划分（admin/src/router/index.js:15-109）
+后台通过独立路由树管理概览、分类、商品、服务、门店、时段、订单和预约页面，并加入未登录重定向逻辑。
+  15  export function createAdminRouter(pinia) {   16    const router = createRouter({   17      history: createWebHashHistory(),   18      routes: [   19        {   20          path: '/login',   21          name: 'login',   22          component: LoginView,   23          meta: { title: '管理员登录' }   24        },   25        {   26          path: '/',   27          component: AdminLayout,   28          children: [   29            {   30              path: '',   31              name: 'dashboard',   32              component: DashboardView,   33              meta: { title: '后台概览' }   34            },   35            {   36              path: 'categories',   37              name: 'categories',   38              component: CategoryAdminView,   39              meta: { title: '分类' }   40            },   41            {   42              path: 'products',   43              name: 'products',   44              component: ProductAdminView,   45              meta: { title: '商品' }   46            },   47            {   48              path: 'services',   49              name: 'services',   50              component: ServiceAdminView,   51              meta: { title: '服务' }   52            },   53            {   54              path: 'stores',   55              name: 'stores',   56              component: StoreAdminView,   57              meta: { title: '门店' }   58            },   59            {   60              path: 'time-slots',   61              name: 'time-slots',   62              component: TimeSlotAdminView,   63              meta: { title: '时段' }   64            },   65            {   66              path: 'orders',   67              name: 'orders',   68              component: OrderAdminView,   69              meta: { title: '订单' }   70            },   71            {   72              path: 'bookings',   73              name: 'bookings',   74              component: BookingAdminView,   75              meta: { title: '预约' }   76            }   77          ]   78        }   79      ]   80    })   81     82    registerUnauthorizedHandler(() => {   83      const sessionStore = useSessionStore(pinia)   84      sessionStore.logout()   85      router.replace('/login')   86    })   87     88    router.beforeEach((to) => {   89      const sessionStore = useSessionStore(pinia)   90     91      if (to.path === '/login' && sessionStore.isAuthenticated) {   92        return { path: '/' }   93      }   94     95      if (to.path !== '/login' && !sessionStore.isAuthenticated) {   96        return { path: '/login' }   97      }   98     99      return true  100    })  101    102    router.afterEach((to) => {  103      if (typeof document !== 'undefined') {  104        document.title = `${to.meta.title || '后台管理'} · PetLife Admin`  105      }  106    })  107    108    return router  109  }
+
+后端应用装配：统一挂载数据库、路由与异常处理（server/src/app.js:13-47）
+Express 应用在这里完成数据库初始化、种子数据装填、静态上传目录和三类 API 路由挂载。
+  13  function initializeDatabase(config, existingDatabase) {   14    if (existingDatabase) {   15      return existingDatabase   16    }   17     18    const db = createDatabase(config.dbPath)   19    migrate(db)   20     21    const userCount = db.prepare('SELECT COUNT(*) AS count FROM users').get().count   22    if (userCount === 0) {   23      seed(db)   24    }   25     26    return db   27  }   28     29  export function createApp(overrides = {}) {   30    const config = loadEnv(overrides)   31    const db = initializeDatabase(config, overrides.database)   32     33    mkdirSync(config.uploadDir, { recursive: true })   34     35    const app = express()   36    app.locals.config = config   37    app.locals.db = db   38     39    app.use(express.json())   40    app.use('/uploads', express.static(config.uploadDir))   41    app.use('/api/public', createPublicRouter())   42    app.use('/api/user', createUserRouter())   43    app.use('/api/admin', createAdminRouter())   44    app.use(notFound)   45    app.use(errorHandler)   46     47    return app
+
+订单业务核心：事务化创建订单并同步扣减库存（server/src/services/orderService.js:130-186）
+订单创建时会校验地址和购物车项，再在事务中生成订单、写入订单项、扣减库存并清空已结算购物车。
+ 130          spec_label_snapshot: item.specLabel,  131          unit_price_snapshot: unitPrice,  132          quantity: item.quantity,  133          line_total: unitPrice * item.quantity  134        }  135      }  136    })  137  }  138    139  function updateInventory(db, product, delta, timestamp) {  140    const nextStock = product.stock + delta  141    142    updateProductInventory(db, {  143      id: product.id,  144      stock: nextStock,  145      stock_status: nextStock > 0 ? 'inStock' : 'soldOut',  146      updated_at: timestamp  147    })  148  }  149    150  export function createUserOrder(db, userId, payload) {  151    const addressId = requireString(payload.address_id, 'address_id')  152    const remark = payload.remark == null ? '' : String(payload.remark).trim()  153    const address = getAddressSnapshot(db, userId, addressId)  154    const selectedCartItems = getSelectedCartItems(db, userId)  155    156    if (selectedCartItems.length === 0) {  157      throw new AppError(409, 40900, 'no selected valid cart items')  158    }  159    160    const transaction = db.transaction(() => {  161      const timestamp = now()  162      const pendingOrderItems = buildOrderItems(db, selectedCartItems)  163      const order = {  164        id: `order_${randomUUID().slice(0, 8)}`,  165        order_no: formatOrderNumber(),  166        user_id: userId,  167        status: 'pendingShipment',  168        status_label: getStatusLabel('pendingShipment'),  169        total_amount: pendingOrderItems.reduce((sum, item) => sum + item.orderItem.line_total, 0),  170        remark,  171        receiver_name_snapshot: address.receiver_name,  172        receiver_phone_snapshot: address.receiver_phone,  173        receiver_region_snapshot: address.region,  174        receiver_address_snapshot: address.detail_address,  175        created_at: timestamp,  176        updated_at: timestamp  177      }  178    179      createOrder(db, order)  180    181      for (const item of pendingOrderItems) {  182        createOrderItem(db, {  183          ...item.orderItem,  184          order_id: order.id  185        })  186        updateInventory(db, item.product, -item.orderItem.quantity, timestamp)
+
+除了以上关键代码，项目还通过 `src/adapters/` 处理后端字段与前端视图模型的差异，通过 `src/stores/cart.js` 和 `src/stores/booking.js` 分别管理商品购物车与服务预约状态，通过 `server/src/db/migrate.js` 和 `server/src/db/seed.js` 完成数据库初始化和演示数据填充。
+五、项目调试与结果
+本次文档生成时对项目执行了前台测试、服务端测试、后台管理端测试以及前后台构建验证。验证日期为 2026-04-23。结果表明：前台和后台构建均通过，说明项目可正常产出静态构建结果；测试层面仍有若干断言与环境问题需要继续收尾。
+验证项
+结果
+摘要
+前台测试
+存在失败/跳过
+Test Files  2 failed | 6 passed (8)；Tests  2 failed | 27 passed (29)；Duration  780ms (transform 389ms, setup 0ms, collect 1.18s, tests 156ms, environment 2.95s, prepare 505ms)；Error: listen EPERM: operation not permitted 0.0.0.0:24678；⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+服务端测试
+存在失败/跳过
+Test Files  8 failed | 1 passed (9)；Tests  33 failed | 3 passed (36)；Duration  617ms (transform 166ms, setup 0ms, collect 2.31s, tests 1.15s, environment 2ms, prepare 683ms)；⎯⎯⎯⎯⎯⎯ Failed Tests 33 ⎯⎯⎯⎯⎯⎯⎯；Error: listen EPERM: operation not permitted 0.0.0.0；Serialized Error: { code: 'EPERM', errno: -1, syscall: 'listen', address: '0.0.0.0' }
+后台管理端测试
+通过
+↓ src/tests/catalog-admin.test.js  (4 tests | 4 skipped)；Test Files  1 passed | 2 skipped (3)；Tests  5 passed | 4 skipped (9)；Duration  745ms (transform 160ms, setup 1ms, collect 349ms, tests 38ms, environment 993ms, prepare 144ms)；Error: listen EPERM: operation not permitted 0.0.0.0:24678
+前台构建
+通过
+✓ built in 485ms
+后台管理端构建
+通过
+✓ built in 378ms
+
+在调试过程中识别出的主要问题及处理方法如下：
+问题
+现象
+解决方法
+前台 API 适配测试断言过旧
+订单适配结果新增了 `subtotalAmount`、`shippingAmount`、`payableAmount` 等字段，旧测试仍按早期对象结构断言。
+同步更新 `src/tests/api-client.test.js` 的期望值，或者在适配层显式裁剪返回字段，保持测试与接口契约一致。
+订单确认后的路由断言未同步
+当前下单成功后会跳转到 `/orders/:id?backTo=/`，而测试仍断言旧路径 `/orders/:id`。
+更新 `src/tests/cart-order-flow.test.js` 的断言，或在页面跳转时统一规范是否保留 `backTo` 查询参数。
+后台测试受环境端口权限影响
+Vitest 启动过程中尝试绑定 WebSocket 端口，当前受限环境报 `listen EPERM`，导致部分测试被跳过。
+在真实本地终端重新运行后台测试，或针对测试环境关闭 HMR/WebSocket 监听。
+
+
+图 7  首页运行截图
+
+图 8  下单/预约流程截图占位符
+
+图 9  后台管理端截图占位符
+六、项目总结与反思
+通过本项目可以更加直观地理解移动项目开发并不只是把页面做出来，而是要同时考虑业务链路完整性、状态管理边界、接口设计、数据持久化和后续维护成本。移动端页面数量一多，如果没有统一的组件与状态抽象，后期修改的代价会迅速上升。
+本项目给出的经验主要有三点：第一，前期的页面结构设计和路由规划要足够清晰，否则商品链路和服务链路容易互相干扰；第二，前后端联调时必须有稳定的数据模型和适配层，否则页面实现会被后端字段变化牵着走；第三，测试不能只覆盖“能跑通”的理想路径，还要关注断言是否真正跟随业务演进同步更新。
+从教训上看，项目虽然已经完成了较完整的前后台结构，但测试用例中仍有少量历史断言没有及时更新，说明“功能实现完成”并不等于“工程交付完成”。后续如果继续迭代，应该优先补齐测试、统一字段命名规范，并结合真实运行截图完善最终展示材料。

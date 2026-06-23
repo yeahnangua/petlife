@@ -1,3 +1,5 @@
+export const PRODUCT_ORDER_SHIPPING_FEE = 12
+
 export function formatCurrency(value) {
   return `¥${Number(value || 0).toFixed(0)}`
 }
@@ -25,12 +27,23 @@ export function getOrderPriceBreakdown(items = [], coupon = null) {
     0
   )
   const discount = coupon?.amount ?? 0
-  const shipping = subtotal > 0 ? 12 : 0
+  const shipping = subtotal > 0 ? PRODUCT_ORDER_SHIPPING_FEE : 0
 
   return {
     subtotal,
     shipping,
     discount,
     payable: Math.max(subtotal + shipping - discount, 0)
+  }
+}
+
+export function getPersistedProductOrderBreakdown(amount = 0) {
+  const subtotal = Number(amount || 0)
+  const shipping = subtotal > 0 ? PRODUCT_ORDER_SHIPPING_FEE : 0
+
+  return {
+    subtotal,
+    shipping,
+    payable: subtotal + shipping
   }
 }

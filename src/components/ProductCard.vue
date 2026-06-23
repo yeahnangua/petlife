@@ -1,63 +1,66 @@
 <script setup>
-import { computed } from 'vue'
-import { formatCurrency } from '@/lib/pricing'
+import { useRouter } from 'vue-router'
+import IconSvg from './IconSvg.vue'
+import PriceText from './PriceText.vue'
 
 const props = defineProps({
-  product: {
-    type: Object,
-    required: true
-  }
+  product: { type: Object, required: true }
 })
 
-const tagList = computed(() => props.product.tags?.slice(0, 2) ?? [])
+const router = useRouter()
+
+function open() {
+  router.push({ name: 'product-detail', params: { id: props.product.id } })
+}
 </script>
 
 <template>
-  <RouterLink :to="`/product/${product.id}`" class="product-card surface-card">
-    <div
-      class="product-card__media"
-      :style="{
-        background: `linear-gradient(135deg, ${product.gradient?.[0] || '#DCE6DD'}, ${product.gradient?.[1] || '#F5EFE7'})`
-      }"
-    >
+  <article class="product-card" :class="{ 'product-card--soldout': product.stockStatus === 'soldOut' }" @click="open">
+    <div class="product-card__media">
       <img :src="product.cover" :alt="product.title" loading="lazy" />
       <span v-if="product.badge" class="product-card__badge">{{ product.badge }}</span>
+      <span v-if="product.stockStatus === 'soldOut'" class="product-card__soldout">已售罄</span>
     </div>
-
-    <div class="product-card__content">
+    <div class="product-card__body">
+      <h3 class="product-card__title">{{ product.title }}</h3>
+      <p v-if="product.subtitle" class="product-card__subtitle">{{ product.subtitle }}</p>
       <div class="product-card__meta">
-        <span
-          v-for="tag in tagList"
-          :key="tag"
-          class="product-card__tag"
-        >
-          {{ tag }}
+        <span v-if="product.rating" class="product-card__rating">
+          <IconSvg name="star" :size="11" :stroke="2" />
+          {{ product.rating }}
+        </span>
+        <span v-if="product.sold" class="product-card__sold">已售 {{ product.sold }}</span>
+      </div>
+      <div class="product-card__footer">
+        <PriceText :value="product.memberPrice" size="sm" :original="product.originalPrice" />
+        <span class="product-card__cart" aria-label="查看商品">
+          <IconSvg name="plus" :size="14" :stroke="2.4" />
         </span>
       </div>
-      <h3 class="product-card__title">{{ product.title }}</h3>
-      <p class="product-card__subtitle">{{ product.subtitle }}</p>
-
-      <div class="product-card__footer">
-        <div class="product-card__price-block">
-          <strong>{{ formatCurrency(product.memberPrice ?? product.price) }}</strong>
-          <span v-if="product.originalPrice">{{ formatCurrency(product.originalPrice) }}</span>
-        </div>
-        <span class="product-card__cta">查看</span>
-      </div>
     </div>
-  </RouterLink>
+  </article>
 </template>
 
 <style scoped>
 .product-card {
   overflow: hidden;
-  color: inherit;
+  border: 1px solid var(--color-border-soft);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-xs);
+  cursor: pointer;
+  transition: transform var(--dur-fast) var(--ease-spring), box-shadow var(--dur-base) var(--ease-out);
+}
+
+.product-card:active {
+  transform: scale(0.98);
+  box-shadow: var(--shadow-sm);
 }
 
 .product-card__media {
   position: relative;
-  aspect-ratio: 1.08;
-  overflow: hidden;
+  aspect-ratio: 1 / 0.92;
+  background: var(--color-surface-warm);
 }
 
 .product-card__media img {
@@ -68,72 +71,95 @@ const tagList = computed(() => props.product.tags?.slice(0, 2) ?? [])
 
 .product-card__badge {
   position: absolute;
-  top: var(--space-3);
-  left: var(--space-3);
-  padding: 4px 10px;
+  top: var(--space-2);
+  left: var(--space-2);
+  padding: 3px 9px;
   border-radius: var(--radius-full);
-  background: rgba(43, 42, 38, 0.74);
+  background: rgba(35, 33, 28, 0.78);
   color: var(--color-text-invert);
-  font-size: var(--text-xs);
+  font-size: var(--text-2xs);
+  font-weight: var(--weight-semibold);
+  letter-spacing: var(--tracking-wide);
+  backdrop-filter: blur(4px);
 }
 
-.product-card__content {
+.product-card__soldout {
+  position: absolute;
+  inset: 0;
   display: grid;
-  gap: var(--space-2);
-  padding: var(--space-4);
+  place-items: center;
+  background: rgba(250, 248, 243, 0.62);
+  color: var(--color-text-soft);
+  font-size: var(--text-md);
+  font-weight: var(--weight-semibold);
+  letter-spacing: var(--tracking-wider);
+}
+
+.product-card--soldout .product-card__media img {
+  filter: grayscale(0.7);
+}
+
+.product-card__body {
+  display: grid;
+  gap: 4px;
+  padding: var(--space-3);
+}
+
+.product-card__title {
+  font-size: var(--text-md);
+  font-weight: var(--weight-semibold);
+  line-height: var(--leading-snug);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.product-card__subtitle {
+  color: var(--color-text-mute);
+  font-size: var(--text-xs);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .product-card__meta {
   display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 14px;
+  color: var(--color-text-tint);
+  font-size: var(--text-2xs);
 }
 
-.product-card__tag {
-  padding: 4px 8px;
-  border-radius: var(--radius-full);
-  background: var(--color-primary-tint);
-  color: var(--color-primary-deep);
-  font-size: var(--text-xs);
-}
-
-.product-card__title {
-  font-size: var(--text-lg);
+.product-card__rating {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  color: var(--color-amber);
   font-weight: var(--weight-semibold);
-}
-
-.product-card__subtitle {
-  color: var(--color-text-soft);
-  font-size: var(--text-sm);
-  line-height: var(--leading-snug);
 }
 
 .product-card__footer {
   display: flex;
-  align-items: end;
+  align-items: center;
   justify-content: space-between;
-  gap: var(--space-3);
+  margin-top: 2px;
 }
 
-.product-card__price-block {
+.product-card__cart {
   display: grid;
-  gap: 2px;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: var(--radius-full);
+  background: var(--color-primary-deep);
+  color: var(--color-text-invert);
+  box-shadow: var(--shadow-brand);
 }
 
-.product-card__price-block strong {
-  color: var(--color-coral);
-  font-size: var(--text-xl);
-}
-
-.product-card__price-block span {
-  color: var(--color-text-tint);
-  font-size: var(--text-sm);
-  text-decoration: line-through;
-}
-
-.product-card__cta {
-  color: var(--color-primary-deep);
-  font-size: var(--text-sm);
-  font-weight: var(--weight-semibold);
+.product-card--soldout .product-card__cart {
+  background: var(--color-disabled);
+  box-shadow: none;
 }
 </style>

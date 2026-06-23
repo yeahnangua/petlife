@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="600" height="552" viewBox="0 0 800 736" role="img" aria-label="胸背牵引">
+      <defs>
+        <linearGradient id="bg" x1="0" x2="1" y1="0" y2="1">
+          <stop offset="0%" stop-color="#ECE6DD"/>
+          <stop offset="100%" stop-color="#fffaf2"/>
+        </linearGradient>
+        <filter id="shadow" x="-30%" y="-30%" width="160%" height="160%">
+          <feDropShadow dx="0" dy="18" stdDeviation="18" flood-color="#4b4035" flood-opacity=".18"/>
+        </filter>
+      </defs>
+      <rect width="800" height="736" rx="0" fill="url(#bg)"/>
+      <circle cx="112" cy="112" r="72" fill="#ffffff" opacity=".42"/>
+      <circle cx="692" cy="150" r="104" fill="#8C6F55" opacity=".10"/>
+      <circle cx="682" cy="610" r="82" fill="#6A8572" opacity=".16"/>
+      <g transform="translate(400 328)" filter="url(#shadow)">
+        
+      <path d="M-116 -154c64 36 168 36 232 0" fill="none" stroke="#8C6F55" stroke-width="22" stroke-linecap="round"/>
+      <path d="M-108 -128l-50 246c-5 24 13 46 38 46H120c25 0 43-22 38-46l-50-246" fill="#fffaf2" stroke="#8C6F55" stroke-width="16"/>
+      <path d="M-78 -54H78M-96 42H96" stroke="#6A8572" stroke-width="18" stroke-linecap="round"/>
+      <rect x="-44" y="-6" width="88" height="54" rx="18" fill="#8C6F55" opacity=".22"/>
+    
+      </g>
+      <text x="400" y="598" text-anchor="middle" fill="#2f2a24" font-family="Arial, 'PingFang SC', sans-serif" font-size="46" font-weight="700">胸背牵引</text>
+      <text x="400" y="642" text-anchor="middle" fill="#6f6256" font-family="Arial, 'PingFang SC', sans-serif" font-size="26" font-weight="600">防滑出行</text>
+    </svg>
+  

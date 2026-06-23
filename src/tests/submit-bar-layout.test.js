@@ -1,13 +1,106 @@
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { createPinia, setActivePinia } from 'pinia'
-import { mount } from '@vue/test-utils'
-import { beforeEach, describe, expect, it } from 'vitest'
+import { flushPromises, mount } from '@vue/test-utils'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createRouter, createWebHashHistory } from 'vue-router'
 import { services } from '@/mocks'
 import { useBookingStore } from '@/stores/booking'
 import BookingConfirmView from '@/views/BookingConfirmView.vue'
 import OrderConfirmView from '@/views/OrderConfirmView.vue'
+
+const userApi = vi.hoisted(() => ({
+  getCart: vi.fn(),
+  getAddresses: vi.fn(),
+  createOrder: vi.fn(),
+  getPets: vi.fn()
+}))
+
+const publicApi = vi.hoisted(() => ({
+  getStoreSlots: vi.fn()
+}))
+
+vi.mock('@/api/user', async () => {
+  const actual = await vi.importActual('@/api/user')
+
+  return {
+    ...actual,
+    ...userApi
+  }
+})
+
+vi.mock('@/api/public', async () => {
+  const actual = await vi.importActual('@/api/public')
+
+  return {
+    ...actual,
+    ...publicApi
+  }
+})
+
+function makeCartResponse() {
+  return {
+    list: [
+      {
+        id: 'ci_001',
+        productId: 'p-001',
+        specKey: '3kg|鸡肉',
+        specLabel: '3kg · 鸡肉',
+        quantity: 1,
+        selected: true,
+        isValid: true,
+        invalidReason: '',
+        product: {
+          id: 'p-001',
+          category_id: 'cat-food',
+          category_slug: 'food',
+          title: '鲜肉全价猫粮',
+          subtitle: '低敏冷鲜配方 · 成猫通用',
+          pet_type: 'cat',
+          price: 268,
+          member_price: 248,
+          original_price: 298,
+          stock_status: 'inStock',
+          badge: '热卖',
+          tags: ['低敏'],
+          specs: [{ group: '规格', options: ['3kg'] }],
+          summary: ['鲜肉含量 70%'],
+          suitable_text: '适合 1-8 岁成猫 / 全品种',
+          cover_url: 'https://example.com/product.jpg',
+          rating: 4.9,
+          review_count: 1283,
+          sold_count: 12800
+        }
+      }
+    ],
+    summary: {
+      selectedCount: 1,
+      invalidCount: 0,
+      totalAmount: 248
+    }
+  }
+}
+
+function makePetResponse() {
+  return {
+    list: [
+      {
+        id: 'pet_001',
+        name: '橘子',
+        type: 'cat',
+        breed: '中华田园猫 · 橘猫',
+        gender: 'male',
+        birthday: '2023-06-12',
+        weight: 5.2,
+        neutered: true,
+        allergies: ['牛肉'],
+        preferences: ['洗护清洁'],
+        avatar_url: 'https://example.com/pet.jpg',
+        color: '#D97757'
+      }
+    ]
+  }
+}
 
 function createTestRouter(component) {
   const router = createRouter({
@@ -22,6 +115,13 @@ function createTestRouter(component) {
 describe('bottom submit bar layout', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
+    Object.values(userApi).forEach((mock) => mock.mockReset())
+    Object.values(publicApi).forEach((mock) => mock.mockReset())
+    userApi.getCart.mockResolvedValue(makeCartResponse())
+    userApi.getAddresses.mockResolvedValue({ list: [] })
+    userApi.createOrder.mockResolvedValue({ order: { id: 'order_001' } })
+    userApi.getPets.mockResolvedValue(makePetResponse())
+    publicApi.getStoreSlots.mockResolvedValue({ list: [] })
   })
 
   it('anchors shared submit bars to the shell bottom offset variable', () => {
@@ -44,7 +144,7 @@ describe('bottom submit bar layout', () => {
     expect(serviceDetail).toContain('bottom: calc(var(--shell-bottom-offset) + var(--space-4));')
   })
 
-  it('uses the shared submit bar layout on the order confirmation page', async () => {
+  it('uses the shared sticky bar on the order confirmation page', async () => {
     const router = createTestRouter(OrderConfirmView)
     await router.isReady()
 
@@ -54,11 +154,14 @@ describe('bottom submit bar layout', () => {
       }
     })
 
-    expect(wrapper.find('.order-confirm').classes()).toContain('page-with-submit-bar')
-    expect(wrapper.find('.order-confirm__submit').classes()).toContain('page-submit-bar')
+    await flushPromises()
+
+    expect(wrapper.classes()).toContain('page-with-submit-bar')
+    expect(wrapper.find('.page-submit-bar .sticky-bar').exists()).toBe(true)
+    expect(wrapper.find('.sticky-bar .button-primary').exists()).toBe(true)
   })
 
-  it('uses the shared submit bar layout on the booking confirmation page', async () => {
+  it('uses the shared sticky bar on the booking confirmation page and gates submit on readiness', async () => {
     const bookingStore = useBookingStore()
     bookingStore.prepareFromService(services[0])
 
@@ -71,7 +174,12 @@ describe('bottom submit bar layout', () => {
       }
     })
 
-    expect(wrapper.find('.booking').classes()).toContain('page-with-submit-bar')
-    expect(wrapper.find('.booking__submit').classes()).toContain('page-submit-bar')
+    await flushPromises()
+
+    expect(wrapper.classes()).toContain('page-with-submit-bar')
+    expect(wrapper.find('.page-submit-bar .sticky-bar').exists()).toBe(true)
+
+    const submitButton = wrapper.get('.sticky-bar .button-primary')
+    expect(submitButton.attributes('disabled')).toBeDefined()
   })
 })

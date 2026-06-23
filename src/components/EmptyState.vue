@@ -24,12 +24,15 @@ defineEmits(['action'])
 </script>
 
 <template>
-  <div class="empty-state surface-card">
-    <div class="empty-state__icon">
-      <IconSvg :name="icon" :size="28" />
+  <div class="empty-state">
+    <div class="empty-state__figure">
+      <i class="empty-state__ring" />
+      <span class="empty-state__icon">
+        <IconSvg :name="icon" :size="26" :stroke="1.6" />
+      </span>
     </div>
-    <h3>{{ title }}</h3>
-    <p>{{ description }}</p>
+    <h3 class="empty-state__title">{{ title }}</h3>
+    <p v-if="description" class="empty-state__desc">{{ description }}</p>
     <button
       v-if="actionLabel"
       type="button"
@@ -46,8 +49,25 @@ defineEmits(['action'])
   display: grid;
   justify-items: center;
   gap: var(--space-3);
-  padding: var(--space-8) var(--space-5);
+  padding: var(--space-10) var(--space-5);
   text-align: center;
+  animation: fade-up var(--dur-slow) var(--ease-out) both;
+}
+
+.empty-state__figure {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 76px;
+  height: 76px;
+  margin-bottom: var(--space-1);
+}
+
+.empty-state__ring {
+  position: absolute;
+  inset: 0;
+  border: 1.5px dashed var(--color-border);
+  border-radius: var(--radius-full);
 }
 
 .empty-state__icon {
@@ -57,21 +77,23 @@ defineEmits(['action'])
   height: 56px;
   border-radius: var(--radius-full);
   background: var(--color-primary-tint);
-  color: var(--color-primary-deep);
+  color: var(--color-primary);
 }
 
-.empty-state h3 {
+.empty-state__title {
   font-size: var(--text-lg);
   font-weight: var(--weight-semibold);
 }
 
-.empty-state p {
-  max-width: 24ch;
-  color: var(--color-text-soft);
+.empty-state__desc {
+  max-width: 26ch;
+  color: var(--color-text-mute);
   font-size: var(--text-sm);
+  line-height: var(--leading-relaxed);
 }
 
 .empty-state__button {
-  min-width: 140px;
+  min-width: 148px;
+  margin-top: var(--space-2);
 }
 </style>
