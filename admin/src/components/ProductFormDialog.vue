@@ -578,7 +578,7 @@ function submitForm() {
 }
 
 .ai-modal textarea {
-  width: 100%;
+  width: 90%;
   padding: 12px;
   border: 1px solid #d8cbbd;
   border-radius: 14px;
