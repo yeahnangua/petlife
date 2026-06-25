@@ -122,6 +122,11 @@ function handleAction(action) {
   }
 }
 
+function openAiConsult() {
+  if (!product.value) return
+  router.push({ path: '/ai-consult', query: { productId: product.value.id } })
+}
+
 async function confirmSheet() {
   if (!isSelectionComplete.value) return
 
@@ -242,6 +247,11 @@ async function confirmSheet() {
         {{ soldOut ? '已售罄' : '立即购买' }}
       </button>
     </div>
+
+    <button type="button" class="detail__ai-consult" data-test="detail-ai-consult" @click="openAiConsult">
+      <IconSvg name="chat" :size="18" :stroke="2" />
+      <span>AI咨询</span>
+    </button>
 
     <!-- 规格选择弹层 -->
     <BottomSheet :open="sheetOpen" title="选择规格" @close="sheetOpen = false">
@@ -650,6 +660,31 @@ async function confirmSheet() {
 .detail__buy-btn {
   flex: 1.25;
   min-height: 46px;
+}
+
+.detail__ai-consult {
+  position: fixed;
+  right: max(var(--space-4), calc((100vw - var(--mobile-max)) / 2 + var(--space-4)));
+  bottom: calc(var(--shell-bottom-offset) + var(--action-bar-height) + var(--space-6));
+  z-index: calc(var(--z-sticky) + 1);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 40px;
+  padding: 0 var(--space-3);
+  border: 1px solid rgba(217, 113, 78, 0.28);
+  border-radius: var(--radius-full);
+  background: var(--color-coral);
+  color: #fff;
+  font-size: var(--text-xs);
+  font-weight: var(--weight-bold);
+  box-shadow: 0 10px 24px rgba(217, 113, 78, 0.28);
+  transition: transform var(--dur-fast) var(--ease-spring), box-shadow var(--dur-base) var(--ease-out);
+}
+
+.detail__ai-consult:active {
+  transform: scale(0.94);
+  box-shadow: 0 6px 14px rgba(217, 113, 78, 0.22);
 }
 
 /* ---------- 规格弹层 ---------- */
