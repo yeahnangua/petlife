@@ -2,9 +2,11 @@ import { resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import dotenv from 'dotenv'
 
-dotenv.config()
-
 const serverRoot = resolve(fileURLToPath(new URL('../..', import.meta.url)))
+const projectRoot = resolve(serverRoot, '..')
+
+dotenv.config()
+dotenv.config({ path: resolve(projectRoot, '.env') })
 
 export function loadEnv(overrides = {}) {
   return {
@@ -12,6 +14,27 @@ export function loadEnv(overrides = {}) {
     dbPath: resolve(serverRoot, overrides.dbPath ?? process.env.DB_PATH ?? './data/petlife.sqlite'),
     adminKey: overrides.adminKey ?? process.env.ADMIN_KEY ?? 'petlife-admin-demo',
     uploadDir: resolve(serverRoot, overrides.uploadDir ?? process.env.UPLOAD_DIR ?? './uploads'),
-    baseUrl: overrides.baseUrl ?? process.env.BASE_URL ?? `http://127.0.0.1:${Number(process.env.PORT ?? 8787)}`
+    baseUrl: overrides.baseUrl ?? process.env.BASE_URL ?? `http://127.0.0.1:${Number(process.env.PORT ?? 8787)}`,
+    aiApiKey:
+      overrides.aiApiKey ??
+      process.env.DEEPSEEK_API_KEY ??
+      process.env.SILICONFLOW_API_KEY ??
+      process.env.OPENAI_API_KEY ??
+      process.env.key ??
+      '',
+    aiModel:
+      overrides.aiModel ??
+      process.env.DEEPSEEK_MODEL ??
+      process.env.SILICONFLOW_MODEL ??
+      process.env.OPENAI_MODEL ??
+      process.env.model ??
+      'deepseek-ai/DeepSeek-V4-Flash',
+    aiBaseUrl:
+      overrides.aiBaseUrl ??
+      process.env.SILICONFLOW_BASE_URL ??
+      process.env.DEEPSEEK_BASE_URL ??
+      process.env.OPENAI_BASE_URL ??
+      'https://api.siliconflow.cn/v1',
+    aiTimeoutMs: Number(overrides.aiTimeoutMs ?? process.env.AI_TIMEOUT_MS ?? 30000)
   }
 }

@@ -1,6 +1,7 @@
 <script setup>
 import { computed, nextTick, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
+import { sendAiConsultMessage } from '@/api/public'
 import IconSvg from '@/components/IconSvg.vue'
 import PriceText from '@/components/PriceText.vue'
 import SkeletonBlock from '@/components/SkeletonBlock.vue'
@@ -11,7 +12,11 @@ const catalogStore = useCatalogStore()
 
 const inputText = ref('')
 const messages = ref([])
-const productId = computed(() => route.query.productId || '')
+const sending = ref(false)
+const productId = computed(() => {
+  const value = route.query.productId
+  return Array.isArray(value) ? value[0] || '' : value || ''
+})
 const product = computed(() => {
   if (!productId.value) return null
   return catalogStore.currentProduct?.id === productId.value ? catalogStore.currentProduct : null
@@ -22,6 +27,12 @@ const productHint = computed(() => product.value?.subtitle || product.value?.sui
 const genericQuestions = ['给猫咪选主粮', '挑选清洁用品', '怎么搭配新手礼包']
 const productQuestions = ['适合我家宠物吗', '成分有什么特点', '怎么搭配购买']
 const quickQuestions = computed(() => (hasProductContext.value ? productQuestions : genericQuestions))
+
+function scrollMessages() {
+  nextTick(() => {
+    document.querySelector('.consult__messages')?.lastElementChild?.scrollIntoView?.({ block: 'end' })
+  })
+}
 
 watch(
   productId,
@@ -35,26 +46,41 @@ watch(
   { immediate: true }
 )
 
-function buildReply() {
-  if (hasProductContext.value) {
-    return `我先按「${product.value.title}」帮你看。可以重点确认宠物年龄、体重、是否挑食或过敏，再决定规格和搭配。`
-  }
-
-  return '可以告诉我宠物类型、年龄、预算和想解决的问题，我会按主粮、零食、清洁或出行用品帮你筛选。'
-}
-
-function sendMessage(text = inputText.value) {
+async function sendMessage(text = inputText.value) {
   const content = text.trim()
 
-  if (!content) return
+  if (!content || sending.value) return
 
   messages.value.push({ id: `user-${Date.now()}-${messages.value.length}`, role: 'user', content })
-  messages.value.push({ id: `ai-${Date.now()}-${messages.value.length}`, role: 'assistant', content: buildReply() })
   inputText.value = ''
+  sending.value = true
+  scrollMessages()
 
-  nextTick(() => {
-    document.querySelector('.consult__messages')?.lastElementChild?.scrollIntoView?.({ block: 'end' })
-  })
+  try {
+    const response = await sendAiConsultMessage({
+      message: content,
+      messages: messages.value.map((message) => ({
+        role: message.role,
+        content: message.content
+      })),
+      productId: productId.value || undefined
+    })
+
+    messages.value.push({
+      id: `ai-${Date.now()}-${messages.value.length}`,
+      role: 'assistant',
+      content: response.reply
+    })
+  } catch {
+    messages.value.push({
+      id: `ai-${Date.now()}-${messages.value.length}`,
+      role: 'assistant',
+      content: 'AI 服务暂时不可用，请稍后再试。你也可以先补充宠物年龄、体重、预算和过敏情况。'
+    })
+  } finally {
+    sending.value = false
+    scrollMessages()
+  }
 }
 </script>
 
@@ -97,6 +123,7 @@ function sendMessage(text = inputText.value) {
             type="button"
             class="consult__chip"
             :data-test="`quick-question-${index}`"
+            :disabled="sending"
             @click="sendMessage(question)"
           >
             {{ question }}
@@ -140,7 +167,7 @@ function sendMessage(text = inputText.value) {
         placeholder="输入你的问题"
         aria-label="输入咨询问题"
       />
-      <button type="submit" data-test="consult-send" :disabled="!inputText.trim()">
+      <button type="submit" data-test="consult-send" :disabled="!inputText.trim() || sending">
         <IconSvg name="arrow-right" :size="18" :stroke="2.4" />
       </button>
     </form>
@@ -270,6 +297,10 @@ function sendMessage(text = inputText.value) {
   font-size: var(--text-sm);
   font-weight: var(--weight-medium);
   box-shadow: var(--shadow-xs);
+}
+
+.consult__chip:disabled {
+  opacity: 0.55;
 }
 
 .consult__messages {

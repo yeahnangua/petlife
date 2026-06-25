@@ -1,4 +1,5 @@
 import { Router } from 'express'
+import { createAiConsult } from '../controllers/aiConsultController.js'
 import {
   getProduct,
   getService,
@@ -19,6 +20,7 @@ export function createPublicRouter() {
   router.get('/services/:id', getService)
   router.get('/stores', listStores)
   router.get('/stores/:id/slots', listStoreSlots)
+  router.post('/ai-consult', createAiConsult)
 
   return router
 }

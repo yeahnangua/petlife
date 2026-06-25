@@ -3,6 +3,7 @@ import {
   getCategories,
   getProductDetail,
   getProducts,
+  sendAiConsultMessage,
   getServiceDetail,
   getServices,
   getStoreSlots,
@@ -128,6 +129,31 @@ describe('frontend api client', () => {
       '/api/public/stores',
       '/api/public/stores/store-1/slots?date=2026-04-22&serviceId=s-001'
     ])
+  })
+
+  it('sends AI consultation messages to the public backend proxy', async () => {
+    const payload = {
+      message: '适合三个月幼猫吗',
+      messages: [{ role: 'user', content: '适合三个月幼猫吗' }],
+      productId: 'p-001'
+    }
+    fetchMock.mockResolvedValueOnce(createJsonResponse({
+      code: 0,
+      message: 'ok',
+      data: { reply: '建议先看幼猫配方。', model: 'deepseek-test-model' }
+    }))
+
+    await expect(sendAiConsultMessage(payload)).resolves.toEqual({
+      reply: '建议先看幼猫配方。',
+      model: 'deepseek-test-model'
+    })
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/public/ai-consult',
+      expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify(payload)
+      })
+    )
   })
 
   it('sends json payloads for user api mutations and uses the correct verbs', async () => {

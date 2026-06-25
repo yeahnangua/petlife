@@ -27,3 +27,10 @@ export function getStores() {
 export function getStoreSlots(storeId, params = {}) {
   return request(withQuery(`/api/public/stores/${storeId}/slots`, params))
 }
+
+export function sendAiConsultMessage(payload) {
+  return request('/api/public/ai-consult', {
+    method: 'POST',
+    body: payload
+  })
+}

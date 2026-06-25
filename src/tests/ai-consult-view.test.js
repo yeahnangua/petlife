@@ -2,8 +2,18 @@ import { flushPromises, mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import { createRouter, createWebHashHistory } from 'vue-router'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { sendAiConsultMessage } from '@/api/public'
 import { useCatalogStore } from '@/stores/catalog'
 import AiConsultView from '@/views/AiConsultView.vue'
+
+vi.mock('@/api/public', async () => {
+  const actual = await vi.importActual('@/api/public')
+
+  return {
+    ...actual,
+    sendAiConsultMessage: vi.fn()
+  }
+})
 
 const product = {
   id: 'p-001',
@@ -60,6 +70,11 @@ async function mountAiConsult(path = '/ai-consult') {
 describe('AiConsultView', () => {
   beforeEach(() => {
     document.body.innerHTML = ''
+    sendAiConsultMessage.mockReset()
+    sendAiConsultMessage.mockResolvedValue({
+      reply: '真实模型回复：建议先确认年龄、体重和预算。',
+      model: 'deepseek-test-model'
+    })
   })
 
   it('renders generic pre-sales questions without product context', async () => {
@@ -79,13 +94,19 @@ describe('AiConsultView', () => {
     expect(wrapper.text()).toContain('适合我家宠物吗')
   })
 
-  it('adds user messages and simulated AI replies from quick questions', async () => {
+  it('adds user messages and AI replies from the backend API', async () => {
     const { wrapper } = await mountAiConsult('/ai-consult?productId=p-001')
 
     await wrapper.get('[data-test="quick-question-0"]').trigger('click')
+    await flushPromises()
 
     expect(wrapper.text()).toContain('适合我家宠物吗')
-    expect(wrapper.text()).toContain('我先按「鲜肉全价猫粮」帮你看')
+    expect(wrapper.text()).toContain('真实模型回复：建议先确认年龄、体重和预算。')
+    expect(sendAiConsultMessage).toHaveBeenCalledWith({
+      message: '适合我家宠物吗',
+      messages: [{ role: 'user', content: '适合我家宠物吗' }],
+      productId: 'p-001'
+    })
   })
 
   it('sends typed messages and ignores empty input', async () => {
@@ -93,13 +114,25 @@ describe('AiConsultView', () => {
 
     await wrapper.get('[data-test="consult-input"]').setValue('预算 200 怎么选')
     await wrapper.get('[data-test="consult-send"]').trigger('click')
+    await flushPromises()
 
     expect(wrapper.text()).toContain('预算 200 怎么选')
-    expect(wrapper.text()).toContain('可以告诉我宠物类型、年龄、预算和想解决的问题')
+    expect(wrapper.text()).toContain('真实模型回复：建议先确认年龄、体重和预算。')
 
     const messageCount = wrapper.findAll('.consult__message').length
     await wrapper.get('[data-test="consult-send"]').trigger('click')
 
     expect(wrapper.findAll('.consult__message')).toHaveLength(messageCount)
+  })
+
+  it('shows a readable fallback when the backend AI request fails', async () => {
+    sendAiConsultMessage.mockRejectedValueOnce(new Error('AI service request failed'))
+    const { wrapper } = await mountAiConsult()
+
+    await wrapper.get('[data-test="consult-input"]').setValue('怎么选')
+    await wrapper.get('[data-test="consult-send"]').trigger('click')
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('AI 服务暂时不可用，请稍后再试')
   })
 })
