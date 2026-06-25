@@ -1,7 +1,12 @@
 <script setup>
-import { reactive, ref, watch } from 'vue'
+import { computed, reactive, ref, watch } from 'vue'
 import UploadImageField from '@/components/UploadImageField.vue'
-import { petTypeOptions, publishStatusOptions, stockStatusOptions } from '@/utils/enumLabels'
+import {
+  getPetTypeLabel,
+  petTypeOptions,
+  publishStatusOptions,
+  stockStatusOptions
+} from '@/utils/enumLabels'
 
 const props = defineProps({
   modelValue: Boolean,
@@ -18,6 +23,11 @@ const props = defineProps({
 
 const emit = defineEmits(['update:modelValue', 'submit'])
 const specsError = ref('')
+const introGenerating = ref(false)
+const specsAiOpen = ref(false)
+const specsAiPrompt = ref('')
+const specsAiError = ref('')
+const specsAiPreview = ref('')
 
 const form = reactive({
   category_id: '',
@@ -37,6 +47,28 @@ const form = reactive({
   cover_url: '',
   status: 'active',
   image_urls: []
+})
+
+const selectedCategory = computed(() => {
+  return props.categories.find((item) => item.id === form.category_id) ?? null
+})
+
+const introContextReady = computed(() => {
+  return Boolean(
+    selectedCategory.value?.name &&
+      form.pet_type &&
+      form.title.trim() &&
+      form.subtitle.trim()
+  )
+})
+
+const introContextText = computed(() => {
+  const categoryName = selectedCategory.value?.name || '未选择分类'
+  const petTypeLabel = getPetTypeLabel(form.pet_type) || '未选择宠物类型'
+  const title = form.title.trim() || '未填写标题'
+  const subtitle = form.subtitle.trim() || '未填写副标题'
+
+  return `${categoryName} / ${petTypeLabel} / ${title} / ${subtitle}`
 })
 
 function listToText(list = []) {
@@ -69,6 +101,10 @@ function syncForm(value = null) {
   form.status = value?.status ?? 'active'
   form.image_urls = [...(value?.image_urls || [])]
   specsError.value = ''
+  specsAiOpen.value = false
+  specsAiPrompt.value = ''
+  specsAiError.value = ''
+  specsAiPreview.value = ''
 }
 
 watch(
@@ -80,6 +116,115 @@ watch(
   },
   { immediate: true }
 )
+
+function generateIntroDraft() {
+  return {
+    tags: ['低敏', '无谷', '鲜肉70%', '猫粮'],
+    summary: [
+      '鲜肉含量 70%，保留原始营养',
+      '低敏配方，适合肠胃敏感猫咪',
+      '自研冷鲜锁鲜工艺'
+    ],
+    suitableText: '适合 1-8 岁成猫 / 全品种'
+  }
+}
+
+function generateIntro() {
+  if (!introContextReady.value || introGenerating.value) {
+    return
+  }
+
+  introGenerating.value = true
+  const draft = generateIntroDraft()
+  form.tags_text = draft.tags.join(', ')
+  form.summary_text = listToText(draft.summary)
+  form.suitable_text = draft.suitableText
+  introGenerating.value = false
+}
+
+function extractOptionsAfterKeyword(prompt, keyword, nextKeywords = []) {
+  const keywordIndex = prompt.indexOf(keyword)
+
+  if (keywordIndex === -1) {
+    return []
+  }
+
+  const start = keywordIndex + keyword.length
+  let end = prompt.length
+
+  nextKeywords.forEach((nextKeyword) => {
+    const nextIndex = prompt.indexOf(nextKeyword, start)
+    if (nextIndex !== -1 && nextIndex < end) {
+      end = nextIndex
+    }
+  })
+
+  return prompt
+    .slice(start, end)
+    .replace(/[，,。；;：:]/g, ' ')
+    .replace(/\s+和\s*/g, ' ')
+    .split(/\s+/)
+    .map((item) => item.trim())
+    .filter(Boolean)
+}
+
+function generateSpecsDraft(prompt) {
+  const specOptions = extractOptionsAfterKeyword(prompt, '规格有', ['口味有'])
+  const flavorOptions = extractOptionsAfterKeyword(prompt, '口味有', ['规格有'])
+  const draft = []
+
+  if (specOptions.length) {
+    draft.push({
+      group: '规格',
+      options: specOptions
+    })
+  }
+
+  if (flavorOptions.length) {
+    draft.push({
+      group: '口味',
+      options: flavorOptions
+    })
+  }
+
+  if (draft.length) {
+    return draft
+  }
+
+  return [
+    {
+      group: '规格',
+      options: ['默认规格']
+    }
+  ]
+}
+
+function openSpecsAiDialog() {
+  specsAiOpen.value = true
+  specsAiError.value = ''
+  specsAiPreview.value = ''
+}
+
+function closeSpecsAiDialog() {
+  specsAiOpen.value = false
+  specsAiError.value = ''
+}
+
+function generateSpecsJson() {
+  const prompt = specsAiPrompt.value.trim()
+
+  if (!prompt) {
+    specsAiError.value = '请输入规格描述'
+    specsAiPreview.value = ''
+    return
+  }
+
+  const specs = generateSpecsDraft(prompt)
+  const text = JSON.stringify(specs, null, 2)
+  form.specs_text = text
+  specsAiPreview.value = text
+  specsAiError.value = ''
+}
 
 function closeDialog() {
   emit('update:modelValue', false)
@@ -179,22 +324,48 @@ function submitForm() {
           <span>角标文案</span>
           <input v-model="form.badge" />
         </label>
+        <div class="dialog-card__full ai-helper">
+          <div>
+            <span class="ai-helper__eyebrow">AI 介绍生成</span>
+            <p>{{ introContextReady ? introContextText : '请先填写分类、宠物类型、标题、副标题' }}</p>
+            <small>会覆盖当前标签、摘要、适用描述</small>
+          </div>
+          <button
+            type="button"
+            class="button-secondary ai-helper__button"
+            data-test="generate-intro"
+            :disabled="!introContextReady || introGenerating"
+            @click="generateIntro"
+          >
+            {{ introGenerating ? '生成中...' : 'AI 生成介绍' }}
+          </button>
+        </div>
         <label class="dialog-card__full">
           <span>标签</span>
-          <textarea v-model="form.tags_text" rows="2" placeholder="逗号或换行分隔" />
+          <textarea data-test="product-tags" v-model="form.tags_text" rows="2" placeholder="逗号或换行分隔" />
         </label>
         <label class="dialog-card__full">
           <span>摘要</span>
-          <textarea v-model="form.summary_text" rows="3" placeholder="每行一条" />
+          <textarea data-test="product-summary" v-model="form.summary_text" rows="3" placeholder="每行一条" />
         </label>
         <label class="dialog-card__full">
           <span>适用描述</span>
-          <textarea v-model="form.suitable_text" rows="2" />
+          <textarea data-test="product-suitable" v-model="form.suitable_text" rows="2" />
         </label>
-        <label class="dialog-card__full">
-          <span>规格 JSON</span>
-          <textarea v-model="form.specs_text" rows="6" />
-        </label>
+        <div class="dialog-card__full specs-field">
+          <div class="field-toolbar">
+            <span>规格 JSON</span>
+            <button
+              type="button"
+              class="button-secondary field-toolbar__button"
+              data-test="open-specs-ai"
+              @click="openSpecsAiDialog"
+            >
+              AI 生成规格
+            </button>
+          </div>
+          <textarea data-test="product-specs" v-model="form.specs_text" rows="6" />
+        </div>
         <p v-if="specsError" class="dialog-card__error">{{ specsError }}</p>
         <UploadImageField v-model="form.cover_url" label="商品封面" class="dialog-card__full" />
         <UploadImageField v-model="form.image_urls" label="商品图集" multiple class="dialog-card__full" />
@@ -203,6 +374,34 @@ function submitForm() {
         <button type="button" class="button-secondary" @click="closeDialog">取消</button>
         <button type="button" class="button-primary" :disabled="submitting" @click="submitForm">
           {{ submitting ? '保存中...' : '保存商品' }}
+        </button>
+      </footer>
+    </section>
+    <section v-if="specsAiOpen" class="ai-modal" aria-label="AI 生成规格">
+      <div class="ai-modal__header">
+        <h4>AI 生成规格</h4>
+        <button type="button" class="dialog-card__close" @click="closeSpecsAiDialog">关闭</button>
+      </div>
+      <label>
+        <span>自然语言描述</span>
+        <textarea
+          data-test="specs-ai-prompt"
+          v-model="specsAiPrompt"
+          rows="4"
+          placeholder="例如：规格有 1.5kg 3kg 和 6kg，口味有鸡肉 三文鱼 和牛肉"
+        />
+      </label>
+      <p v-if="specsAiError" class="dialog-card__error">{{ specsAiError }}</p>
+      <pre v-if="specsAiPreview" class="ai-modal__preview">{{ specsAiPreview }}</pre>
+      <footer class="ai-modal__footer">
+        <button type="button" class="button-secondary" @click="closeSpecsAiDialog">取消</button>
+        <button
+          type="button"
+          class="button-primary"
+          data-test="generate-specs-json"
+          @click="generateSpecsJson"
+        >
+          生成 JSON
         </button>
       </footer>
     </section>
@@ -292,9 +491,114 @@ function submitForm() {
   color: #fff;
 }
 
+.ai-helper,
+.field-toolbar,
+.ai-modal__header,
+.ai-modal__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.ai-helper {
+  padding: 14px;
+  border: 1px solid #e3d7c8;
+  border-radius: 16px;
+  background: #fbf4ea;
+}
+
+.ai-helper p {
+  margin: 4px 0;
+  color: #4a3a2d;
+}
+
+.ai-helper small,
+.ai-helper__eyebrow {
+  color: #866549;
+}
+
+.ai-helper__eyebrow {
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.ai-helper__button,
+.field-toolbar__button {
+  flex: 0 0 auto;
+}
+
+.button-secondary:disabled,
+.button-primary:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.specs-field {
+  display: grid;
+  gap: 8px;
+}
+
+.field-toolbar {
+  font-weight: 600;
+}
+
+.ai-modal {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  z-index: 2;
+  width: min(100%, 560px);
+  display: grid;
+  gap: 16px;
+  padding: 20px;
+  border-radius: 20px;
+  background: #fffdfa;
+  box-shadow: 0 24px 80px rgba(32, 24, 16, 0.22);
+  transform: translate(-50%, -50%);
+}
+
+.ai-modal label {
+  display: grid;
+  gap: 8px;
+}
+
+.ai-modal textarea {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #d8cbbd;
+  border-radius: 14px;
+}
+
+.ai-modal__header h4 {
+  margin: 0;
+}
+
+.ai-modal__preview {
+  max-height: 180px;
+  overflow: auto;
+  padding: 12px;
+  border-radius: 14px;
+  background: #29211b;
+  color: #fffdfa;
+  white-space: pre-wrap;
+}
+
 @media (max-width: 900px) {
   .dialog-card__grid--two {
     grid-template-columns: 1fr;
+  }
+
+  .ai-helper,
+  .field-toolbar,
+  .ai-modal__footer {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .ai-helper__button,
+  .field-toolbar__button {
+    width: 100%;
   }
 }
 </style>
