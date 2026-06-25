@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref, watch } from 'vue'
+import { computed, nextTick, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import IconSvg from '@/components/IconSvg.vue'
 import PriceText from '@/components/PriceText.vue'
@@ -51,6 +51,10 @@ function sendMessage(text = inputText.value) {
   messages.value.push({ id: `user-${Date.now()}-${messages.value.length}`, role: 'user', content })
   messages.value.push({ id: `ai-${Date.now()}-${messages.value.length}`, role: 'assistant', content: buildReply() })
   inputText.value = ''
+
+  nextTick(() => {
+    document.querySelector('.consult__messages')?.lastElementChild?.scrollIntoView?.({ block: 'end' })
+  })
 }
 </script>
 
@@ -277,6 +281,10 @@ function sendMessage(text = inputText.value) {
   display: flex;
   align-items: flex-end;
   gap: var(--space-2);
+}
+
+.consult__message:last-child {
+  scroll-margin-bottom: calc(var(--shell-bottom-offset) + 96px);
 }
 
 .consult__message p {
