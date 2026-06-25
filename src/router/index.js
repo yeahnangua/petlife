@@ -36,6 +36,12 @@ const routes = [
     meta: { title: '商品详情' }
   },
   {
+    path: '/ai-consult',
+    name: 'ai-consult',
+    component: () => import('@/views/AiConsultView.vue'),
+    meta: { title: 'AI客服' }
+  },
+  {
     path: '/service',
     name: 'service',
     component: () => import('@/views/ServiceView.vue'),

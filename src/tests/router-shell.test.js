@@ -36,6 +36,18 @@ describe('app shell', () => {
     expect(wrapper.find('.app').attributes('style')).toContain('--shell-bottom-offset: var(--safe-bottom)')
   })
 
+  it('shows the AI customer service page as a secondary route', async () => {
+    const wrapper = await mountApp(
+      [{ path: '/ai-consult', component: { template: '<section>consult</section>' }, meta: { title: 'AI客服' } }],
+      '/ai-consult'
+    )
+
+    expect(wrapper.find('.tab-bar').exists()).toBe(false)
+    expect(wrapper.find('.top-bar').exists()).toBe(true)
+    expect(wrapper.find('.top-bar').text()).toContain('AI客服')
+    expect(wrapper.find('.app').attributes('style')).toContain('--shell-bottom-offset: var(--safe-bottom)')
+  })
+
   it('keeps the current page component mounted when only route query changes', async () => {
     let mountCount = 0
     const CategoryStub = {
