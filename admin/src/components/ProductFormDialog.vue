@@ -377,6 +377,12 @@ function submitForm() {
         </button>
       </footer>
     </section>
+    <div
+      v-if="specsAiOpen"
+      class="ai-modal-backdrop"
+      data-test="specs-ai-backdrop"
+      @click="closeSpecsAiDialog"
+    />
     <section v-if="specsAiOpen" class="ai-modal" aria-label="AI 生成规格">
       <div class="ai-modal__header">
         <h4>AI 生成规格</h4>
@@ -541,6 +547,13 @@ function submitForm() {
 
 .field-toolbar {
   font-weight: 600;
+}
+
+.ai-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  background: rgba(32, 24, 16, 0.55);
 }
 
 .ai-modal {

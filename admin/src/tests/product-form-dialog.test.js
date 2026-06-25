@@ -88,4 +88,14 @@ describe('ProductFormDialog AI helpers', () => {
       }
     ], null, 2))
   })
+
+  it('dims the product form background while the specs AI dialog is open', async () => {
+    const wrapper = mountDialog()
+
+    expect(wrapper.find('[data-test="specs-ai-backdrop"]').exists()).toBe(false)
+
+    await wrapper.get('[data-test="open-specs-ai"]').trigger('click')
+
+    expect(wrapper.get('[data-test="specs-ai-backdrop"]').classes()).toContain('ai-modal-backdrop')
+  })
 })
