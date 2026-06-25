@@ -1,4 +1,4 @@
-import { mount } from '@vue/test-utils'
+import { flushPromises, mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import { createRouter, createWebHashHistory } from 'vue-router'
 import { describe, expect, it, vi } from 'vitest'
@@ -66,14 +66,15 @@ async function mountHomeView() {
       { path: '/service', name: 'service', component: { template: '<div />' } },
       { path: '/search', name: 'search', component: { template: '<div />' } },
       { path: '/cart', name: 'cart', component: { template: '<div />' } },
-      { path: '/member', name: 'member', component: { template: '<div />' } }
+      { path: '/member', name: 'member', component: { template: '<div />' } },
+      { path: '/ai-consult', name: 'ai-consult', component: { template: '<div />' } }
     ]
   })
 
   router.push('/')
   await router.isReady()
 
-  return mount(HomeView, {
+  const wrapper = mount(HomeView, {
     global: {
       plugins: [router, pinia],
       stubs: {
@@ -89,14 +90,29 @@ async function mountHomeView() {
       }
     }
   })
+
+  return { wrapper, router }
 }
 
 describe('HomeView', () => {
   it('does not render the bundle recommendation section', async () => {
-    const wrapper = await mountHomeView()
+    const { wrapper } = await mountHomeView()
 
     expect(wrapper.text()).not.toContain('组合推荐')
     expect(wrapper.text()).not.toContain('按场景选购')
     expect(wrapper.text()).toContain('热卖商品')
+  })
+
+  it('opens the AI pre-sales consultation page from the homepage card', async () => {
+    const { wrapper, router } = await mountHomeView()
+
+    const entry = wrapper.get('[data-test="home-ai-consult"]')
+    expect(entry.text()).toContain('AI 售前咨询')
+    expect(entry.text()).toContain('不知道怎么选')
+
+    await entry.trigger('click')
+    await flushPromises()
+
+    expect(router.currentRoute.value.path).toBe('/ai-consult')
   })
 })

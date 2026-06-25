@@ -149,6 +149,24 @@ function openQuickEntry(entry) {
         </button>
       </section>
 
+      <!-- AI 售前咨询 -->
+      <section class="home__consult anim-fade-up">
+        <button type="button" class="home__consult-card" data-test="home-ai-consult" @click="router.push('/ai-consult')">
+          <span class="home__consult-icon">
+            <IconSvg name="chat" :size="22" :stroke="1.9" />
+          </span>
+          <span class="home__consult-copy">
+            <span class="home__consult-eyebrow">AI 购物助手</span>
+            <strong>AI 售前咨询</strong>
+            <span>不知道怎么选？告诉我宠物情况，帮你快速筛选商品。</span>
+          </span>
+          <span class="home__consult-action">
+            开始咨询
+            <IconSvg name="arrow-right" :size="13" :stroke="2.4" />
+          </span>
+        </button>
+      </section>
+
       <!-- AI 智能推荐 -->
       <section class="home__section home__ai anim-fade-up">
         <SectionHeading eyebrow="AI 营销推荐" title="今日推荐理由" />
@@ -575,6 +593,77 @@ function openQuickEntry(entry) {
   font-size: var(--text-sm);
   font-weight: var(--weight-medium);
   color: var(--color-text-soft);
+}
+
+/* ---------- AI 售前咨询入口 ---------- */
+.home__consult-card {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  padding: var(--space-4);
+  border: 1px solid rgba(217, 113, 78, 0.22);
+  border-radius: var(--radius-xl);
+  background:
+    linear-gradient(135deg, rgba(217, 113, 78, 0.12), rgba(106, 133, 114, 0.10)),
+    var(--color-surface);
+  text-align: left;
+  box-shadow: var(--shadow-xs);
+  transition: transform var(--dur-fast) var(--ease-spring), box-shadow var(--dur-base) var(--ease-out);
+}
+
+.home__consult-card:active {
+  transform: scale(0.98);
+  box-shadow: none;
+}
+
+.home__consult-icon {
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  border-radius: 18px;
+  background: var(--color-primary-deep);
+  color: var(--color-text-invert);
+}
+
+.home__consult-copy {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.home__consult-eyebrow {
+  color: var(--color-coral);
+  font-size: var(--text-2xs);
+  font-weight: var(--weight-bold);
+  letter-spacing: var(--tracking-wider);
+}
+
+.home__consult-copy strong {
+  color: var(--color-text);
+  font-size: var(--text-lg);
+  font-weight: var(--weight-bold);
+}
+
+.home__consult-copy span:last-child {
+  color: var(--color-text-mute);
+  font-size: var(--text-xs);
+  line-height: var(--leading-relaxed);
+}
+
+.home__consult-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  align-self: stretch;
+  padding-left: var(--space-3);
+  border-left: 1px solid rgba(217, 113, 78, 0.18);
+  color: var(--color-primary-deep);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-bold);
+  white-space: nowrap;
 }
 
 /* ---------- 区块 ---------- */
