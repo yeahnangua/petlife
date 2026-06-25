@@ -548,7 +548,8 @@ function submitForm() {
   top: 50%;
   left: 50%;
   z-index: 2;
-  width: min(100%, 560px);
+  box-sizing: border-box;
+  width: min(calc(100% - 32px), 560px);
   display: grid;
   gap: 16px;
   padding: 20px;
