@@ -1,10 +1,18 @@
 import { createRouter, createWebHashHistory } from 'vue-router'
+import { registerUnauthorizedHandler } from '@/api/mobileSession'
+import { useAuthStore } from '@/stores/auth'
 
 /**
  * 路由结构
  * 后续 Codex 可在 meta 上追加权限/埋点/过渡方向等字段。
  */
-const routes = [
+export const routes = [
+  {
+    path: '/login',
+    name: 'login',
+    component: () => import('@/views/LoginView.vue'),
+    meta: { title: '登录', public: true, hideShell: true }
+  },
   {
     path: '/',
     name: 'home',
@@ -133,12 +141,53 @@ const routes = [
   }
 ]
 
-const router = createRouter({
-  history: createWebHashHistory(),
-  routes,
-  scrollBehavior() {
-    return { top: 0 }
-  }
-})
+export function createMobileRouter(pinia, routeDefinitions = routes) {
+  const router = createRouter({
+    history: createWebHashHistory(),
+    routes: routeDefinitions,
+    scrollBehavior() {
+      return { top: 0 }
+    }
+  })
+
+  registerUnauthorizedHandler(() => {
+    const authStore = useAuthStore(pinia)
+    authStore.clearSession()
+
+    if (router.currentRoute.value.path !== '/login') {
+      router.replace({
+        path: '/login',
+        query: { redirect: router.currentRoute.value.fullPath || '/' }
+      })
+    }
+  })
+
+  router.beforeEach(async (to) => {
+    const authStore = useAuthStore(pinia)
+
+    if (to.meta.public) {
+      if (authStore.isAuthenticated && to.path === '/login') {
+        return { path: '/' }
+      }
+
+      return true
+    }
+
+    const authenticated = await authStore.ensureSession()
+
+    if (!authenticated) {
+      return {
+        path: '/login',
+        query: { redirect: to.fullPath }
+      }
+    }
+
+    return true
+  })
+
+  return router
+}
+
+const router = createMobileRouter()
 
 export default router

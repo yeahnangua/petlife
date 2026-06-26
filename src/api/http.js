@@ -1,3 +1,5 @@
+import { getMobileToken, handleUnauthorized } from './mobileSession'
+
 function isPlainObject(value) {
   return Object.prototype.toString.call(value) === '[object Object]'
 }
@@ -34,6 +36,11 @@ export async function request(path, options = {}) {
     },
     ...rest
   }
+  const token = getMobileToken()
+
+  if (token && !init.headers.Authorization) {
+    init.headers.Authorization = `Bearer ${token}`
+  }
 
   if (body !== undefined) {
     if (body instanceof FormData || typeof body === 'string') {
@@ -54,6 +61,10 @@ export async function request(path, options = {}) {
     `request failed with status ${response.status}`
 
   if (!response.ok) {
+    if (response.status === 401) {
+      handleUnauthorized()
+    }
+
     const error = new Error(message)
     error.status = response.status
     error.code = payload?.code ?? response.status

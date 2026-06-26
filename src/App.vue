@@ -7,6 +7,7 @@ import Toast from '@/components/Toast.vue'
 
 const route = useRoute()
 
+const hideShell = computed(() => Boolean(route.meta.hideShell))
 const isTabRoute = computed(() => Boolean(route.meta.tab))
 const pageTitle = computed(() => route.meta.title || 'PetLife')
 const shellBottomOffset = computed(() =>
@@ -17,7 +18,7 @@ const shellBottomOffset = computed(() =>
 <template>
   <div class="app-stage">
     <div class="app" :style="{ '--shell-bottom-offset': shellBottomOffset }">
-      <TopBar v-if="!isTabRoute" :title="pageTitle" />
+      <TopBar v-if="!hideShell && !isTabRoute" :title="pageTitle" />
       <main class="app__viewport">
         <router-view v-slot="{ Component }">
           <transition :name="route.meta.transition || 'fade-slide'" mode="out-in">
@@ -25,7 +26,7 @@ const shellBottomOffset = computed(() =>
           </transition>
         </router-view>
       </main>
-      <TabBar v-if="isTabRoute" />
+      <TabBar v-if="!hideShell && isTabRoute" />
       <Toast />
     </div>
   </div>

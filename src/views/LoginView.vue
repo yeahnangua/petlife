@@ -1,0 +1,117 @@
+<script setup>
+import { computed, ref } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import IconSvg from '@/components/IconSvg.vue'
+import { useAuthStore } from '@/stores/auth'
+
+const route = useRoute()
+const router = useRouter()
+const authStore = useAuthStore()
+const error = ref('')
+
+const redirectPath = computed(() => {
+  const redirect = route.query.redirect
+  return typeof redirect === 'string' && redirect.startsWith('/') ? redirect : '/'
+})
+
+async function submitWechatLogin() {
+  error.value = ''
+
+  try {
+    await authStore.loginWithWechat()
+    router.replace(redirectPath.value)
+  } catch (loginError) {
+    error.value = loginError instanceof Error ? loginError.message : '登录失败，请稍后重试'
+  }
+}
+</script>
+
+<template>
+  <main class="login page-pad">
+    <section class="login__panel">
+      <p class="login__eyebrow">PetLife</p>
+      <h1 class="login__title font-display">微信登录</h1>
+      <p class="login__copy">使用微信身份进入 PetLife，订单、宠物档案与优惠券会跟随当前账号。</p>
+
+      <button
+        type="button"
+        class="login__wechat"
+        :disabled="authStore.loading"
+        data-test="wechat-login"
+        @click="submitWechatLogin"
+      >
+        <IconSvg name="profile" :size="19" :stroke="2" />
+        {{ authStore.loading ? '登录中' : '微信一键登录' }}
+      </button>
+
+      <p v-if="error" class="login__error">{{ error }}</p>
+    </section>
+  </main>
+</template>
+
+<style scoped>
+.login {
+  min-height: 100dvh;
+  display: grid;
+  align-items: center;
+  padding-top: var(--space-12);
+  padding-bottom: var(--space-12);
+}
+
+.login__panel {
+  display: grid;
+  gap: var(--space-5);
+}
+
+.login__eyebrow {
+  color: var(--color-primary);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-bold);
+  letter-spacing: var(--tracking-wider);
+  text-transform: uppercase;
+}
+
+.login__title {
+  font-size: var(--text-4xl);
+  line-height: var(--leading-tight);
+}
+
+.login__copy {
+  max-width: 320px;
+  color: var(--color-text-soft);
+  font-size: var(--text-body);
+  line-height: var(--leading-relaxed);
+}
+
+.login__wechat {
+  width: 100%;
+  min-height: 52px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  border-radius: var(--radius-full);
+  background: #1AAD19;
+  color: #fff;
+  font-size: var(--text-md);
+  font-weight: var(--weight-semibold);
+  box-shadow: 0 10px 24px rgba(26, 173, 25, 0.20);
+  transition: transform var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out);
+}
+
+.login__wechat:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 12px 28px rgba(26, 173, 25, 0.24);
+}
+
+.login__wechat:disabled {
+  cursor: wait;
+  opacity: 0.72;
+  transform: none;
+}
+
+.login__error {
+  color: var(--color-danger);
+  font-size: var(--text-sm);
+}
+</style>

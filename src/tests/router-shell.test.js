@@ -5,7 +5,17 @@ import { describe, expect, it } from 'vitest'
 import App from '@/App.vue'
 
 function makeRouter(routes) {
-  return createRouter({ history: createWebHashHistory(), routes })
+  const shellRoutes = ['/', '/category', '/service', '/orders', '/profile']
+    .filter((path) => !routes.some((route) => route.path === path))
+    .map((path) => ({ path, component: { template: '<section />' } }))
+
+  return createRouter({
+    history: createWebHashHistory(),
+    routes: [
+      ...routes,
+      ...shellRoutes
+    ]
+  })
 }
 
 async function mountApp(routes, path) {
