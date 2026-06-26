@@ -83,6 +83,11 @@ describe('mobile auth', () => {
       }
     })
 
+    const qrCode = wrapper.get('[data-test="wechat-official-account-qr"]')
+    expect(qrCode.attributes('src')).toBe('/images/wechat-test-official-account.png')
+    expect(qrCode.attributes('alt')).toBe('测试公众号二维码')
+    expect(wrapper.text()).toContain('关注测试公众号后使用微信一键登录')
+
     await wrapper.get('[data-test="wechat-login"]').trigger('click')
     await flushPromises()
     await new Promise((resolve) => setTimeout(resolve, 0))

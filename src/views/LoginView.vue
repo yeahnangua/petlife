@@ -67,6 +67,16 @@ onMounted(async () => {
       <h1 class="login__title font-display">微信登录</h1>
       <p class="login__copy">使用微信身份进入 PetLife，订单、宠物档案与优惠券会跟随当前账号。</p>
 
+      <section class="login__official-account" aria-label="测试公众号二维码">
+        <img
+          src="/images/wechat-test-official-account.png"
+          alt="测试公众号二维码"
+          class="login__qr"
+          data-test="wechat-official-account-qr"
+        />
+        <p>关注测试公众号后使用微信一键登录</p>
+      </section>
+
       <div class="login__actions">
         <button
           type="button"
@@ -128,6 +138,33 @@ onMounted(async () => {
   color: var(--color-text-soft);
   font-size: var(--text-body);
   line-height: var(--leading-relaxed);
+}
+
+.login__official-account {
+  justify-self: center;
+  display: grid;
+  justify-items: center;
+  gap: var(--space-2);
+  width: min(100%, 260px);
+  padding: var(--space-3);
+  border: 1px solid var(--color-border-soft);
+  border-radius: var(--radius-xl);
+  background: var(--color-surface);
+}
+
+.login__qr {
+  width: 188px;
+  max-width: 100%;
+  height: auto;
+  display: block;
+  border-radius: var(--radius-md);
+}
+
+.login__official-account p {
+  color: var(--color-text-soft);
+  font-size: var(--text-xs);
+  line-height: var(--leading-normal);
+  text-align: center;
 }
 
 .login__actions {
