@@ -68,6 +68,13 @@ export function generateProductAiDraft(payload) {
   })
 }
 
+export function generateServiceAiDraft(payload) {
+  return request('/api/admin/services/ai-draft', {
+    method: 'POST',
+    body: payload
+  })
+}
+
 export function listServices(query = {}) {
   return request(withQuery('/api/admin/services', query))
 }

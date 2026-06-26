@@ -12,6 +12,7 @@ import { findPetById } from '../repositories/petRepository.js'
 import { findActiveServiceById } from '../repositories/serviceRepository.js'
 import { findActiveStoreById } from '../repositories/storeRepository.js'
 import { findEnabledTimeSlotById } from '../repositories/timeSlotRepository.js'
+import { getRedeemableCoupon, markCouponUsed } from './couponService.js'
 
 const BOOKING_STATUS_LABELS = {
   pendingService: '待服务',
@@ -55,6 +56,11 @@ function mapBooking(row) {
     service_title_snapshot: row.service_title_snapshot,
     service_cover_snapshot: row.service_cover_snapshot,
     service_price_snapshot: row.service_price_snapshot,
+    subtotal_amount: row.subtotal_amount ?? row.service_price_snapshot,
+    discount_amount: row.discount_amount ?? 0,
+    payable_amount: row.payable_amount ?? row.service_price_snapshot,
+    coupon_id: row.coupon_id || '',
+    coupon_name_snapshot: row.coupon_name_snapshot || '',
     store_id: row.store_id,
     store_name_snapshot: row.store_name_snapshot,
     time_slot_id: row.time_slot_id,
@@ -141,6 +147,9 @@ export function createUserBooking(db, userId, payload) {
     ensureSlotCapacity(db, validated.store.id, validated.bookingDate, validated.timeSlot)
 
     const timestamp = now()
+    const subtotalAmount = getServicePrice(validated.service)
+    const coupon = getRedeemableCoupon(db, userId, payload.coupon_id, subtotalAmount, 'service')
+    const discountAmount = coupon ? Math.min(coupon.discount_amount, subtotalAmount) : 0
     const record = {
       id: `booking_${randomUUID().slice(0, 8)}`,
       booking_no: formatBookingNumber(),
@@ -151,7 +160,12 @@ export function createUserBooking(db, userId, payload) {
       service_id: validated.service.id,
       service_title_snapshot: validated.service.title,
       service_cover_snapshot: validated.service.cover_url,
-      service_price_snapshot: getServicePrice(validated.service),
+      service_price_snapshot: subtotalAmount,
+      subtotal_amount: subtotalAmount,
+      discount_amount: discountAmount,
+      payable_amount: Math.max(subtotalAmount - discountAmount, 0),
+      coupon_id: coupon?.id ?? '',
+      coupon_name_snapshot: coupon?.name ?? '',
       store_id: validated.store.id,
       store_name_snapshot: validated.store.name,
       time_slot_id: validated.timeSlot.id,
@@ -166,6 +180,9 @@ export function createUserBooking(db, userId, payload) {
     }
 
     createBooking(db, record)
+    if (coupon) {
+      markCouponUsed(db, coupon.id, record.id, timestamp)
+    }
     return record
   })
 

@@ -51,7 +51,10 @@ onMounted(() => {
             <strong>{{ coupon.amount }}</strong>
           </div>
           <div class="coupons__body">
-            <h2>{{ coupon.name }}</h2>
+            <h2>
+              {{ coupon.name }}
+              <span class="coupons__target">{{ coupon.targetLabel }}</span>
+            </h2>
             <p>{{ coupon.description }}</p>
             <span>满 {{ coupon.minOrderAmount }} 可用 · 有效期至 {{ formatDate(coupon.validTo) }}</span>
           </div>
@@ -67,7 +70,10 @@ onMounted(() => {
             <strong>{{ coupon.amount }}</strong>
           </div>
           <div class="coupons__body">
-            <h2>{{ coupon.name }}</h2>
+            <h2>
+              {{ coupon.name }}
+              <span class="coupons__target">{{ coupon.targetLabel }}</span>
+            </h2>
             <p>{{ coupon.description }}</p>
             <span>已使用 · 有效期至 {{ formatDate(coupon.validTo) }}</span>
           </div>
@@ -155,7 +161,20 @@ onMounted(() => {
 }
 
 .coupons__body h2 {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
   font-size: var(--text-md);
+  font-weight: var(--weight-semibold);
+}
+
+.coupons__target {
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  background: var(--color-primary-tint);
+  color: var(--color-primary-deep);
+  font-size: var(--text-2xs);
   font-weight: var(--weight-semibold);
 }
 

@@ -5,11 +5,25 @@ import {
   getAdminServices,
   updateAdminService
 } from '../services/adminCatalogService.js'
+import { createAdminServiceAiDraft } from '../services/adminServiceAiDraftService.js'
 
 export function listAdminServices(req, res, next) {
   try {
     const list = getAdminServices(req.app.locals.db)
     res.json(success({ list }))
+  } catch (error) {
+    next(error)
+  }
+}
+
+export async function createServiceAiDraft(req, res, next) {
+  try {
+    const data = await createAdminServiceAiDraft({
+      config: req.app.locals.config,
+      chatClient: req.app.locals.aiChatClient,
+      body: req.body
+    })
+    res.json(success(data))
   } catch (error) {
     next(error)
   }

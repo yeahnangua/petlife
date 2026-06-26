@@ -29,11 +29,24 @@ const userCouponStatusText = {
   expired: '已过期'
 }
 
+const couponTargetText = {
+  product: '商品券',
+  service: '预约服务券',
+  universal: '通用券'
+}
+
+const couponTargetOptions = [
+  { value: 'product', label: '商品券' },
+  { value: 'service', label: '预约服务券' },
+  { value: 'universal', label: '通用券' }
+]
+
 const campaignForm = reactive({
   name: '',
   description: '',
   discount_amount: 0,
   min_order_amount: 0,
+  target_type: 'product',
   total_limit: 0,
   valid_from: '2026-06-01 00:00:00',
   valid_to: '2026-12-31 23:59:59'
@@ -83,12 +96,17 @@ function formatUserCouponStatus(status) {
   return userCouponStatusText[status] || status
 }
 
+function formatCouponTarget(targetType) {
+  return couponTargetText[targetType || 'product'] || targetType
+}
+
 function serializeCampaignForm() {
   return {
     name: campaignForm.name.trim(),
     description: campaignForm.description.trim(),
     discount_amount: Number(campaignForm.discount_amount),
     min_order_amount: Number(campaignForm.min_order_amount),
+    target_type: campaignForm.target_type,
     total_limit: Number(campaignForm.total_limit),
     valid_from: campaignForm.valid_from.trim(),
     valid_to: campaignForm.valid_to.trim()
@@ -100,6 +118,7 @@ function resetCampaignForm() {
   campaignForm.description = ''
   campaignForm.discount_amount = 0
   campaignForm.min_order_amount = 0
+  campaignForm.target_type = 'product'
   campaignForm.total_limit = 0
   campaignForm.valid_from = '2026-06-01 00:00:00'
   campaignForm.valid_to = '2026-12-31 23:59:59'
@@ -130,6 +149,7 @@ async function updateCampaignStatus(campaign, status) {
       description: campaign.description,
       discount_amount: campaign.discount_amount,
       min_order_amount: campaign.min_order_amount,
+      target_type: campaign.target_type || 'product',
       total_limit: campaign.total_limit,
       status,
       valid_from: campaign.valid_from,
@@ -207,6 +227,12 @@ onMounted(() => {
         <input v-model="campaignForm.min_order_amount" type="number" min="0" data-test="campaign-threshold" />
       </label>
       <label>
+        <span>券类型</span>
+        <select v-model="campaignForm.target_type" data-test="campaign-target">
+          <option v-for="item in couponTargetOptions" :key="item.value" :value="item.value">{{ item.label }}</option>
+        </select>
+      </label>
+      <label>
         <span>发行上限</span>
         <input v-model="campaignForm.total_limit" type="number" min="0" data-test="campaign-limit" />
       </label>
@@ -241,7 +267,7 @@ onMounted(() => {
       </header>
       <article v-for="item in campaigns" :key="item.id" class="admin-table__row coupon-row">
         <span>{{ item.name }}</span>
-        <span>满 {{ item.min_order_amount }} 减 {{ item.discount_amount }} · {{ item.description }}</span>
+        <span>{{ formatCouponTarget(item.target_type) }} · 满 {{ item.min_order_amount }} 减 {{ item.discount_amount }} · {{ item.description }}</span>
         <span>{{ formatCampaignStatus(item.status) }}</span>
         <span>{{ item.issued_count }} / {{ item.total_limit || '不限' }}</span>
         <div class="admin-table__actions">
@@ -297,7 +323,7 @@ onMounted(() => {
           <span>操作</span>
         </header>
         <article v-for="item in issuedCoupons" :key="item.id" class="admin-table__row issued-row">
-          <span>{{ item.name }}</span>
+          <span>{{ item.name }} · {{ formatCouponTarget(item.target_type) }}</span>
           <span>{{ item.user_id }}</span>
           <span>{{ formatUserCouponStatus(item.status) }}</span>
           <div class="admin-table__actions">
@@ -386,6 +412,7 @@ onMounted(() => {
 }
 
 .coupon-form input,
+.coupon-form select,
 .coupon-issue input,
 .coupon-filter input {
   min-height: 36px;

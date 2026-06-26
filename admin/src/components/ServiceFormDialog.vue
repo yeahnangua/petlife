@@ -1,5 +1,6 @@
 <script setup>
-import { reactive, watch } from 'vue'
+import { reactive, ref, watch } from 'vue'
+import { generateServiceAiDraft } from '@/api/catalog'
 import UploadImageField from '@/components/UploadImageField.vue'
 import { petTypeOptions, publishStatusOptions } from '@/utils/enumLabels'
 
@@ -13,6 +14,8 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['update:modelValue', 'submit'])
+const aiGenerating = ref(false)
+const aiError = ref('')
 
 const form = reactive({
   title: '',
@@ -42,6 +45,10 @@ function splitValues(value = '') {
     .filter(Boolean)
 }
 
+function getPetTypeLabel(value) {
+  return petTypeOptions.find((item) => item.value === value)?.label || value
+}
+
 function syncForm(value = null) {
   form.title = value?.title ?? ''
   form.subtitle = value?.subtitle ?? ''
@@ -57,6 +64,7 @@ function syncForm(value = null) {
   form.cover_url = value?.cover_url ?? ''
   form.status = value?.status ?? 'active'
   form.image_urls = [...(value?.image_urls || [])]
+  aiError.value = ''
 }
 
 watch(
@@ -90,6 +98,42 @@ function submitForm() {
     status: form.status,
     image_urls: form.image_urls
   })
+}
+
+function buildServiceAiContext() {
+  return {
+    title: form.title.trim(),
+    subtitle: form.subtitle.trim(),
+    pet_type: form.pet_type,
+    pet_type_label: getPetTypeLabel(form.pet_type),
+    price: Number(form.price),
+    member_price: Number(form.member_price),
+    original_price: Number(form.original_price),
+    duration_minutes: Number(form.duration_minutes),
+    badge: form.badge.trim(),
+    highlights: splitValues(form.highlights_text),
+    summary: splitValues(form.summary_text),
+    notice: splitValues(form.notice_text)
+  }
+}
+
+async function generateServiceIntro() {
+  aiGenerating.value = true
+  aiError.value = ''
+
+  try {
+    const data = await generateServiceAiDraft({
+      service: buildServiceAiContext()
+    })
+    const draft = data.draft || {}
+    form.highlights_text = Array.isArray(draft.highlights) ? listToText(draft.highlights) : ''
+    form.summary_text = Array.isArray(draft.summary) ? listToText(draft.summary) : ''
+    form.notice_text = Array.isArray(draft.notice) ? listToText(draft.notice) : ''
+  } catch (requestError) {
+    aiError.value = requestError instanceof Error ? requestError.message : 'AI 服务资料生成失败'
+  } finally {
+    aiGenerating.value = false
+  }
 }
 </script>
 
@@ -141,17 +185,32 @@ function submitForm() {
           <span>角标文案</span>
           <input v-model="form.badge" />
         </label>
+        <section class="service-ai dialog-card__full">
+          <div>
+            <strong>AI 服务资料生成</strong>
+            <p v-if="aiError">{{ aiError }}</p>
+          </div>
+          <button
+            type="button"
+            class="button-secondary"
+            :disabled="aiGenerating"
+            data-test="generate-service-ai"
+            @click="generateServiceIntro"
+          >
+            {{ aiGenerating ? '生成中...' : 'AI 生成服务资料' }}
+          </button>
+        </section>
         <label class="dialog-card__full">
           <span>亮点</span>
-          <textarea v-model="form.highlights_text" rows="3" placeholder="每行一条" />
+          <textarea v-model="form.highlights_text" rows="3" placeholder="每行一条" data-test="service-highlights" />
         </label>
         <label class="dialog-card__full">
           <span>摘要</span>
-          <textarea v-model="form.summary_text" rows="3" placeholder="每行一条" />
+          <textarea v-model="form.summary_text" rows="3" placeholder="每行一条" data-test="service-summary" />
         </label>
         <label class="dialog-card__full">
           <span>注意事项</span>
-          <textarea v-model="form.notice_text" rows="3" placeholder="每行一条" />
+          <textarea v-model="form.notice_text" rows="3" placeholder="每行一条" data-test="service-notice" />
         </label>
         <UploadImageField v-model="form.cover_url" label="服务封面" class="dialog-card__full" />
         <UploadImageField v-model="form.image_urls" label="服务图集" multiple class="dialog-card__full" />
@@ -223,6 +282,28 @@ function submitForm() {
 
 .dialog-card__full {
   grid-column: 1 / -1;
+}
+
+.service-ai {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid #ead8c8;
+  border-radius: 14px;
+  background: #fff7ef;
+}
+
+.service-ai strong {
+  color: #2f251d;
+  font-size: 14px;
+}
+
+.service-ai p {
+  margin-top: 4px;
+  color: #b4472f;
+  font-size: 12px;
 }
 
 .dialog-card__close,

@@ -285,6 +285,7 @@ describe('cart and order flow', () => {
           description: '满 199 减 35',
           discount_amount: 35,
           min_order_amount: 199,
+          target_type: 'product',
           status: 'available',
           available: true,
           unavailable_reason: ''
@@ -296,6 +297,7 @@ describe('cart and order flow', () => {
           description: '满 399 减 50',
           discount_amount: 50,
           min_order_amount: 399,
+          target_type: 'universal',
           status: 'available',
           available: false,
           unavailable_reason: 'coupon threshold is not met'
@@ -333,7 +335,7 @@ describe('cart and order flow', () => {
     await wrapper.find('.button-primary').trigger('click')
     await flushPromises()
 
-    expect(userApi.getCoupons).toHaveBeenCalledWith({ subtotal: 248 })
+    expect(userApi.getCoupons).toHaveBeenCalledWith({ subtotal: 248, target: 'product' })
     expect(userApi.createOrder).toHaveBeenCalledWith({
       address_id: 'addr_001',
       coupon_id: 'uc_demo_001',

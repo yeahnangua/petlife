@@ -10,6 +10,7 @@ const userApi = vi.hoisted(() => ({
   updatePet: vi.fn(),
   deletePet: vi.fn(),
   createBooking: vi.fn(),
+  getCoupons: vi.fn(),
   getBookings: vi.fn(),
   getBookingDetail: vi.fn(),
   cancelBooking: vi.fn(),
@@ -256,6 +257,7 @@ describe('profile and booking flow', () => {
     await store.fetchSlots()
     store.setPet('pet_001')
     store.setSlot('t-1')
+    store.selectedCouponId = 'uc_service_001'
     store.phone = '13527882788'
     store.note = '猫咪比较敏感'
 
@@ -268,6 +270,7 @@ describe('profile and booking flow', () => {
       time_slot_id: 't-1',
       booking_date: '2026-04-22',
       contact_phone: '13527882788',
+      coupon_id: 'uc_service_001',
       note: '猫咪比较敏感'
     })
     expect(createdBooking).toMatchObject({

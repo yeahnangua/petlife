@@ -59,7 +59,7 @@ async function loadPage() {
     const subtotal = getOrderPriceBreakdown(selectedItems.value).subtotal
     const [addressData] = await Promise.all([
       getAddresses(),
-      couponStore.fetchCoupons({ subtotal })
+      couponStore.fetchCoupons({ subtotal, target: 'product' })
     ])
 
     addresses.value = (addressData.list || []).map(adaptAddress)

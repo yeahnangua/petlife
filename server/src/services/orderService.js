@@ -168,7 +168,7 @@ export function createUserOrder(db, userId, payload) {
     const timestamp = now()
     const pendingOrderItems = buildOrderItems(db, selectedCartItems)
     const subtotalAmount = pendingOrderItems.reduce((sum, item) => sum + item.orderItem.line_total, 0)
-    const coupon = getRedeemableCoupon(db, userId, payload.coupon_id, subtotalAmount)
+    const coupon = getRedeemableCoupon(db, userId, payload.coupon_id, subtotalAmount, 'product')
     const discountAmount = coupon ? Math.min(coupon.discount_amount, subtotalAmount) : 0
     const productPayableAmount = Math.max(subtotalAmount - discountAmount, 0)
     const shippingFee = subtotalAmount > 0 ? PRODUCT_ORDER_SHIPPING_FEE : 0

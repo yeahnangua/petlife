@@ -47,6 +47,7 @@ const couponCampaigns = [
     description: '满 199 减 35',
     discount_amount: 35,
     min_order_amount: 199,
+    target_type: 'product',
     total_limit: 1000,
     issued_count: 1,
     status: 'active',
@@ -80,6 +81,7 @@ export function ensureDemoCoupons(db) {
         description,
         discount_amount,
         min_order_amount,
+        target_type,
         total_limit,
         issued_count,
         status,
@@ -94,6 +96,7 @@ export function ensureDemoCoupons(db) {
         @description,
         @discount_amount,
         @min_order_amount,
+        @target_type,
         @total_limit,
         @issued_count,
         @status,
@@ -574,7 +577,7 @@ export function seed(db) {
     `)
 
     insertRows(db, 'users', ['id', 'nickname', 'phone', 'avatar_url', 'member_level', 'points', 'created_at', 'updated_at'], users)
-    insertRows(db, 'coupon_campaigns', ['id', 'name', 'description', 'discount_amount', 'min_order_amount', 'total_limit', 'issued_count', 'status', 'valid_from', 'valid_to', 'created_at', 'updated_at'], couponCampaigns)
+    insertRows(db, 'coupon_campaigns', ['id', 'name', 'description', 'discount_amount', 'min_order_amount', 'target_type', 'total_limit', 'issued_count', 'status', 'valid_from', 'valid_to', 'created_at', 'updated_at'], couponCampaigns)
     insertRows(db, 'user_coupons', ['id', 'campaign_id', 'user_id', 'status', 'issued_at', 'used_at', 'used_order_id', 'created_at', 'updated_at'], userCoupons)
     insertRows(db, 'addresses', ['id', 'user_id', 'receiver_name', 'receiver_phone', 'region', 'detail_address', 'tag', 'is_default', 'created_at', 'updated_at'], addresses)
     insertRows(db, 'pets', ['id', 'user_id', 'name', 'type', 'breed', 'gender', 'birthday', 'weight', 'neutered', 'allergies_json', 'preferences_json', 'avatar_url', 'color', 'created_at', 'updated_at'], pets)

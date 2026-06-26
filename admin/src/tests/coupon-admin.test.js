@@ -23,6 +23,7 @@ function createCampaign(overrides = {}) {
     description: '满 199 减 35',
     discount_amount: 35,
     min_order_amount: 199,
+    target_type: 'product',
     total_limit: 1000,
     issued_count: 1,
     status: 'active',
@@ -40,6 +41,7 @@ function createUserCoupon(overrides = {}) {
     name: '购物车唤醒券',
     discount_amount: 35,
     min_order_amount: 199,
+    target_type: 'product',
     status: 'available',
     ...overrides
   }
@@ -130,6 +132,7 @@ describe('admin coupon management', () => {
       discount_amount: 35,
       min_order_amount: 199,
       total_limit: 1000,
+      target_type: 'product',
       status: 'active',
       valid_from: '2026-01-01 00:00:00',
       valid_to: '2099-12-31 23:59:59'
@@ -157,6 +160,7 @@ describe('admin coupon management', () => {
     await wrapper.get('[data-test="campaign-description"]').setValue('满 129 减 20')
     await wrapper.get('[data-test="campaign-discount"]').setValue('20')
     await wrapper.get('[data-test="campaign-threshold"]').setValue('129')
+    await wrapper.get('[data-test="campaign-target"]').setValue('service')
     await wrapper.get('[data-test="campaign-limit"]').setValue('100')
     await wrapper.get('[data-test="campaign-valid-from"]').setValue('2026-06-01 00:00:00')
     await wrapper.get('[data-test="campaign-valid-to"]').setValue('2026-08-31 23:59:59')
@@ -168,6 +172,7 @@ describe('admin coupon management', () => {
       description: '满 129 减 20',
       discount_amount: 20,
       min_order_amount: 129,
+      target_type: 'service',
       total_limit: 100,
       valid_from: '2026-06-01 00:00:00',
       valid_to: '2026-08-31 23:59:59'

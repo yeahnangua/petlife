@@ -6,11 +6,14 @@ import IconSvg from '@/components/IconSvg.vue'
 import PetCard from '@/components/PetCard.vue'
 import PriceText from '@/components/PriceText.vue'
 import StickyActionBar from '@/components/StickyActionBar.vue'
+import { formatCurrency } from '@/lib/pricing'
 import { useBookingStore } from '@/stores/booking'
+import { useCouponStore } from '@/stores/coupons'
 import { useProfileStore } from '@/stores/profile'
 
 const router = useRouter()
 const bookingStore = useBookingStore()
+const couponStore = useCouponStore()
 const profileStore = useProfileStore()
 
 onMounted(async () => {
@@ -18,6 +21,17 @@ onMounted(async () => {
 
   if (bookingStore.serviceId && !bookingStore.timeSlots.length) {
     await bookingStore.fetchSlots()
+  }
+
+  if (bookingStore.serviceId) {
+    try {
+      const coupons = await couponStore.fetchCoupons({ subtotal: serviceSubtotal.value, target: 'service' })
+      if (!bookingStore.selectedCouponId) {
+        bookingStore.selectedCouponId = coupons.find((coupon) => coupon.available)?.id ?? ''
+      }
+    } catch {
+      // 预约信息本身仍可提交，优惠券区域会显示 store 中的加载错误。
+    }
   }
 })
 
@@ -29,6 +43,12 @@ const selectedPet = computed(
 const selectedStore = computed(
   () => bookingStore.storeOptions.find((item) => item.id === bookingStore.storeId) ?? null
 )
+const serviceSubtotal = computed(() => currentService.value?.memberPrice ?? currentService.value?.price ?? 0)
+const selectedCoupon = computed(
+  () => couponStore.items.find((item) => item.id === bookingStore.selectedCouponId && item.available) ?? null
+)
+const discountAmount = computed(() => selectedCoupon.value?.amount ?? 0)
+const payableAmount = computed(() => Math.max(serviceSubtotal.value - discountAmount.value, 0))
 
 async function submitBooking() {
   const booking = await bookingStore.submitBooking()
@@ -147,10 +167,53 @@ async function submitBooking() {
           </div>
         </section>
 
-        <!-- 04 联系与备注 -->
+        <!-- 04 优惠券 -->
         <section class="booking__card surface-card">
           <header class="booking__card-head">
             <span class="booking__step font-display">04</span>
+            <h2 class="booking__card-title">优惠券</h2>
+            <span class="booking__coupon-count">{{ couponStore.availableCoupons.length }} 张可用</span>
+          </header>
+          <div v-if="couponStore.availableCoupons.length" class="booking__coupons">
+            <label
+              v-for="coupon in couponStore.availableCoupons"
+              :key="coupon.id"
+              class="booking__coupon"
+              :class="{ 'booking__coupon--active': bookingStore.selectedCouponId === coupon.id }"
+            >
+              <input v-model="bookingStore.selectedCouponId" type="radio" :value="coupon.id" class="sr-only" />
+              <span class="booking__coupon-main">
+                <strong>{{ coupon.name }}</strong>
+                <small>{{ coupon.description || `满 ${coupon.minOrderAmount} 减 ${coupon.amount}` }}</small>
+              </span>
+              <span class="booking__coupon-amount">-{{ formatCurrency(coupon.amount) }}</span>
+            </label>
+          </div>
+          <div v-if="couponStore.checkoutUnavailableCoupons.length" class="booking__coupons booking__coupons--muted">
+            <article
+              v-for="coupon in couponStore.checkoutUnavailableCoupons"
+              :key="coupon.id"
+              class="booking__coupon booking__coupon--disabled"
+            >
+              <span class="booking__coupon-main">
+                <strong>{{ coupon.name }}</strong>
+                <small>{{ coupon.unavailableReason || `满 ${coupon.minOrderAmount} 可用` }}</small>
+              </span>
+              <span class="booking__coupon-amount">-{{ formatCurrency(coupon.amount) }}</span>
+            </article>
+          </div>
+          <p
+            v-if="!couponStore.availableCoupons.length && !couponStore.checkoutUnavailableCoupons.length"
+            class="booking__coupon-empty"
+          >
+            暂无可用优惠券
+          </p>
+        </section>
+
+        <!-- 05 联系与备注 -->
+        <section class="booking__card surface-card">
+          <header class="booking__card-head">
+            <span class="booking__step font-display">05</span>
             <h2 class="booking__card-title">联系与备注</h2>
           </header>
           <p v-if="bookingStore.error" class="booking__error">{{ bookingStore.error }}</p>
@@ -174,7 +237,7 @@ async function submitBooking() {
           <span class="booking__bar-meta">
             {{ [selectedPet?.name, selectedStore?.name].filter(Boolean).join(' · ') || '请完成预约信息' }}
           </span>
-          <PriceText :value="currentService.memberPrice ?? currentService.price" size="lg" />
+          <PriceText :value="payableAmount" size="lg" />
         </div>
         <button
           type="button"
@@ -267,6 +330,16 @@ async function submitBooking() {
 .booking__card-title {
   font-size: var(--text-lg);
   font-weight: var(--weight-semibold);
+}
+
+.booking__coupon-count,
+.booking__coupon-empty {
+  color: var(--color-text-mute);
+  font-size: var(--text-xs);
+}
+
+.booking__coupon-count {
+  margin-left: auto;
 }
 
 .booking__pets {
@@ -412,6 +485,58 @@ async function submitBooking() {
   font-size: var(--text-sm);
   text-align: center;
   padding: var(--space-2) 0;
+}
+
+.booking__coupons {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.booking__coupons--muted {
+  margin-top: calc(var(--space-2) * -1);
+}
+
+.booking__coupon {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  border: 1.5px solid var(--color-border-soft);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+}
+
+.booking__coupon--active {
+  border-color: var(--color-primary-deep);
+  background: var(--color-primary-tint);
+}
+
+.booking__coupon--disabled {
+  opacity: 0.58;
+}
+
+.booking__coupon-main {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.booking__coupon-main strong {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+}
+
+.booking__coupon-main small {
+  color: var(--color-text-mute);
+  font-size: var(--text-xs);
+}
+
+.booking__coupon-amount {
+  flex-shrink: 0;
+  color: var(--color-coral);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-bold);
 }
 
 .booking__field {

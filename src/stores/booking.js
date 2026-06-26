@@ -57,6 +57,7 @@ export const useBookingStore = defineStore('booking', {
     storeId: null,
     note: '',
     phone: defaultPhone,
+    selectedCouponId: '',
     loading: false,
     submitting: false,
     error: '',
@@ -100,6 +101,7 @@ export const useBookingStore = defineStore('booking', {
       this.date = selection.date ?? dateOptions[0]?.date ?? null
       this.slotId = selection.slotId ?? service.timeSlots?.find((item) => item.available)?.id ?? null
       this.note = selection.note ?? ''
+      this.selectedCouponId = selection.selectedCouponId ?? ''
       this.error = ''
     },
     setPet(id) {
@@ -131,6 +133,7 @@ export const useBookingStore = defineStore('booking', {
       this.storeId = payload.storeId ?? this.storeId
       this.note = payload.note ?? this.note
       this.phone = payload.phone ?? this.phone
+      this.selectedCouponId = payload.selectedCouponId ?? this.selectedCouponId
     },
     async fetchSlots() {
       if (!this.serviceId || !this.storeId || !this.date) {
@@ -175,6 +178,7 @@ export const useBookingStore = defineStore('booking', {
           time_slot_id: this.slotId,
           booking_date: this.date,
           contact_phone: this.phone,
+          ...(this.selectedCouponId ? { coupon_id: this.selectedCouponId } : {}),
           note: this.note
         })
         this.currentBooking = adaptBooking(data.booking)

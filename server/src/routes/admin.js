@@ -33,6 +33,7 @@ import {
 } from '../controllers/adminProductController.js'
 import {
   createService,
+  createServiceAiDraft,
   deleteService,
   listAdminServices,
   updateService
@@ -71,6 +72,7 @@ export function createAdminRouter() {
   router.delete('/products/:id', deleteProduct)
 
   router.get('/services', listAdminServices)
+  router.post('/services/ai-draft', createServiceAiDraft)
   router.post('/services', createService)
   router.put('/services/:id', updateService)
   router.delete('/services/:id', deleteService)

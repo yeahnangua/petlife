@@ -48,6 +48,10 @@ export function adaptOrder(order = {}) {
 }
 
 export function adaptBooking(booking = {}) {
+  const subtotalAmount = booking.subtotal_amount ?? booking.service_price_snapshot ?? 0
+  const discountAmount = booking.discount_amount ?? 0
+  const payableAmount = booking.payable_amount ?? Math.max(subtotalAmount - discountAmount, 0)
+
   return {
     id: booking.id,
     kind: 'service',
@@ -55,7 +59,12 @@ export function adaptBooking(booking = {}) {
     status: booking.status,
     statusLabel: booking.status_label,
     createdAt: booking.created_at,
-    totalAmount: booking.service_price_snapshot,
+    totalAmount: payableAmount,
+    subtotalAmount,
+    discountAmount,
+    payableAmount,
+    couponId: booking.coupon_id || '',
+    couponName: booking.coupon_name_snapshot || '',
     service: {
       title: booking.service_title_snapshot,
       cover: booking.service_cover_snapshot

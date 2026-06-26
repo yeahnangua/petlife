@@ -609,6 +609,11 @@ describe('frontend api client', () => {
       statusLabel: '待服务',
       createdAt: '2026-04-19 17:12',
       totalAmount: 108,
+      subtotalAmount: 108,
+      discountAmount: 0,
+      payableAmount: 108,
+      couponId: '',
+      couponName: '',
       service: {
         title: '基础洗护 · 标准套餐',
         cover: 'https://example.com/service.jpg'

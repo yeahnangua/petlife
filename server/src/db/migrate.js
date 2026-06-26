@@ -15,6 +15,8 @@ function loadMigrationSql() {
 export function migrate(db) {
   db.exec(loadMigrationSql())
   ensureOrderPricingColumns(db)
+  ensureCouponCampaignTargetColumns(db)
+  ensureBookingPricingColumns(db)
 }
 
 function columnExists(db, tableName, columnName) {
@@ -36,6 +38,18 @@ function ensureOrderPricingColumns(db) {
   addColumnIfMissing(db, 'orders', 'payable_amount', 'INTEGER NOT NULL DEFAULT 0')
   addColumnIfMissing(db, 'orders', 'coupon_id', "TEXT NOT NULL DEFAULT ''")
   addColumnIfMissing(db, 'orders', 'coupon_name_snapshot', "TEXT NOT NULL DEFAULT ''")
+}
+
+function ensureCouponCampaignTargetColumns(db) {
+  addColumnIfMissing(db, 'coupon_campaigns', 'target_type', "TEXT NOT NULL DEFAULT 'product'")
+}
+
+function ensureBookingPricingColumns(db) {
+  addColumnIfMissing(db, 'bookings', 'subtotal_amount', 'INTEGER NOT NULL DEFAULT 0')
+  addColumnIfMissing(db, 'bookings', 'discount_amount', 'INTEGER NOT NULL DEFAULT 0')
+  addColumnIfMissing(db, 'bookings', 'payable_amount', 'INTEGER NOT NULL DEFAULT 0')
+  addColumnIfMissing(db, 'bookings', 'coupon_id', "TEXT NOT NULL DEFAULT ''")
+  addColumnIfMissing(db, 'bookings', 'coupon_name_snapshot', "TEXT NOT NULL DEFAULT ''")
 }
 
 function runCli() {

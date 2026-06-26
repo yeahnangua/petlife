@@ -34,6 +34,7 @@ describe('coupon list view', () => {
           description: '满 199 减 35',
           discount_amount: 35,
           min_order_amount: 199,
+          target_type: 'product',
           status: 'available',
           available: false,
           unavailable_reason: 'coupon threshold is not met',
@@ -46,6 +47,7 @@ describe('coupon list view', () => {
           description: '已使用',
           discount_amount: 10,
           min_order_amount: 99,
+          target_type: 'service',
           status: 'used',
           available: false,
           unavailable_reason: 'coupon is unavailable',
@@ -58,6 +60,7 @@ describe('coupon list view', () => {
           description: '不可用',
           discount_amount: 5,
           min_order_amount: 59,
+          target_type: 'universal',
           status: 'disabled',
           available: false,
           unavailable_reason: 'coupon is unavailable',
@@ -81,10 +84,12 @@ describe('coupon list view', () => {
     expect(userApi.getCoupons).toHaveBeenCalledWith({})
     expect(wrapper.text()).toContain('我的优惠券')
     expect(wrapper.text()).toContain('购物车唤醒券')
+    expect(wrapper.text()).toContain('商品券')
     expect(wrapper.text()).toContain('¥35')
     expect(wrapper.text()).toContain('满 199 可用')
     expect(wrapper.text()).toContain('已使用')
     expect(wrapper.text()).toContain('旧券')
+    expect(wrapper.text()).toContain('预约服务券')
     expect(wrapper.text()).not.toContain('不可用')
     expect(wrapper.text()).not.toContain('停用券')
     expect(wrapper.text()).not.toContain('coupon threshold is not met')

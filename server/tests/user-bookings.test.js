@@ -24,7 +24,11 @@ function createSeededApp(cleanups) {
     database: db
   })
 
-  return { app, db, authHeader: createDemoUserAuthHeader(db) }
+  return { app, db, ctx, authHeader: createDemoUserAuthHeader(db) }
+}
+
+function withAdminKey(ctx, builder) {
+  return builder.set('x-admin-key', ctx.adminKey)
 }
 
 describe('user booking apis', () => {
@@ -73,6 +77,80 @@ describe('user booking apis', () => {
       time_slot_label_snapshot: '10:00',
       status: 'pendingService'
     })
+  })
+
+  it('applies a valid service coupon when creating a booking and marks it used', async () => {
+    const { app, db, ctx, authHeader } = createSeededApp(cleanups)
+
+    const createCampaignResponse = await withAdminKey(
+      ctx,
+      request(app).post('/api/admin/coupon-campaigns').send({
+        name: '洗护服务券',
+        description: '预约服务满 99 减 20',
+        discount_amount: 20,
+        min_order_amount: 99,
+        total_limit: 100,
+        target_type: 'service',
+        valid_from: '2026-06-01 00:00:00',
+        valid_to: '2026-12-31 23:59:59'
+      })
+    )
+    const campaignId = createCampaignResponse.body.data.item.id
+    const issueResponse = await withAdminKey(
+      ctx,
+      request(app).post(`/api/admin/coupon-campaigns/${campaignId}/issue`).send({
+        user_id: 'u_demo_001'
+      })
+    )
+    const couponId = issueResponse.body.data.item.id
+
+    const createResponse = await request(app).post('/api/user/bookings').set(authHeader).send({
+      pet_id: 'pet_001',
+      service_id: 's-001',
+      store_id: 'store-1',
+      time_slot_id: 't-1',
+      booking_date: '2026-04-22',
+      contact_phone: '13527882788',
+      coupon_id: couponId,
+      note: '使用预约服务券'
+    })
+
+    expect(createResponse.status).toBe(201)
+    expect(createResponse.body.data.booking).toMatchObject({
+      service_price_snapshot: 108,
+      subtotal_amount: 108,
+      discount_amount: 20,
+      payable_amount: 88,
+      coupon_id: couponId,
+      coupon_name_snapshot: '洗护服务券'
+    })
+
+    const coupon = db
+      .prepare('SELECT status, used_order_id FROM user_coupons WHERE id = ?')
+      .get(couponId)
+
+    expect(coupon).toEqual({
+      status: 'used',
+      used_order_id: createResponse.body.data.booking.id
+    })
+  })
+
+  it('rejects a product-only coupon when creating a booking', async () => {
+    const { app, authHeader } = createSeededApp(cleanups)
+
+    const createResponse = await request(app).post('/api/user/bookings').set(authHeader).send({
+      pet_id: 'pet_001',
+      service_id: 's-001',
+      store_id: 'store-1',
+      time_slot_id: 't-1',
+      booking_date: '2026-04-22',
+      contact_phone: '13527882788',
+      coupon_id: 'uc_demo_001',
+      note: '错误券类型测试'
+    })
+
+    expect(createResponse.status).toBe(409)
+    expect(createResponse.body.message).toBe('coupon target is not supported')
   })
 
   it('returns 409 when the target slot is already full', async () => {

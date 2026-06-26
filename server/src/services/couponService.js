@@ -18,6 +18,7 @@ import {
 } from '../repositories/couponRepository.js'
 
 export const PRODUCT_ORDER_SHIPPING_FEE = 12
+const COUPON_TARGET_TYPES = ['product', 'service', 'universal']
 
 function now() {
   return new Date().toISOString().slice(0, 19).replace('T', ' ')
@@ -39,8 +40,20 @@ function normalizeDateTime(value, fieldName) {
   return text
 }
 
-function mapCoupon(row, subtotal = 0, timestamp = now()) {
-  const availableState = getAvailability(row, subtotal, timestamp)
+function normalizeCouponTarget(value = 'product') {
+  return requireEnum(value || 'product', COUPON_TARGET_TYPES, 'target_type')
+}
+
+function normalizeQueryTarget(value) {
+  if (!value) {
+    return ''
+  }
+
+  return requireEnum(value, ['product', 'service'], 'target')
+}
+
+function mapCoupon(row, subtotal = 0, timestamp = now(), targetType = '') {
+  const availableState = getAvailability(row, subtotal, timestamp, targetType)
 
   return {
     id: row.id,
@@ -50,6 +63,7 @@ function mapCoupon(row, subtotal = 0, timestamp = now()) {
     description: row.description,
     discount_amount: row.discount_amount,
     min_order_amount: row.min_order_amount,
+    target_type: row.target_type || 'product',
     status: row.status,
     campaign_status: row.campaign_status,
     valid_from: row.valid_from,
@@ -69,6 +83,7 @@ function mapCampaign(row) {
     description: row.description,
     discount_amount: row.discount_amount,
     min_order_amount: row.min_order_amount,
+    target_type: row.target_type || 'product',
     total_limit: row.total_limit,
     issued_count: row.issued_count,
     status: row.status,
@@ -88,6 +103,7 @@ function mapIssuedCoupon(row) {
     description: row.description,
     discount_amount: row.discount_amount,
     min_order_amount: row.min_order_amount,
+    target_type: row.target_type || 'product',
     status: row.status,
     campaign_status: row.campaign_status,
     valid_from: row.valid_from,
@@ -98,7 +114,7 @@ function mapIssuedCoupon(row) {
   }
 }
 
-function getAvailability(row, subtotal = 0, timestamp = now()) {
+function getAvailability(row, subtotal = 0, timestamp = now(), targetType = '') {
   if (row.status !== 'available') {
     return { available: false, reason: 'coupon is unavailable' }
   }
@@ -111,6 +127,10 @@ function getAvailability(row, subtotal = 0, timestamp = now()) {
     return { available: false, reason: 'coupon is expired' }
   }
 
+  if (targetType && !['universal', targetType].includes(row.target_type || 'product')) {
+    return { available: false, reason: 'coupon target is not supported' }
+  }
+
   if (Number(subtotal || 0) < row.min_order_amount) {
     return { available: false, reason: 'coupon threshold is not met' }
   }
@@ -120,25 +140,29 @@ function getAvailability(row, subtotal = 0, timestamp = now()) {
 
 export function getUserCoupons(db, userId, query = {}) {
   const subtotal = Number(query.subtotal || 0)
+  const targetType = normalizeQueryTarget(query.target || query.target_type || '')
   const timestamp = now()
-  return listUserCoupons(db, userId).map((row) => mapCoupon(row, subtotal, timestamp))
+  return listUserCoupons(db, userId)
+    .filter((row) => !targetType || ['universal', targetType].includes(row.target_type || 'product'))
+    .map((row) => mapCoupon(row, subtotal, timestamp, targetType))
 }
 
 export function getAvailableCouponCount(db, userId) {
   return countAvailableUserCoupons(db, userId, now())
 }
 
-export function getRedeemableCoupon(db, userId, couponId, subtotal) {
+export function getRedeemableCoupon(db, userId, couponId, subtotal, targetType = 'product') {
   if (!couponId) {
     return null
   }
+  const normalizedTargetType = normalizeQueryTarget(targetType)
 
   const coupon = findUserCouponById(db, userId, couponId)
   if (!coupon) {
     throw new AppError(409, 40910, 'coupon is unavailable')
   }
 
-  const availability = getAvailability(coupon, subtotal)
+  const availability = getAvailability(coupon, subtotal, now(), normalizedTargetType)
   if (!availability.available) {
     throw new AppError(
       409,
@@ -178,6 +202,7 @@ export function createAdminCouponCampaign(db, payload) {
     discount_amount: parseAmount(payload.discount_amount, 'discount_amount'),
     min_order_amount: parseAmount(payload.min_order_amount, 'min_order_amount'),
     total_limit: parseAmount(payload.total_limit ?? 0, 'total_limit'),
+    target_type: normalizeCouponTarget(payload.target_type),
     issued_count: 0,
     status: 'active',
     valid_from: normalizeDateTime(payload.valid_from, 'valid_from'),
@@ -203,6 +228,7 @@ export function updateAdminCouponCampaign(db, campaignId, payload) {
     discount_amount: parseAmount(payload.discount_amount, 'discount_amount'),
     min_order_amount: parseAmount(payload.min_order_amount, 'min_order_amount'),
     total_limit: parseAmount(payload.total_limit ?? 0, 'total_limit'),
+    target_type: normalizeCouponTarget(payload.target_type ?? current.target_type ?? 'product'),
     status: requireEnum(payload.status, ['active', 'disabled'], 'status'),
     valid_from: normalizeDateTime(payload.valid_from, 'valid_from'),
     valid_to: normalizeDateTime(payload.valid_to, 'valid_to'),
