@@ -15,6 +15,7 @@ onMounted(async () => {
 
 const profile = computed(() => profileStore.profile)
 const selectedPet = computed(() => profileStore.selectedPet)
+const profileLevel = computed(() => profile.value?.level?.replace(/^PetLife\s*[· ]\s*/, '') || '')
 
 const shortcuts = [
   { label: '我的订单', icon: 'order', to: '/orders', tone: 'sage' },
@@ -47,7 +48,7 @@ const functions = [
               <p class="me__meta">{{ profile.phone }}</p>
               <span class="me__level">
                 <IconSvg name="star" :size="11" :stroke="2.2" />
-                {{ profile.level }} · 入会于 {{ profile.joinDate }}
+                {{ profileLevel }} · 入会于 {{ profile.joinDate }}
               </span>
             </div>
             <button
