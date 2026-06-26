@@ -4,6 +4,7 @@ import { createApp } from '../src/app.js'
 import { createDatabase } from '../src/db/index.js'
 import { migrate } from '../src/db/migrate.js'
 import { seed } from '../src/db/seed.js'
+import { createDemoUserAuthHeader } from './helpers/auth.js'
 import { createTestContext } from './helpers/createTestContext.js'
 
 function createSeededApp(cleanups) {
@@ -23,7 +24,7 @@ function createSeededApp(cleanups) {
     database: db
   })
 
-  return { app, db }
+  return { app, db, authHeader: createDemoUserAuthHeader(db) }
 }
 
 describe('user profile, address, and pet apis', () => {
@@ -36,9 +37,9 @@ describe('user profile, address, and pet apis', () => {
   })
 
   it('returns the fixed demo user profile', async () => {
-    const { app } = createSeededApp(cleanups)
+    const { app, authHeader } = createSeededApp(cleanups)
 
-    const response = await request(app).get('/api/user/profile')
+    const response = await request(app).get('/api/user/profile').set(authHeader)
 
     expect(response.status).toBe(200)
     expect(response.body.data.profile.id).toBe('u_demo_001')
@@ -46,9 +47,9 @@ describe('user profile, address, and pet apis', () => {
   })
 
   it('clears the previous default address when creating a new default one', async () => {
-    const { app } = createSeededApp(cleanups)
+    const { app, authHeader } = createSeededApp(cleanups)
 
-    const createResponse = await request(app).post('/api/user/addresses').send({
+    const createResponse = await request(app).post('/api/user/addresses').set(authHeader).send({
       receiver_name: '拾柒',
       receiver_phone: '13527882788',
       region: '上海市 徐汇区 龙华街道',
@@ -59,7 +60,7 @@ describe('user profile, address, and pet apis', () => {
 
     expect(createResponse.status).toBe(201)
 
-    const listResponse = await request(app).get('/api/user/addresses')
+    const listResponse = await request(app).get('/api/user/addresses').set(authHeader)
     const defaultAddresses = listResponse.body.data.list.filter((item) => item.is_default)
 
     expect(defaultAddresses).toHaveLength(1)
@@ -67,9 +68,9 @@ describe('user profile, address, and pet apis', () => {
   })
 
   it('switches the default address when updating an existing record', async () => {
-    const { app } = createSeededApp(cleanups)
+    const { app, authHeader } = createSeededApp(cleanups)
 
-    const createResponse = await request(app).post('/api/user/addresses').send({
+    const createResponse = await request(app).post('/api/user/addresses').set(authHeader).send({
       receiver_name: '拾柒',
       receiver_phone: '13527882788',
       region: '上海市 徐汇区 龙华街道',
@@ -80,7 +81,7 @@ describe('user profile, address, and pet apis', () => {
 
     const addressId = createResponse.body.data.item.id
 
-    const updateResponse = await request(app).put(`/api/user/addresses/${addressId}`).send({
+    const updateResponse = await request(app).put(`/api/user/addresses/${addressId}`).set(authHeader).send({
       receiver_name: '拾柒',
       receiver_phone: '13527882788',
       region: '上海市 徐汇区 龙华街道',
@@ -91,7 +92,7 @@ describe('user profile, address, and pet apis', () => {
 
     expect(updateResponse.status).toBe(200)
 
-    const listResponse = await request(app).get('/api/user/addresses')
+    const listResponse = await request(app).get('/api/user/addresses').set(authHeader)
     const defaultAddresses = listResponse.body.data.list.filter((item) => item.is_default)
 
     expect(defaultAddresses).toHaveLength(1)
@@ -99,9 +100,9 @@ describe('user profile, address, and pet apis', () => {
   })
 
   it('creates, updates, and deletes pets with array fields preserved', async () => {
-    const { app } = createSeededApp(cleanups)
+    const { app, authHeader } = createSeededApp(cleanups)
 
-    const createResponse = await request(app).post('/api/user/pets').send({
+    const createResponse = await request(app).post('/api/user/pets').set(authHeader).send({
       name: 'Mocha',
       type: 'dog',
       breed: '比熊犬',
@@ -120,7 +121,7 @@ describe('user profile, address, and pet apis', () => {
 
     const petId = createResponse.body.data.item.id
 
-    const updateResponse = await request(app).put(`/api/user/pets/${petId}`).send({
+    const updateResponse = await request(app).put(`/api/user/pets/${petId}`).set(authHeader).send({
       name: 'Mocha',
       type: 'dog',
       breed: '比熊犬',
@@ -138,10 +139,10 @@ describe('user profile, address, and pet apis', () => {
     expect(updateResponse.body.data.item.neutered).toBe(true)
     expect(updateResponse.body.data.item.preferences).toEqual(['短期寄养'])
 
-    const deleteResponse = await request(app).delete(`/api/user/pets/${petId}`)
+    const deleteResponse = await request(app).delete(`/api/user/pets/${petId}`).set(authHeader)
     expect(deleteResponse.status).toBe(200)
 
-    const listResponse = await request(app).get('/api/user/pets')
+    const listResponse = await request(app).get('/api/user/pets').set(authHeader)
     expect(listResponse.body.data.list.map((item) => item.id)).not.toContain(petId)
   })
 })

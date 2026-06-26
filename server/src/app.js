@@ -6,6 +6,7 @@ import { migrate } from './db/migrate.js'
 import { seed } from './db/seed.js'
 import { errorHandler } from './middleware/errorHandler.js'
 import { notFound } from './middleware/notFound.js'
+import { createAuthRouter } from './routes/auth.js'
 import { createAdminRouter } from './routes/admin.js'
 import { createPublicRouter } from './routes/public.js'
 import { createUserRouter } from './routes/user.js'
@@ -41,6 +42,7 @@ export function createApp(overrides = {}) {
   app.use(express.json())
   app.use('/uploads', express.static(config.uploadDir))
   app.use('/api/public', createPublicRouter())
+  app.use('/api/auth', createAuthRouter())
   app.use('/api/user', createUserRouter())
   app.use('/api/admin', createAdminRouter())
   app.use(notFound)

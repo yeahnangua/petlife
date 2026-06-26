@@ -1,5 +1,5 @@
 import { Router } from 'express'
-import { attachDemoUser } from '../middleware/attachDemoUser.js'
+import { requireUserAuth } from '../middleware/requireUserAuth.js'
 import { uploadImage } from '../middleware/uploadImage.js'
 import { createAddress, deleteAddress, listUserAddresses, updateAddress } from '../controllers/userAddressController.js'
 import {
@@ -28,7 +28,7 @@ import { uploadUserImageFile } from '../controllers/userUploadController.js'
 export function createUserRouter() {
   const router = Router()
 
-  router.use(attachDemoUser)
+  router.use(requireUserAuth)
   router.post('/uploads/images', uploadImage, uploadUserImageFile)
   router.get('/profile', getUserProfile)
   router.put('/profile', updateUserProfile)

@@ -4,6 +4,7 @@ import { createApp } from '../src/app.js'
 import { createDatabase } from '../src/db/index.js'
 import { migrate } from '../src/db/migrate.js'
 import { seed } from '../src/db/seed.js'
+import { createDemoUserAuthHeader } from './helpers/auth.js'
 import { createTestContext } from './helpers/createTestContext.js'
 
 function createSeededApp(cleanups) {
@@ -23,11 +24,11 @@ function createSeededApp(cleanups) {
     database: db
   })
 
-  return { app, db }
+  return { app, db, authHeader: createDemoUserAuthHeader(db) }
 }
 
-async function addProductToCart(app, payload) {
-  const response = await request(app).post('/api/user/cart/items').send(payload)
+async function addProductToCart(app, authHeader, payload) {
+  const response = await request(app).post('/api/user/cart/items').set(authHeader).send(payload)
   expect(response.status).toBe(200)
   return response.body.data.item
 }
@@ -42,16 +43,16 @@ describe('user order apis', () => {
   })
 
   it('creates an order from selected valid cart items and persists order snapshots', async () => {
-    const { app, db } = createSeededApp(cleanups)
+    const { app, db, authHeader } = createSeededApp(cleanups)
 
-    await addProductToCart(app, {
+    await addProductToCart(app, authHeader, {
       product_id: 'p-002',
       spec_key: '120g',
       spec_label: '120g',
       quantity: 2
     })
 
-    const createResponse = await request(app).post('/api/user/orders').send({
+    const createResponse = await request(app).post('/api/user/orders').set(authHeader).send({
       address_id: 'addr_001',
       remark: '工作日请放前台'
     })
@@ -124,9 +125,9 @@ describe('user order apis', () => {
   })
 
   it('lists orders and returns order detail with item snapshots', async () => {
-    const { app } = createSeededApp(cleanups)
+    const { app, authHeader } = createSeededApp(cleanups)
 
-    const listResponse = await request(app).get('/api/user/orders')
+    const listResponse = await request(app).get('/api/user/orders').set(authHeader)
 
     expect(listResponse.status).toBe(200)
     expect(listResponse.body.data.list).toHaveLength(1)
@@ -140,7 +141,7 @@ describe('user order apis', () => {
     })
     expect(listResponse.body.data.list[0].items).toHaveLength(1)
 
-    const detailResponse = await request(app).get('/api/user/orders/order_001')
+    const detailResponse = await request(app).get('/api/user/orders/order_001').set(authHeader)
 
     expect(detailResponse.status).toBe(200)
     expect(detailResponse.body.data.order).toMatchObject({
@@ -164,16 +165,16 @@ describe('user order apis', () => {
   })
 
   it('returns 409 and leaves data unchanged when selected cart quantity exceeds stock', async () => {
-    const { app, db } = createSeededApp(cleanups)
+    const { app, db, authHeader } = createSeededApp(cleanups)
 
-    const updateResponse = await request(app).put('/api/user/cart/items/ci_001').send({
+    const updateResponse = await request(app).put('/api/user/cart/items/ci_001').set(authHeader).send({
       quantity: 49,
       selected: true
     })
 
     expect(updateResponse.status).toBe(200)
 
-    const createResponse = await request(app).post('/api/user/orders').send({
+    const createResponse = await request(app).post('/api/user/orders').set(authHeader).send({
       address_id: 'addr_001',
       remark: '库存不足测试'
     })
@@ -186,23 +187,23 @@ describe('user order apis', () => {
   })
 
   it('returns 409 when combined selected specs of the same product exceed stock', async () => {
-    const { app, db } = createSeededApp(cleanups)
+    const { app, db, authHeader } = createSeededApp(cleanups)
 
-    const updateResponse = await request(app).put('/api/user/cart/items/ci_001').send({
+    const updateResponse = await request(app).put('/api/user/cart/items/ci_001').set(authHeader).send({
       quantity: 30,
       selected: true
     })
 
     expect(updateResponse.status).toBe(200)
 
-    await addProductToCart(app, {
+    await addProductToCart(app, authHeader, {
       product_id: 'p-001',
       spec_key: '6kg|牛肉',
       spec_label: '6kg · 牛肉',
       quantity: 19
     })
 
-    const createResponse = await request(app).post('/api/user/orders').send({
+    const createResponse = await request(app).post('/api/user/orders').set(authHeader).send({
       address_id: 'addr_001',
       remark: '组合规格库存测试'
     })
@@ -214,27 +215,27 @@ describe('user order apis', () => {
   })
 
   it('cancels a pending shipment order and restores product stock', async () => {
-    const { app, db } = createSeededApp(cleanups)
+    const { app, db, authHeader } = createSeededApp(cleanups)
 
-    const createResponse = await request(app).post('/api/user/orders').send({
+    const createResponse = await request(app).post('/api/user/orders').set(authHeader).send({
       address_id: 'addr_001',
       remark: '请在周末配送'
     })
 
     expect(createResponse.status).toBe(201)
 
-    const cancelResponse = await request(app).post(
-      `/api/user/orders/${createResponse.body.data.order.id}/cancel`
-    )
+    const cancelResponse = await request(app)
+      .post(`/api/user/orders/${createResponse.body.data.order.id}/cancel`)
+      .set(authHeader)
 
     expect(cancelResponse.status).toBe(200)
     expect(cancelResponse.body.data.order.status).toBe('cancelled')
     expect(cancelResponse.body.data.order.status_label).toBe('已取消')
     expect(db.prepare('SELECT stock FROM products WHERE id = ?').get('p-001').stock).toBe(48)
 
-    const detailResponse = await request(app).get(
-      `/api/user/orders/${createResponse.body.data.order.id}`
-    )
+    const detailResponse = await request(app)
+      .get(`/api/user/orders/${createResponse.body.data.order.id}`)
+      .set(authHeader)
 
     expect(detailResponse.status).toBe(200)
     expect(detailResponse.body.data.order.status).toBe('cancelled')

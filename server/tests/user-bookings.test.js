@@ -4,6 +4,7 @@ import { createApp } from '../src/app.js'
 import { createDatabase } from '../src/db/index.js'
 import { migrate } from '../src/db/migrate.js'
 import { seed } from '../src/db/seed.js'
+import { createDemoUserAuthHeader } from './helpers/auth.js'
 import { createTestContext } from './helpers/createTestContext.js'
 
 function createSeededApp(cleanups) {
@@ -23,7 +24,7 @@ function createSeededApp(cleanups) {
     database: db
   })
 
-  return { app, db }
+  return { app, db, authHeader: createDemoUserAuthHeader(db) }
 }
 
 describe('user booking apis', () => {
@@ -36,9 +37,9 @@ describe('user booking apis', () => {
   })
 
   it('creates a booking for a valid pet, service, store, slot, and date', async () => {
-    const { app, db } = createSeededApp(cleanups)
+    const { app, db, authHeader } = createSeededApp(cleanups)
 
-    const createResponse = await request(app).post('/api/user/bookings').send({
+    const createResponse = await request(app).post('/api/user/bookings').set(authHeader).send({
       pet_id: 'pet_001',
       service_id: 's-001',
       store_id: 'store-1',
@@ -75,9 +76,9 @@ describe('user booking apis', () => {
   })
 
   it('returns 409 when the target slot is already full', async () => {
-    const { app, db } = createSeededApp(cleanups)
+    const { app, db, authHeader } = createSeededApp(cleanups)
 
-    const createResponse = await request(app).post('/api/user/bookings').send({
+    const createResponse = await request(app).post('/api/user/bookings').set(authHeader).send({
       pet_id: 'pet_002',
       service_id: 's-001',
       store_id: 'store-1',
@@ -93,9 +94,9 @@ describe('user booking apis', () => {
   })
 
   it('lists bookings and returns booking detail snapshots', async () => {
-    const { app } = createSeededApp(cleanups)
+    const { app, authHeader } = createSeededApp(cleanups)
 
-    const listResponse = await request(app).get('/api/user/bookings')
+    const listResponse = await request(app).get('/api/user/bookings').set(authHeader)
 
     expect(listResponse.status).toBe(200)
     expect(listResponse.body.data.list).toHaveLength(1)
@@ -111,7 +112,7 @@ describe('user booking apis', () => {
       status_label: '已完成'
     })
 
-    const detailResponse = await request(app).get('/api/user/bookings/booking_001')
+    const detailResponse = await request(app).get('/api/user/bookings/booking_001').set(authHeader)
 
     expect(detailResponse.status).toBe(200)
     expect(detailResponse.body.data.booking).toMatchObject({
@@ -126,9 +127,9 @@ describe('user booking apis', () => {
   })
 
   it('cancels a pending booking and marks it as cancelled', async () => {
-    const { app } = createSeededApp(cleanups)
+    const { app, authHeader } = createSeededApp(cleanups)
 
-    const createResponse = await request(app).post('/api/user/bookings').send({
+    const createResponse = await request(app).post('/api/user/bookings').set(authHeader).send({
       pet_id: 'pet_001',
       service_id: 's-001',
       store_id: 'store-2',
@@ -140,17 +141,17 @@ describe('user booking apis', () => {
 
     expect(createResponse.status).toBe(201)
 
-    const cancelResponse = await request(app).post(
-      `/api/user/bookings/${createResponse.body.data.booking.id}/cancel`
-    )
+    const cancelResponse = await request(app)
+      .post(`/api/user/bookings/${createResponse.body.data.booking.id}/cancel`)
+      .set(authHeader)
 
     expect(cancelResponse.status).toBe(200)
     expect(cancelResponse.body.data.booking.status).toBe('cancelled')
     expect(cancelResponse.body.data.booking.status_label).toBe('已取消')
 
-    const detailResponse = await request(app).get(
-      `/api/user/bookings/${createResponse.body.data.booking.id}`
-    )
+    const detailResponse = await request(app)
+      .get(`/api/user/bookings/${createResponse.body.data.booking.id}`)
+      .set(authHeader)
 
     expect(detailResponse.status).toBe(200)
     expect(detailResponse.body.data.booking.status).toBe('cancelled')

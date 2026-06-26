@@ -4,6 +4,7 @@ import { createApp } from '../src/app.js'
 import { createDatabase } from '../src/db/index.js'
 import { migrate } from '../src/db/migrate.js'
 import { seed } from '../src/db/seed.js'
+import { createDemoUserAuthHeader } from './helpers/auth.js'
 import { createTestContext } from './helpers/createTestContext.js'
 
 function createSeededApp(cleanups) {
@@ -23,7 +24,7 @@ function createSeededApp(cleanups) {
     database: db
   })
 
-  return { app, db, ctx }
+  return { app, db, ctx, authHeader: createDemoUserAuthHeader(db) }
 }
 
 function withAdminKey(ctx, builder) {
@@ -102,9 +103,9 @@ describe('admin order and booking operations apis', () => {
   })
 
   it('updates order status to completed or cancelled and restores stock on cancellation', async () => {
-    const { app, db, ctx } = createSeededApp(cleanups)
+    const { app, db, ctx, authHeader } = createSeededApp(cleanups)
 
-    const pendingOrderResponse = await request(app).post('/api/user/orders').send({
+    const pendingOrderResponse = await request(app).post('/api/user/orders').set(authHeader).send({
       address_id: 'addr_001',
       remark: '管理员改状态测试'
     })
@@ -124,7 +125,10 @@ describe('admin order and booking operations apis', () => {
     expect(completeResponse.body.data.order.status_label).toBe('已完成')
 
     const reseededOrderContext = createSeededApp(cleanups)
-    const cancelCreateResponse = await request(reseededOrderContext.app).post('/api/user/orders').send({
+    const cancelCreateResponse = await request(reseededOrderContext.app)
+      .post('/api/user/orders')
+      .set(reseededOrderContext.authHeader)
+      .send({
       address_id: 'addr_001',
       remark: '管理员取消订单测试'
     })
@@ -145,9 +149,9 @@ describe('admin order and booking operations apis', () => {
   })
 
   it('updates booking status to completed or cancelled', async () => {
-    const { app, ctx } = createSeededApp(cleanups)
+    const { app, ctx, authHeader } = createSeededApp(cleanups)
 
-    const createResponse = await request(app).post('/api/user/bookings').send({
+    const createResponse = await request(app).post('/api/user/bookings').set(authHeader).send({
       pet_id: 'pet_001',
       service_id: 's-001',
       store_id: 'store-1',
@@ -170,7 +174,7 @@ describe('admin order and booking operations apis', () => {
     expect(completeResponse.body.data.booking.status).toBe('completed')
     expect(completeResponse.body.data.booking.status_label).toBe('已完成')
 
-    const secondCreateResponse = await request(app).post('/api/user/bookings').send({
+    const secondCreateResponse = await request(app).post('/api/user/bookings').set(authHeader).send({
       pet_id: 'pet_001',
       service_id: 's-001',
       store_id: 'store-2',
