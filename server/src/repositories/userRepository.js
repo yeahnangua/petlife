@@ -11,6 +11,35 @@ export function findUserById(db, userId) {
     .get(userId)
 }
 
+export function createUser(db, user) {
+  return db
+    .prepare(
+      `
+        INSERT INTO users (
+          id,
+          nickname,
+          phone,
+          avatar_url,
+          member_level,
+          points,
+          created_at,
+          updated_at
+        )
+        VALUES (
+          @id,
+          @nickname,
+          @phone,
+          @avatar_url,
+          @member_level,
+          @points,
+          @created_at,
+          @updated_at
+        )
+      `
+    )
+    .run(user)
+}
+
 export function updateUser(db, user) {
   return db
     .prepare(

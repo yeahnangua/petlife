@@ -1,7 +1,8 @@
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import IconSvg from '@/components/IconSvg.vue'
+import { getWechatOAuthStartUrl } from '@/api/auth'
 import { useAuthStore } from '@/stores/auth'
 
 const route = useRoute()
@@ -11,11 +12,16 @@ const error = ref('')
 
 const redirectPath = computed(() => {
   const redirect = route.query.redirect
-  return typeof redirect === 'string' && redirect.startsWith('/') ? redirect : '/'
+  return typeof redirect === 'string' && redirect.startsWith('/') && !redirect.startsWith('//') ? redirect : '/'
 })
 
 async function submitWechatLogin() {
   error.value = ''
+
+  if (import.meta.env.VITE_WECHAT_OAUTH_ENABLED === 'true') {
+    window.location.href = getWechatOAuthStartUrl(redirectPath.value)
+    return
+  }
 
   try {
     await authStore.loginWithWechat()
@@ -24,6 +30,23 @@ async function submitWechatLogin() {
     error.value = loginError instanceof Error ? loginError.message : '登录失败，请稍后重试'
   }
 }
+
+onMounted(async () => {
+  const token = route.query.wechat_token
+
+  if (typeof token !== 'string' || !token) {
+    return
+  }
+
+  error.value = ''
+
+  try {
+    await authStore.consumeWechatOAuthToken(token)
+    router.replace(redirectPath.value)
+  } catch (loginError) {
+    error.value = loginError instanceof Error ? loginError.message : '微信登录失败，请稍后重试'
+  }
+})
 </script>
 
 <template>

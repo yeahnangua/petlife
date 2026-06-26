@@ -15,6 +15,22 @@ export function loadEnv(overrides = {}) {
     adminKey: overrides.adminKey ?? process.env.ADMIN_KEY ?? 'petlife-admin-demo',
     uploadDir: resolve(serverRoot, overrides.uploadDir ?? process.env.UPLOAD_DIR ?? './uploads'),
     baseUrl: overrides.baseUrl ?? process.env.BASE_URL ?? `http://127.0.0.1:${Number(process.env.PORT ?? 8787)}`,
+    mobileAppUrl: overrides.mobileAppUrl ?? process.env.MOBILE_APP_URL ?? 'http://127.0.0.1:5173/',
+    wechatOfficialAccountAppId:
+      overrides.wechatOfficialAccountAppId ??
+      process.env.WECHAT_OFFICIAL_ACCOUNT_APP_ID ??
+      process.env.WECHAT_OA_APP_ID ??
+      '',
+    wechatOfficialAccountAppSecret:
+      overrides.wechatOfficialAccountAppSecret ??
+      process.env.WECHAT_OFFICIAL_ACCOUNT_APP_SECRET ??
+      process.env.WECHAT_OA_APP_SECRET ??
+      '',
+    wechatOfficialAccountScope:
+      overrides.wechatOfficialAccountScope ??
+      process.env.WECHAT_OFFICIAL_ACCOUNT_SCOPE ??
+      process.env.WECHAT_OA_SCOPE ??
+      'snsapi_userinfo',
     aiApiKey:
       overrides.aiApiKey ??
       process.env.DEEPSEEK_API_KEY ??

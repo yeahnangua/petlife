@@ -22,8 +22,10 @@ const expectedTables = [
   'stores',
   'time_slots',
   'user_coupons',
+  'user_identities',
   'user_sessions',
-  'users'
+  'users',
+  'wechat_oauth_states'
 ]
 
 function getTableNames(db) {

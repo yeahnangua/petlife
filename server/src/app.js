@@ -11,6 +11,7 @@ import { createAdminRouter } from './routes/admin.js'
 import { createPublicRouter } from './routes/public.js'
 import { createUserRouter } from './routes/user.js'
 import { createSiliconFlowChatClient } from './services/aiConsultService.js'
+import { createWechatOfficialAccountClient } from './services/wechatOfficialAccountClient.js'
 
 function initializeDatabase(config, existingDatabase) {
   if (existingDatabase) {
@@ -39,6 +40,8 @@ export function createApp(overrides = {}) {
   app.locals.config = config
   app.locals.db = db
   app.locals.aiChatClient = overrides.aiChatClient ?? createSiliconFlowChatClient(config)
+  app.locals.wechatOfficialAccountClient =
+    overrides.wechatOfficialAccountClient ?? createWechatOfficialAccountClient(config)
 
   app.use(express.json())
   app.use('/uploads', express.static(config.uploadDir))

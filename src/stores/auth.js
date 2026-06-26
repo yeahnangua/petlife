@@ -81,6 +81,27 @@ export const useAuthStore = defineStore('mobile-auth', {
         this.loading = false
       }
     },
+    async consumeWechatOAuthToken(token) {
+      this.loading = true
+      this.error = ''
+      this.token = token || ''
+      setMobileToken(this.token)
+
+      try {
+        const data = await getSession()
+        this.setSession({
+          token: this.token,
+          user: data.user
+        })
+        return data
+      } catch (error) {
+        this.clearSession()
+        this.error = error instanceof Error ? error.message : '登录失败'
+        throw error
+      } finally {
+        this.loading = false
+      }
+    },
     async logout() {
       try {
         if (this.token) {

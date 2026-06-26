@@ -6,6 +6,16 @@ export function loginWithWechat() {
   })
 }
 
+export function getWechatOAuthStartUrl(redirect = '/') {
+  const params = new URLSearchParams()
+
+  if (redirect) {
+    params.set('redirect', redirect)
+  }
+
+  return `/api/auth/wechat-oauth/start?${params.toString()}`
+}
+
 export function getSession() {
   return request('/api/auth/session')
 }
