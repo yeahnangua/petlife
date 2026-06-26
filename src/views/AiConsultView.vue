@@ -1,13 +1,19 @@
 <script setup>
 import { computed, nextTick, ref, watch } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { sendAiConsultMessage } from '@/api/public'
 import IconSvg from '@/components/IconSvg.vue'
 import PriceText from '@/components/PriceText.vue'
 import SkeletonBlock from '@/components/SkeletonBlock.vue'
+import {
+  clearAiConsultHistory,
+  loadAiConsultHistory,
+  saveAiConsultHistory
+} from '@/lib/aiConsultHistory'
 import { useCatalogStore } from '@/stores/catalog'
 
 const route = useRoute()
+const router = useRouter()
 const catalogStore = useCatalogStore()
 
 const inputText = ref('')
@@ -34,10 +40,39 @@ function scrollMessages() {
   })
 }
 
+function restoreMessages(id = productId.value) {
+  messages.value = loadAiConsultHistory(id).messages
+}
+
+function persistMessages() {
+  saveAiConsultHistory({
+    productId: productId.value,
+    messages: messages.value
+  })
+}
+
+function resetChat() {
+  clearAiConsultHistory(productId.value)
+  messages.value = []
+  scrollMessages()
+}
+
+function openRecommendation(product) {
+  if (!product?.id) return
+  router.push({ name: 'product-detail', params: { id: product.id } })
+}
+
+function messageHistoryPayload() {
+  return messages.value.map((message) => ({
+    role: message.role,
+    content: message.content
+  }))
+}
+
 watch(
   productId,
   (id) => {
-    messages.value = []
+    restoreMessages(id)
 
     if (id) {
       catalogStore.fetchProductDetail(id)
@@ -51,32 +86,34 @@ async function sendMessage(text = inputText.value) {
 
   if (!content || sending.value) return
 
-  messages.value.push({ id: `user-${Date.now()}-${messages.value.length}`, role: 'user', content })
+  messages.value.push({ id: `user-${Date.now()}-${messages.value.length}`, role: 'user', content, recommendations: [] })
   inputText.value = ''
   sending.value = true
+  persistMessages()
   scrollMessages()
 
   try {
     const response = await sendAiConsultMessage({
       message: content,
-      messages: messages.value.map((message) => ({
-        role: message.role,
-        content: message.content
-      })),
+      messages: messageHistoryPayload(),
       productId: productId.value || undefined
     })
 
     messages.value.push({
       id: `ai-${Date.now()}-${messages.value.length}`,
       role: 'assistant',
-      content: response.reply
+      content: response.reply,
+      recommendations: response.recommendations || []
     })
+    persistMessages()
   } catch {
     messages.value.push({
       id: `ai-${Date.now()}-${messages.value.length}`,
       role: 'assistant',
-      content: 'AI 服务暂时不可用，请稍后再试。你也可以先补充宠物年龄、体重、预算和过敏情况。'
+      content: 'AI 服务暂时不可用，请稍后再试。你也可以先补充宠物年龄、体重、预算和过敏情况。',
+      recommendations: []
     })
+    persistMessages()
   } finally {
     sending.value = false
     scrollMessages()
@@ -115,7 +152,18 @@ async function sendMessage(text = inputText.value) {
       </section>
 
       <section class="consult__quick">
-        <p class="consult__section-label">快捷问题</p>
+        <div class="consult__quick-head">
+          <p class="consult__section-label">快捷问题</p>
+          <button
+            v-if="messages.length"
+            type="button"
+            class="consult__reset"
+            data-test="consult-reset"
+            @click="resetChat"
+          >
+            重置聊天
+          </button>
+        </div>
         <div class="consult__chips">
           <button
             v-for="(question, index) in quickQuestions"
@@ -154,7 +202,31 @@ async function sendMessage(text = inputText.value) {
           <span v-if="message.role === 'assistant'" class="consult__message-avatar">
             <IconSvg name="service" :size="16" :stroke="1.9" />
           </span>
-          <p>{{ message.content }}</p>
+          <div class="consult__message-content">
+            <p>{{ message.content }}</p>
+            <div
+              v-if="message.role === 'assistant' && message.recommendations?.length"
+              class="consult__recommendations"
+            >
+              <button
+                v-for="item in message.recommendations"
+                :key="item.id"
+                type="button"
+                class="consult__recommendation-card"
+                data-test="consult-recommendation-card"
+                @click="openRecommendation(item)"
+              >
+                <img :src="item.cover" :alt="item.title" />
+                <span class="consult__recommendation-body">
+                  <strong>{{ item.title }}</strong>
+                  <span class="consult__recommendation-meta">
+                    <PriceText :value="item.memberPrice ?? item.price" size="sm" />
+                    <em>{{ item.tagline || '推荐' }}</em>
+                  </span>
+                </span>
+              </button>
+            </div>
+          </div>
         </article>
       </section>
     </div>
@@ -281,6 +353,24 @@ async function sendMessage(text = inputText.value) {
   gap: var(--space-2);
 }
 
+.consult__quick-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.consult__reset {
+  min-height: 28px;
+  padding: 0 var(--space-3);
+  border: 1px solid var(--color-border-soft);
+  border-radius: var(--radius-full);
+  background: var(--color-surface);
+  color: var(--color-text-mute);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
+}
+
 .consult__chips {
   display: flex;
   flex-wrap: wrap;
@@ -318,8 +408,17 @@ async function sendMessage(text = inputText.value) {
   scroll-margin-bottom: calc(var(--shell-bottom-offset) + 96px);
 }
 
-.consult__message p {
+.consult__message-content {
+  display: grid;
+  gap: var(--space-2);
   max-width: min(78%, 300px);
+}
+
+.consult__message > p {
+  max-width: min(78%, 300px);
+}
+
+.consult__message p {
   padding: var(--space-3) var(--space-4);
   font-size: var(--text-sm);
   line-height: var(--leading-relaxed);
@@ -340,6 +439,10 @@ async function sendMessage(text = inputText.value) {
   justify-content: flex-end;
 }
 
+.consult__message--user .consult__message-content {
+  justify-items: end;
+}
+
 .consult__message--user p {
   border-radius: var(--radius-lg) var(--radius-lg) 6px var(--radius-lg);
   background: var(--color-primary-deep);
@@ -355,6 +458,60 @@ async function sendMessage(text = inputText.value) {
   border-radius: var(--radius-full);
   background: var(--color-primary-tint);
   color: var(--color-primary);
+}
+
+.consult__recommendations {
+  display: grid;
+  gap: var(--space-2);
+  justify-items: start;
+}
+
+.consult__recommendation-card {
+  display: grid;
+  width: 190px;
+  overflow: hidden;
+  border: 1px solid var(--color-border-soft);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  text-align: left;
+  box-shadow: var(--shadow-sm);
+}
+
+.consult__recommendation-card img {
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+  background: var(--color-surface-warm);
+}
+
+.consult__recommendation-body {
+  display: grid;
+  gap: 5px;
+  padding: var(--space-2) var(--space-3);
+}
+
+.consult__recommendation-body strong {
+  overflow: hidden;
+  color: var(--color-text);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-bold);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.consult__recommendation-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.consult__recommendation-meta em {
+  color: var(--color-primary);
+  font-size: var(--text-2xs);
+  font-style: normal;
+  font-weight: var(--weight-bold);
+  white-space: nowrap;
 }
 
 .consult__composer {

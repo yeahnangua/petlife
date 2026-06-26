@@ -140,11 +140,34 @@ describe('frontend api client', () => {
     fetchMock.mockResolvedValueOnce(createJsonResponse({
       code: 0,
       message: 'ok',
-      data: { reply: '建议先看幼猫配方。', model: 'deepseek-test-model' }
+      data: {
+        reply: '建议先看幼猫配方。',
+        recommendations: [
+          {
+            id: 'p-001',
+            title: '鲜肉全价猫粮',
+            cover: '/images/products/cat-food.svg',
+            memberPrice: 248,
+            price: 268,
+            tagline: '最推荐'
+          }
+        ],
+        model: 'deepseek-test-model'
+      }
     }))
 
     await expect(sendAiConsultMessage(payload)).resolves.toEqual({
       reply: '建议先看幼猫配方。',
+      recommendations: [
+        {
+          id: 'p-001',
+          title: '鲜肉全价猫粮',
+          cover: '/images/products/cat-food.svg',
+          memberPrice: 248,
+          price: 268,
+          tagline: '最推荐'
+        }
+      ],
       model: 'deepseek-test-model'
     })
     expect(fetchMock).toHaveBeenCalledWith(

@@ -1,15 +1,28 @@
 import { getProductDetail } from './catalogService.js'
+import { listActiveProductsByIds, listActiveProductsForAi } from '../repositories/productRepository.js'
 import { AppError } from '../utils/appError.js'
 
 const MAX_HISTORY_MESSAGES = 12
 const MAX_MESSAGE_LENGTH = 1200
+const MAX_RECOMMENDATIONS = 2
 
 const SYSTEM_PROMPT = [
   '你是 PetLife 宠物生活馆的售前咨询助手。',
   '请用中文回答，语气专业、简洁、可信。',
   '优先围绕宠物类型、年龄、体重、预算、过敏情况、使用场景和商品适配给出建议。',
   '不要编造库存、优惠、医疗诊断或平台未提供的服务承诺。',
-  '涉及疾病、严重异常或处方需求时，建议用户咨询兽医。'
+  '涉及疾病、严重异常或处方需求时，建议用户咨询兽医。',
+  '你必须输出 JSON 对象，不要输出 Markdown 或额外解释。'
+].join('\n')
+
+const JSON_OUTPUT_PROMPT = [
+  '输出 JSON 格式：',
+  '{"reply":"给用户看的中文回复","hasRecommendation":false,"recommendedProductIds":[],"recommendationMode":"none"}',
+  '字段规则：',
+  '- reply 必须是中文字符串。',
+  '- hasRecommendation 只有在用户询问商品推荐、比较、搭配或购买建议时才为 true。',
+  '- recommendedProductIds 只能返回商品目录中存在的 id，默认 1 个，最多 2 个。',
+  '- recommendationMode 只能是 none、single、pair。'
 ].join('\n')
 
 function trimText(value, maxLength = MAX_MESSAGE_LENGTH) {
@@ -18,6 +31,16 @@ function trimText(value, maxLength = MAX_MESSAGE_LENGTH) {
   }
 
   return value.trim().slice(0, maxLength)
+}
+
+function parseJsonArray(value) {
+  if (!value) return []
+  try {
+    const parsed = JSON.parse(value)
+    return Array.isArray(parsed) ? parsed : []
+  } catch {
+    return []
+  }
 }
 
 function normalizeMessages(messages, latestMessage) {
@@ -60,7 +83,31 @@ function buildProductPrompt(product) {
   ].join('\n')
 }
 
-function buildChatMessages({ product, history }) {
+function mapCatalogProduct(row) {
+  return {
+    id: row.id,
+    title: row.title,
+    category: row.category_slug,
+    petType: row.pet_type,
+    price: row.price,
+    memberPrice: row.member_price,
+    stockStatus: row.stock_status,
+    tags: parseJsonArray(row.tags_json),
+    summary: parseJsonArray(row.summary_json),
+    suitable: row.suitable_text,
+    subtitle: row.subtitle
+  }
+}
+
+function buildCatalogPrompt(rows = []) {
+  const products = rows.map(mapCatalogProduct)
+  return [
+    '店铺商品目录如下。只能返回商品目录中存在的 id；优先推荐 stockStatus 不是 soldOut 的商品。',
+    JSON.stringify(products)
+  ].join('\n')
+}
+
+function buildChatMessages({ product, productRows, history }) {
   const messages = [{ role: 'system', content: SYSTEM_PROMPT }]
   const productPrompt = buildProductPrompt(product)
 
@@ -68,6 +115,8 @@ function buildChatMessages({ product, history }) {
     messages.push({ role: 'system', content: productPrompt })
   }
 
+  messages.push({ role: 'system', content: buildCatalogPrompt(productRows) })
+  messages.push({ role: 'system', content: JSON_OUTPUT_PROMPT })
   messages.push(...history)
   return messages
 }
@@ -87,6 +136,69 @@ async function parseJsonResponse(response) {
   } catch {
     return null
   }
+}
+
+function parseStructuredContent(content) {
+  const text = trimText(content, 4000)
+  if (!text) {
+    return {
+      reply: '',
+      hasRecommendation: false,
+      recommendedProductIds: [],
+      recommendationMode: 'none'
+    }
+  }
+
+  try {
+    const parsed = JSON.parse(text)
+    return {
+      reply: trimText(parsed.reply, 2000) || text,
+      hasRecommendation: parsed.hasRecommendation === true,
+      recommendedProductIds: Array.isArray(parsed.recommendedProductIds)
+        ? parsed.recommendedProductIds.map((id) => trimText(id, 80)).filter(Boolean)
+        : [],
+      recommendationMode: ['none', 'single', 'pair'].includes(parsed.recommendationMode)
+        ? parsed.recommendationMode
+        : 'none'
+    }
+  } catch {
+    return {
+      reply: text,
+      hasRecommendation: false,
+      recommendedProductIds: [],
+      recommendationMode: 'none'
+    }
+  }
+}
+
+function mapRecommendation(row, index) {
+  return {
+    id: row.id,
+    title: row.title,
+    subtitle: row.subtitle,
+    cover: row.cover_url,
+    price: row.price,
+    memberPrice: row.member_price,
+    originalPrice: row.original_price,
+    stockStatus: row.stock_status,
+    badge: row.badge || null,
+    tagline: index === 0 ? '最推荐' : '可选搭配'
+  }
+}
+
+function resolveRecommendations(db, structured) {
+  if (!structured.hasRecommendation || structured.recommendedProductIds.length === 0) {
+    return []
+  }
+
+  const requestedIds = [...new Set(structured.recommendedProductIds)].slice(0, MAX_RECOMMENDATIONS * 3)
+  const rowsById = new Map(listActiveProductsByIds(db, requestedIds).map((row) => [row.id, row]))
+
+  return requestedIds
+    .map((id) => rowsById.get(id))
+    .filter((row) => row && row.stock_status !== 'soldOut')
+    .slice(0, MAX_RECOMMENDATIONS)
+    .map(mapRecommendation)
 }
 
 export function createSiliconFlowChatClient(config) {
@@ -109,8 +221,9 @@ export function createSiliconFlowChatClient(config) {
           model: payload.model,
           messages: payload.messages,
           stream: false,
-          temperature: 0.45,
-          max_tokens: 800
+          temperature: 0.35,
+          max_tokens: 900,
+          response_format: payload.responseFormat
         }),
         signal: controller.signal
       })
@@ -155,13 +268,18 @@ export async function createAiConsultReply({ db, config, chatClient, body = {} }
   const productId = trimText(body.productId, 80)
   const product = productId ? getProductDetail(db, productId) : null
   const history = normalizeMessages(body.messages, latestMessage)
+  const productRows = listActiveProductsForAi(db)
   const result = await chatClient({
     model: config.aiModel,
-    messages: buildChatMessages({ product, history })
+    messages: buildChatMessages({ product, productRows, history }),
+    responseFormat: { type: 'json_object' }
   })
+  const structured = parseStructuredContent(result.content)
+  const recommendations = resolveRecommendations(db, structured)
 
   return {
-    reply: result.content,
+    reply: structured.reply,
+    recommendations,
     model: result.model ?? config.aiModel,
     usage: result.usage ?? null
   }

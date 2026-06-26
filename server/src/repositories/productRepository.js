@@ -78,6 +78,43 @@ export function listAllProducts(db, filters = {}) {
     .all(params)
 }
 
+export function listActiveProductsForAi(db) {
+  return db
+    .prepare(
+      `
+        SELECT
+          p.*,
+          c.slug AS category_slug
+        FROM products p
+        JOIN categories c ON c.id = p.category_id
+        WHERE p.status = 'active'
+        ORDER BY p.id ASC
+      `
+    )
+    .all()
+}
+
+export function listActiveProductsByIds(db, productIds = []) {
+  const uniqueIds = [...new Set(productIds.filter(Boolean))]
+  if (uniqueIds.length === 0) {
+    return []
+  }
+
+  const placeholders = uniqueIds.map(() => '?').join(', ')
+  return db
+    .prepare(
+      `
+        SELECT
+          p.*,
+          c.slug AS category_slug
+        FROM products p
+        JOIN categories c ON c.id = p.category_id
+        WHERE p.status = 'active' AND p.id IN (${placeholders})
+      `
+    )
+    .all(...uniqueIds)
+}
+
 export function countProducts(db, filters = {}) {
   const { clauses, params } = buildProductFilters(filters)
 
