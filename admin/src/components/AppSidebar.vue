@@ -7,7 +7,8 @@ const menuItems = [
   { label: '门店', to: '/stores' },
   { label: '时段', to: '/time-slots' },
   { label: '订单', to: '/orders' },
-  { label: '预约', to: '/bookings' }
+  { label: '预约', to: '/bookings' },
+  { label: '优惠券', to: '/coupons' }
 ]
 </script>
 

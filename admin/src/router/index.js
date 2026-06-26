@@ -10,6 +10,7 @@ import StoreAdminView from '@/views/StoreAdminView.vue'
 import TimeSlotAdminView from '@/views/TimeSlotAdminView.vue'
 import OrderAdminView from '@/views/OrderAdminView.vue'
 import BookingAdminView from '@/views/BookingAdminView.vue'
+import CouponAdminView from '@/views/CouponAdminView.vue'
 import LoginView from '@/views/LoginView.vue'
 
 export function createAdminRouter(pinia) {
@@ -73,6 +74,12 @@ export function createAdminRouter(pinia) {
             name: 'bookings',
             component: BookingAdminView,
             meta: { title: '预约' }
+          },
+          {
+            path: 'coupons',
+            name: 'coupons',
+            component: CouponAdminView,
+            meta: { title: '优惠券' }
           }
         ]
       }

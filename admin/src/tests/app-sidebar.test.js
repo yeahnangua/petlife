@@ -19,7 +19,8 @@ async function mountSidebar(path) {
           { path: 'stores', component: page },
           { path: 'time-slots', component: page },
           { path: 'orders', component: page },
-          { path: 'bookings', component: page }
+          { path: 'bookings', component: page },
+          { path: 'coupons', component: page }
         ]
       }
     ]
