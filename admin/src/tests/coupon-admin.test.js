@@ -102,6 +102,44 @@ describe('admin coupon management', () => {
     expect(wrapper.text()).toContain('已使用')
   })
 
+  it('can re-enable disabled campaigns and issued coupons', async () => {
+    couponApi.listCouponCampaigns.mockResolvedValue({
+      list: [createCampaign({ status: 'disabled' })]
+    })
+    couponApi.listUserCoupons.mockResolvedValue({
+      list: [createUserCoupon({ status: 'disabled' })]
+    })
+    couponApi.updateCouponCampaign.mockResolvedValue({
+      item: createCampaign({ status: 'active' })
+    })
+    couponApi.updateUserCoupon.mockResolvedValue({
+      item: createUserCoupon({ status: 'available' })
+    })
+
+    const { wrapper } = await mountAdmin('/coupons')
+
+    expect(wrapper.text()).toContain('停用')
+    expect(wrapper.find('[data-test="enable-coupon_cart_199_35"]').exists()).toBe(true)
+    expect(wrapper.find('[data-test="enable-uc_demo_001"]').exists()).toBe(true)
+
+    await wrapper.get('[data-test="enable-coupon_cart_199_35"]').trigger('click')
+    await flushPromises()
+    expect(couponApi.updateCouponCampaign).toHaveBeenCalledWith('coupon_cart_199_35', {
+      name: '购物车唤醒券',
+      description: '满 199 减 35',
+      discount_amount: 35,
+      min_order_amount: 199,
+      total_limit: 1000,
+      status: 'active',
+      valid_from: '2026-01-01 00:00:00',
+      valid_to: '2099-12-31 23:59:59'
+    })
+
+    await wrapper.get('[data-test="enable-uc_demo_001"]').trigger('click')
+    await flushPromises()
+    expect(couponApi.updateUserCoupon).toHaveBeenCalledWith('uc_demo_001', { status: 'available' })
+  })
+
   it('creates a campaign, issues it to a user, and disables an issued coupon', async () => {
     couponApi.createCouponCampaign.mockResolvedValue({
       item: createCampaign({ id: 'coupon_summer_20', name: '夏日护理券', discount_amount: 20 })

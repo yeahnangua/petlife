@@ -120,7 +120,7 @@ async function submitCampaign() {
   }
 }
 
-async function disableCampaign(campaign) {
+async function updateCampaignStatus(campaign, status) {
   saving.value = true
   error.value = ''
 
@@ -131,13 +131,13 @@ async function disableCampaign(campaign) {
       discount_amount: campaign.discount_amount,
       min_order_amount: campaign.min_order_amount,
       total_limit: campaign.total_limit,
-      status: 'disabled',
+      status,
       valid_from: campaign.valid_from,
       valid_to: campaign.valid_to
     })
     campaigns.value = campaigns.value.map((item) => (item.id === data.item.id ? data.item : item))
   } catch (requestError) {
-    error.value = requestError instanceof Error ? requestError.message : '停用活动失败'
+    error.value = requestError instanceof Error ? requestError.message : '活动状态更新失败'
   } finally {
     saving.value = false
   }
@@ -159,15 +159,15 @@ async function submitIssue(campaignId) {
   }
 }
 
-async function disableIssuedCoupon(couponId) {
+async function updateIssuedCouponStatus(couponId, status) {
   saving.value = true
   error.value = ''
 
   try {
-    const data = await updateUserCoupon(couponId, { status: 'disabled' })
+    const data = await updateUserCoupon(couponId, { status })
     issuedCoupons.value = issuedCoupons.value.map((item) => (item.id === data.item.id ? data.item : item))
   } catch (requestError) {
-    error.value = requestError instanceof Error ? requestError.message : '停用用户券失败'
+    error.value = requestError instanceof Error ? requestError.message : '用户券状态更新失败'
   } finally {
     saving.value = false
   }
@@ -245,8 +245,23 @@ onMounted(() => {
         <span>{{ formatCampaignStatus(item.status) }}</span>
         <span>{{ item.issued_count }} / {{ item.total_limit || '不限' }}</span>
         <div class="admin-table__actions">
-          <button type="button" :data-test="`issue-${item.id}`" @click="submitIssue(item.id)">发放</button>
-          <button type="button" :disabled="item.status === 'disabled'" @click="disableCampaign(item)">停用</button>
+          <button type="button" :disabled="item.status === 'disabled'" :data-test="`issue-${item.id}`" @click="submitIssue(item.id)">发放</button>
+          <button
+            v-if="item.status === 'disabled'"
+            type="button"
+            :data-test="`enable-${item.id}`"
+            @click="updateCampaignStatus(item, 'active')"
+          >
+            启用
+          </button>
+          <button
+            v-else
+            type="button"
+            :data-test="`disable-${item.id}`"
+            @click="updateCampaignStatus(item, 'disabled')"
+          >
+            停用
+          </button>
         </div>
       </article>
     </div>
@@ -287,10 +302,18 @@ onMounted(() => {
           <span>{{ formatUserCouponStatus(item.status) }}</span>
           <div class="admin-table__actions">
             <button
+              v-if="item.status === 'disabled'"
               type="button"
-              :disabled="item.status === 'disabled'"
+              :data-test="`enable-${item.id}`"
+              @click="updateIssuedCouponStatus(item.id, 'available')"
+            >
+              启用
+            </button>
+            <button
+              v-else-if="item.status === 'available'"
+              type="button"
               :data-test="`disable-${item.id}`"
-              @click="disableIssuedCoupon(item.id)"
+              @click="updateIssuedCouponStatus(item.id, 'disabled')"
             >
               停用
             </button>
