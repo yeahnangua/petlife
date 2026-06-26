@@ -9,6 +9,7 @@ const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
 const error = ref('')
+const qrPreviewOpen = ref(false)
 
 const redirectPath = computed(() => {
   const redirect = route.query.redirect
@@ -68,12 +69,19 @@ onMounted(async () => {
       <p class="login__copy">使用微信身份进入 PetLife，订单、宠物档案与优惠券会跟随当前账号。</p>
 
       <section class="login__official-account" aria-label="测试公众号二维码">
-        <img
-          src="/images/wechat-test-official-account.png"
-          alt="测试公众号二维码"
-          class="login__qr"
-          data-test="wechat-official-account-qr"
-        />
+        <button
+          type="button"
+          class="login__qr-button"
+          aria-label="放大测试公众号二维码"
+          @click="qrPreviewOpen = true"
+        >
+          <img
+            src="/images/wechat-test-official-account.png"
+            alt="测试公众号二维码"
+            class="login__qr"
+            data-test="wechat-official-account-qr"
+          />
+        </button>
         <p>关注测试公众号后使用微信一键登录</p>
       </section>
 
@@ -103,6 +111,22 @@ onMounted(async () => {
 
       <p v-if="error" class="login__error">{{ error }}</p>
     </section>
+
+    <button
+      v-if="qrPreviewOpen"
+      type="button"
+      class="login__qr-preview"
+      aria-label="关闭二维码预览"
+      data-test="wechat-qr-preview"
+      @click="qrPreviewOpen = false"
+    >
+      <img
+        src="/images/wechat-test-official-account.png"
+        alt="测试公众号二维码"
+        class="login__qr-preview-image"
+        data-test="wechat-qr-preview-image"
+      />
+    </button>
   </main>
 </template>
 
@@ -160,6 +184,16 @@ onMounted(async () => {
   border-radius: var(--radius-md);
 }
 
+.login__qr-button {
+  display: block;
+  border-radius: var(--radius-md);
+}
+
+.login__qr-button:focus-visible {
+  outline: 3px solid rgba(26, 173, 25, 0.28);
+  outline-offset: 3px;
+}
+
 .login__official-account p {
   color: var(--color-text-soft);
   font-size: var(--text-xs);
@@ -213,5 +247,23 @@ onMounted(async () => {
 .login__error {
   color: var(--color-danger);
   font-size: var(--text-sm);
+}
+
+.login__qr-preview {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-modal);
+  display: grid;
+  place-items: center;
+  padding: var(--space-8);
+  background: rgba(35, 33, 28, 0.78);
+}
+
+.login__qr-preview-image {
+  width: min(82vw, 360px);
+  height: auto;
+  border-radius: var(--radius-lg);
+  background: #fff;
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.32);
 }
 </style>

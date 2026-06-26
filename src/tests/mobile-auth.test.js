@@ -98,6 +98,36 @@ describe('mobile auth', () => {
     expect(replaceSpy).toHaveBeenCalledWith('/cart')
   })
 
+  it('enlarges the official account QR code fullscreen and closes it on click', async () => {
+    const pinia = createPinia()
+    setActivePinia(pinia)
+    const router = createMobileRouter(pinia, [
+      { path: '/login', component: LoginView, meta: { public: true, hideShell: true, title: '登录' } }
+    ])
+    router.push('/login')
+    await router.isReady()
+
+    const wrapper = mount(App, {
+      global: {
+        plugins: [pinia, router]
+      }
+    })
+
+    expect(wrapper.find('[data-test="wechat-qr-preview"]').exists()).toBe(false)
+
+    await wrapper.get('[data-test="wechat-official-account-qr"]').trigger('click')
+
+    const preview = wrapper.get('[data-test="wechat-qr-preview"]')
+    const previewImage = wrapper.get('[data-test="wechat-qr-preview-image"]')
+    expect(preview.attributes('aria-label')).toBe('关闭二维码预览')
+    expect(previewImage.attributes('src')).toBe('/images/wechat-test-official-account.png')
+    expect(previewImage.attributes('alt')).toBe('测试公众号二维码')
+
+    await preview.trigger('click')
+
+    expect(wrapper.find('[data-test="wechat-qr-preview"]').exists()).toBe(false)
+  })
+
   it('logs in to the demo account with the test WeChat button', async () => {
     fetchMock.mockResolvedValueOnce(createJsonResponse(createOkEnvelope({
       token: 'demo-session-token',
