@@ -15,6 +15,19 @@ const error = ref('')
 const campaigns = ref([])
 const issuedCoupons = ref([])
 const issueUserId = ref('u_demo_001')
+const issuedFilterUserId = ref('u_demo_001')
+
+const campaignStatusText = {
+  active: '启用',
+  disabled: '停用'
+}
+
+const userCouponStatusText = {
+  available: '可用',
+  used: '已使用',
+  disabled: '已停用',
+  expired: '已过期'
+}
 
 const campaignForm = reactive({
   name: '',
@@ -33,7 +46,7 @@ async function loadPage() {
   try {
     const [campaignData, issuedData] = await Promise.all([
       listCouponCampaigns(),
-      listUserCoupons()
+      fetchIssuedCoupons()
     ])
     campaigns.value = campaignData.list || []
     issuedCoupons.value = issuedData.list || []
@@ -42,6 +55,32 @@ async function loadPage() {
   } finally {
     loading.value = false
   }
+}
+
+function fetchIssuedCoupons() {
+  return listUserCoupons({ user_id: issuedFilterUserId.value.trim() })
+}
+
+async function filterIssuedCoupons() {
+  loading.value = true
+  error.value = ''
+
+  try {
+    const data = await fetchIssuedCoupons()
+    issuedCoupons.value = data.list || []
+  } catch (requestError) {
+    error.value = requestError instanceof Error ? requestError.message : '用户券加载失败'
+  } finally {
+    loading.value = false
+  }
+}
+
+function formatCampaignStatus(status) {
+  return campaignStatusText[status] || status
+}
+
+function formatUserCouponStatus(status) {
+  return userCouponStatusText[status] || status
 }
 
 function serializeCampaignForm() {
@@ -110,7 +149,9 @@ async function submitIssue(campaignId) {
 
   try {
     const data = await issueCoupon(campaignId, { user_id: issueUserId.value.trim() })
-    issuedCoupons.value = [data.item, ...issuedCoupons.value]
+    if (data.item.user_id === issuedFilterUserId.value.trim()) {
+      issuedCoupons.value = [data.item, ...issuedCoupons.value]
+    }
   } catch (requestError) {
     error.value = requestError instanceof Error ? requestError.message : '发放优惠券失败'
   } finally {
@@ -201,7 +242,7 @@ onMounted(() => {
       <article v-for="item in campaigns" :key="item.id" class="admin-table__row coupon-row">
         <span>{{ item.name }}</span>
         <span>满 {{ item.min_order_amount }} 减 {{ item.discount_amount }} · {{ item.description }}</span>
-        <span>{{ item.status }}</span>
+        <span>{{ formatCampaignStatus(item.status) }}</span>
         <span>{{ item.issued_count }} / {{ item.total_limit || '不限' }}</span>
         <div class="admin-table__actions">
           <button type="button" :data-test="`issue-${item.id}`" @click="submitIssue(item.id)">发放</button>
@@ -211,7 +252,28 @@ onMounted(() => {
     </div>
 
     <section class="issued-section">
-      <h3>用户券</h3>
+      <div class="issued-section__header">
+        <h3>用户券</h3>
+        <div class="coupon-filter">
+          <label>
+            <span>筛选用户 ID</span>
+            <input
+              v-model="issuedFilterUserId"
+              data-test="coupon-filter-user-id"
+              @keyup.enter="filterIssuedCoupons"
+            />
+          </label>
+          <button
+            type="button"
+            class="button-primary"
+            :disabled="loading"
+            data-test="filter-user-coupons"
+            @click="filterIssuedCoupons"
+          >
+            查询用户券
+          </button>
+        </div>
+      </div>
       <div class="admin-table">
         <header class="admin-table__row admin-table__row--head issued-row">
           <span>券</span>
@@ -222,7 +284,7 @@ onMounted(() => {
         <article v-for="item in issuedCoupons" :key="item.id" class="admin-table__row issued-row">
           <span>{{ item.name }}</span>
           <span>{{ item.user_id }}</span>
-          <span>{{ item.status }}</span>
+          <span>{{ formatUserCouponStatus(item.status) }}</span>
           <div class="admin-table__actions">
             <button
               type="button"
@@ -249,7 +311,9 @@ onMounted(() => {
 .admin-table__row,
 .admin-table__actions,
 .coupon-form,
-.coupon-issue {
+.coupon-issue,
+.issued-section__header,
+.coupon-filter {
   display: flex;
   align-items: center;
 }
@@ -275,16 +339,22 @@ onMounted(() => {
 }
 
 .coupon-form,
-.coupon-issue {
+.coupon-issue,
+.coupon-filter {
   flex-wrap: wrap;
   gap: 12px;
+}
+
+.coupon-form,
+.coupon-issue {
   padding: 16px;
   border-radius: 18px;
   background: #fffaf4;
 }
 
 .coupon-form label,
-.coupon-issue label {
+.coupon-issue label,
+.coupon-filter label {
   display: grid;
   gap: 6px;
   min-width: 150px;
@@ -293,7 +363,8 @@ onMounted(() => {
 }
 
 .coupon-form input,
-.coupon-issue input {
+.coupon-issue input,
+.coupon-filter input {
   min-height: 36px;
   padding: 0 10px;
   border: 1px solid #ead8c8;
@@ -367,5 +438,11 @@ onMounted(() => {
 .issued-section {
   display: grid;
   gap: 12px;
+}
+
+.issued-section__header {
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
 }
 </style>

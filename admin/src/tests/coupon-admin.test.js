@@ -80,6 +80,28 @@ describe('admin coupon management', () => {
     expect(wrapper.text()).toContain('满 199 减 35')
   })
 
+  it('filters issued coupons by user and displays coupon statuses in Chinese', async () => {
+    const { wrapper } = await mountAdmin('/coupons')
+
+    expect(couponApi.listUserCoupons).toHaveBeenCalledWith({ user_id: 'u_demo_001' })
+    expect(wrapper.text()).toContain('启用')
+    expect(wrapper.text()).toContain('可用')
+    expect(wrapper.text()).not.toContain('active')
+    expect(wrapper.text()).not.toContain('available')
+
+    couponApi.listUserCoupons.mockResolvedValueOnce({
+      list: [createUserCoupon({ id: 'uc_used_001', user_id: 'u_member_002', status: 'used' })]
+    })
+
+    await wrapper.get('[data-test="coupon-filter-user-id"]').setValue('u_member_002')
+    await wrapper.get('[data-test="filter-user-coupons"]').trigger('click')
+    await flushPromises()
+
+    expect(couponApi.listUserCoupons).toHaveBeenLastCalledWith({ user_id: 'u_member_002' })
+    expect(wrapper.text()).toContain('u_member_002')
+    expect(wrapper.text()).toContain('已使用')
+  })
+
   it('creates a campaign, issues it to a user, and disables an issued coupon', async () => {
     couponApi.createCouponCampaign.mockResolvedValue({
       item: createCampaign({ id: 'coupon_summer_20', name: '夏日护理券', discount_amount: 20 })
