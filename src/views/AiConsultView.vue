@@ -33,6 +33,23 @@ const productHint = computed(() => product.value?.subtitle || product.value?.sui
 const genericQuestions = ['给猫咪选主粮', '挑选清洁用品', '怎么搭配新手礼包']
 const productQuestions = ['适合我家宠物吗', '成分有什么特点', '怎么搭配购买']
 const quickQuestions = computed(() => (hasProductContext.value ? productQuestions : genericQuestions))
+const FAKE_STREAM_CHAR_DELAY_MS = 24
+const RECOMMENDATION_REVEAL_DELAY_MS = 500
+const scheduledTimers = new Set()
+
+function scheduleTimer(callback, delay) {
+  const timer = setTimeout(() => {
+    scheduledTimers.delete(timer)
+    callback()
+  }, delay)
+  scheduledTimers.add(timer)
+  return timer
+}
+
+function clearScheduledTimers() {
+  scheduledTimers.forEach((timer) => clearTimeout(timer))
+  scheduledTimers.clear()
+}
 
 function scrollMessages() {
   nextTick(() => {
@@ -41,6 +58,8 @@ function scrollMessages() {
 }
 
 function restoreMessages(id = productId.value) {
+  clearScheduledTimers()
+  sending.value = false
   messages.value = loadAiConsultHistory(id).messages
 }
 
@@ -52,8 +71,10 @@ function persistMessages() {
 }
 
 function resetChat() {
+  clearScheduledTimers()
   clearAiConsultHistory(productId.value)
   messages.value = []
+  sending.value = false
   scrollMessages()
 }
 
@@ -63,10 +84,65 @@ function openRecommendation(product) {
 }
 
 function messageHistoryPayload() {
-  return messages.value.map((message) => ({
-    role: message.role,
-    content: message.content
-  }))
+  return messages.value
+    .map((message) => ({
+      role: message.role,
+      content: message.content
+    }))
+    .filter((message) => message.content)
+}
+
+function isActiveMessage(message) {
+  return messages.value.includes(message)
+}
+
+function finishAssistantResponse(message, recommendations = []) {
+  if (!isActiveMessage(message)) return
+
+  if (recommendations.length > 0) {
+    scheduleTimer(() => {
+      if (!isActiveMessage(message)) return
+      message.recommendations = recommendations
+      sending.value = false
+      persistMessages()
+      scrollMessages()
+    }, RECOMMENDATION_REVEAL_DELAY_MS)
+    return
+  }
+
+  sending.value = false
+  persistMessages()
+  scrollMessages()
+}
+
+function streamAssistantReply(message, reply, recommendations = []) {
+  const text = typeof reply === 'string' ? reply : ''
+  message.isWaiting = false
+  message.content = ''
+  message.recommendations = []
+
+  if (!text) {
+    finishAssistantResponse(message, recommendations)
+    return
+  }
+
+  let index = 0
+  const appendNextCharacter = () => {
+    if (!isActiveMessage(message)) return
+
+    index += 1
+    message.content = text.slice(0, index)
+    scrollMessages()
+
+    if (index < text.length) {
+      scheduleTimer(appendNextCharacter, FAKE_STREAM_CHAR_DELAY_MS)
+      return
+    }
+
+    finishAssistantResponse(message, recommendations)
+  }
+
+  scheduleTimer(appendNextCharacter, FAKE_STREAM_CHAR_DELAY_MS)
 }
 
 watch(
@@ -87,6 +163,14 @@ async function sendMessage(text = inputText.value) {
   if (!content || sending.value) return
 
   messages.value.push({ id: `user-${Date.now()}-${messages.value.length}`, role: 'user', content, recommendations: [] })
+  messages.value.push({
+    id: `ai-${Date.now()}-${messages.value.length}`,
+    role: 'assistant',
+    content: '',
+    recommendations: [],
+    isWaiting: true
+  })
+  const assistantMessage = messages.value.at(-1)
   inputText.value = ''
   sending.value = true
   persistMessages()
@@ -99,24 +183,13 @@ async function sendMessage(text = inputText.value) {
       productId: productId.value || undefined
     })
 
-    messages.value.push({
-      id: `ai-${Date.now()}-${messages.value.length}`,
-      role: 'assistant',
-      content: response.reply,
-      recommendations: response.recommendations || []
-    })
-    persistMessages()
+    streamAssistantReply(assistantMessage, response.reply, response.recommendations || [])
   } catch {
-    messages.value.push({
-      id: `ai-${Date.now()}-${messages.value.length}`,
-      role: 'assistant',
-      content: 'AI 服务暂时不可用，请稍后再试。你也可以先补充宠物年龄、体重、预算和过敏情况。',
-      recommendations: []
-    })
-    persistMessages()
-  } finally {
-    sending.value = false
-    scrollMessages()
+    streamAssistantReply(
+      assistantMessage,
+      'AI 服务暂时不可用，请稍后再试。你也可以先补充宠物年龄、体重、预算和过敏情况。',
+      []
+    )
   }
 }
 </script>
@@ -203,7 +276,17 @@ async function sendMessage(text = inputText.value) {
             <IconSvg name="service" :size="16" :stroke="1.9" />
           </span>
           <div class="consult__message-content">
-            <p>{{ message.content }}</p>
+            <p
+              v-if="message.isWaiting"
+              class="consult__typing"
+              data-test="consult-waiting-dots"
+              aria-label="正在等待回复"
+            >
+              <span>•</span>
+              <span>•</span>
+              <span>•</span>
+            </p>
+            <p v-else>{{ message.content }}</p>
             <div
               v-if="message.role === 'assistant' && message.recommendations?.length"
               class="consult__recommendations"
@@ -422,6 +505,41 @@ async function sendMessage(text = inputText.value) {
   padding: var(--space-3) var(--space-4);
   font-size: var(--text-sm);
   line-height: var(--leading-relaxed);
+}
+
+.consult__typing {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  min-width: 54px;
+}
+
+.consult__typing span {
+  display: inline-block;
+  animation: consultTypingWave 0.9s ease-in-out infinite;
+}
+
+.consult__typing span:nth-child(2) {
+  animation-delay: 0.12s;
+}
+
+.consult__typing span:nth-child(3) {
+  animation-delay: 0.24s;
+}
+
+@keyframes consultTypingWave {
+  0%,
+  70%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.45;
+  }
+
+  35% {
+    transform: translateY(-5px);
+    opacity: 1;
+  }
 }
 
 .consult__message--assistant {
