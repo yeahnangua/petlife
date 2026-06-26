@@ -41,6 +41,16 @@ export function loadEnv(overrides = {}) {
       env.WECHAT_OFFICIAL_ACCOUNT_SCOPE ??
       env.WECHAT_OA_SCOPE ??
       'snsapi_userinfo',
+    wechatOfficialAccountToken:
+      overrides.wechatOfficialAccountToken ??
+      env.WECHAT_OFFICIAL_ACCOUNT_TOKEN ??
+      env.WECHAT_OA_TOKEN ??
+      '',
+    wechatOfficialAccountWelcomeMessage:
+      overrides.wechatOfficialAccountWelcomeMessage ??
+      env.WECHAT_OFFICIAL_ACCOUNT_WELCOME_MESSAGE ??
+      env.WECHAT_OA_WELCOME_MESSAGE ??
+      '欢迎关注 PetLife，点击菜单可进入商城。',
     aiApiKey:
       overrides.aiApiKey ??
       env.DEEPSEEK_API_KEY ??

@@ -11,6 +11,7 @@ import { createAuthRouter } from './routes/auth.js'
 import { createAdminRouter } from './routes/admin.js'
 import { createPublicRouter } from './routes/public.js'
 import { createUserRouter } from './routes/user.js'
+import { createWechatRouter } from './routes/wechat.js'
 import { createSiliconFlowChatClient } from './services/aiConsultService.js'
 import { createWechatOfficialAccountClient } from './services/wechatOfficialAccountClient.js'
 
@@ -51,6 +52,7 @@ export function createApp(overrides = {}) {
   app.use('/api/auth', createAuthRouter())
   app.use('/api/user', createUserRouter())
   app.use('/api/admin', createAdminRouter())
+  app.use('/api/wechat', createWechatRouter())
   app.use(notFound)
   app.use(errorHandler)
 
