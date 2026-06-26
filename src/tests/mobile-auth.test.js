@@ -36,6 +36,7 @@ describe('mobile auth', () => {
 
   afterEach(() => {
     vi.unstubAllGlobals()
+    vi.unstubAllEnvs()
   })
 
   it('redirects unauthenticated visitors to login before showing app content', async () => {
@@ -54,6 +55,8 @@ describe('mobile auth', () => {
   })
 
   it('logs in with the WeChat SSO button, persists the token, and returns to the redirect target', async () => {
+    vi.stubEnv('VITE_WECHAT_OAUTH_ENABLED', 'false')
+
     fetchMock.mockResolvedValueOnce(createJsonResponse(createOkEnvelope({
       token: 'demo-session-token',
       user: {
@@ -85,6 +88,48 @@ describe('mobile auth', () => {
     await flushPromises()
     await new Promise((resolve) => setTimeout(resolve, 10))
     await flushPromises()
+    expect(window.localStorage.getItem(MOBILE_TOKEN_STORAGE)).toBe('demo-session-token')
+    expect(replaceSpy).toHaveBeenCalledWith('/cart')
+  })
+
+  it('logs in to the demo account with the test WeChat button', async () => {
+    fetchMock.mockResolvedValueOnce(createJsonResponse(createOkEnvelope({
+      token: 'demo-session-token',
+      user: {
+        id: 'u_demo_001',
+        nickname: '拾柒',
+        avatar_url: 'https://example.com/avatar.jpg'
+      }
+    })))
+
+    const pinia = createPinia()
+    setActivePinia(pinia)
+    const router = createMobileRouter(pinia, [
+      { path: '/login', component: LoginView, meta: { public: true, hideShell: true, title: '登录' } },
+      { path: '/cart', component: { template: '<section>cart</section>' }, meta: { title: '购物车' } }
+    ])
+    router.push('/login?redirect=/cart')
+    await router.isReady()
+    const replaceSpy = vi.spyOn(router, 'replace')
+
+    const wrapper = mount(App, {
+      global: {
+        plugins: [pinia, router]
+      }
+    })
+
+    const demoButton = wrapper.get('[data-test="wechat-demo-login"]')
+    expect(demoButton.text()).toContain('微信登录（测试）')
+
+    await demoButton.trigger('click')
+    await flushPromises()
+    await new Promise((resolve) => setTimeout(resolve, 0))
+    await flushPromises()
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/auth/wechat-login',
+      expect.objectContaining({ method: 'POST' })
+    )
     expect(window.localStorage.getItem(MOBILE_TOKEN_STORAGE)).toBe('demo-session-token')
     expect(replaceSpy).toHaveBeenCalledWith('/cart')
   })

@@ -31,6 +31,17 @@ async function submitWechatLogin() {
   }
 }
 
+async function submitDemoWechatLogin() {
+  error.value = ''
+
+  try {
+    await authStore.loginWithWechat()
+    router.replace(redirectPath.value)
+  } catch (loginError) {
+    error.value = loginError instanceof Error ? loginError.message : '登录失败，请稍后重试'
+  }
+}
+
 onMounted(async () => {
   const token = route.query.wechat_token
 
@@ -56,16 +67,29 @@ onMounted(async () => {
       <h1 class="login__title font-display">微信登录</h1>
       <p class="login__copy">使用微信身份进入 PetLife，订单、宠物档案与优惠券会跟随当前账号。</p>
 
-      <button
-        type="button"
-        class="login__wechat"
-        :disabled="authStore.loading"
-        data-test="wechat-login"
-        @click="submitWechatLogin"
-      >
-        <IconSvg name="profile" :size="19" :stroke="2" />
-        {{ authStore.loading ? '登录中' : '微信一键登录' }}
-      </button>
+      <div class="login__actions">
+        <button
+          type="button"
+          class="login__wechat"
+          :disabled="authStore.loading"
+          data-test="wechat-login"
+          @click="submitWechatLogin"
+        >
+          <IconSvg name="profile" :size="19" :stroke="2" />
+          {{ authStore.loading ? '登录中' : '微信一键登录' }}
+        </button>
+
+        <button
+          type="button"
+          class="login__wechat login__wechat--test"
+          :disabled="authStore.loading"
+          data-test="wechat-demo-login"
+          @click="submitDemoWechatLogin"
+        >
+          <IconSvg name="profile" :size="19" :stroke="2" />
+          {{ authStore.loading ? '登录中' : '微信登录（测试）' }}
+        </button>
+      </div>
 
       <p v-if="error" class="login__error">{{ error }}</p>
     </section>
@@ -106,6 +130,11 @@ onMounted(async () => {
   line-height: var(--leading-relaxed);
 }
 
+.login__actions {
+  display: grid;
+  gap: var(--space-3);
+}
+
 .login__wechat {
   width: 100%;
   min-height: 52px;
@@ -122,9 +151,20 @@ onMounted(async () => {
   transition: transform var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out);
 }
 
+.login__wechat--test {
+  border: 1px solid rgba(26, 173, 25, 0.24);
+  background: #fff;
+  color: #168A16;
+  box-shadow: 0 8px 20px rgba(26, 173, 25, 0.12);
+}
+
 .login__wechat:hover {
   transform: translateY(-1px);
   box-shadow: 0 12px 28px rgba(26, 173, 25, 0.24);
+}
+
+.login__wechat--test:hover {
+  box-shadow: 0 10px 24px rgba(26, 173, 25, 0.18);
 }
 
 .login__wechat:disabled {
