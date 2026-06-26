@@ -60,12 +60,23 @@ const menuItems = [
 }
 
 .app-sidebar__link {
-  display: block;
+  height: 70px;
+  display: flex;
+  align-items: center;
   padding: 12px 14px;
   border-radius: 14px;
+  box-sizing: border-box;
   color: inherit;
   line-height: 1.2;
   text-decoration: none;
+  transition:
+    background 0.18s ease,
+    transform 0.18s ease;
+}
+
+.app-sidebar__link:hover {
+  background: rgba(255, 248, 240, 0.1);
+  transform: translateX(2px);
 }
 
 .app-sidebar__link.is-active {
