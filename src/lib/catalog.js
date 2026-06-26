@@ -43,28 +43,28 @@ export function getMarketingRecommendation({
     points >= 2000 ? '高积分会员' : '积分成长中'
   ]
 
-  const coupon = level.includes('铂金') || level.includes('黑金')
+  const campaign = level.includes('铂金') || level.includes('黑金')
     ? {
-        title: '铂金专属加购券',
-        value: '满 299 减 60',
-        hint: '结合会员等级与购物车状态触发，适合提升客单价。'
+        title: '会员加购方案',
+        value: '高客单组合',
+        hint: '结合会员等级与购物车状态生成运营建议，适合提升客单价。'
       }
     : {
-        title: validCartCount > 0 ? '购物车唤醒券' : '新人尝鲜券',
-        value: validCartCount > 0 ? '满 199 减 35' : '首单 8 折',
-        hint: validCartCount > 0 ? '针对已加购未下单用户做限时转化。' : '降低首次购买决策门槛。'
+        title: validCartCount > 0 ? '购物车唤醒方案' : '首购引导方案',
+        value: validCartCount > 0 ? '结算提醒' : '低门槛组合',
+        hint: validCartCount > 0 ? '针对已加购未下单用户做提醒与搭配推荐。' : '降低首次购买决策门槛。'
       }
 
   return {
     title: `${petLabel}今日智能推荐`,
     profileTags,
-    coupon,
+    campaign,
     product,
     service,
     reasons: [
       `根据当前宠物类型优先筛选${petLabel}适用商品和服务。`,
       orderCount >= 8 ? '历史订单较多，优先展示高复购消耗品与会员权益。' : '订单数量仍在成长，优先展示低门槛入门组合。',
-      validCartCount > 0 ? '检测到购物车有有效商品，推荐搭配优惠券促进结算。' : '购物车为空，推荐从场景化商品或预约服务开始转化。'
+      validCartCount > 0 ? '检测到购物车有有效商品，建议通过提醒和搭配推荐促进结算。' : '购物车为空，推荐从场景化商品或预约服务开始转化。'
     ]
   }
 }

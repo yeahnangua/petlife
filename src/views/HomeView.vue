@@ -177,7 +177,7 @@ function openQuickEntry(entry) {
             </span>
             <div>
               <p class="home__ai-eyebrow">{{ marketingRecommendation.title }}</p>
-              <h3 class="home__ai-title">{{ marketingRecommendation.coupon.title }}</h3>
+              <h3 class="home__ai-title">{{ marketingRecommendation.campaign.title }}</h3>
             </div>
           </div>
 
@@ -186,8 +186,8 @@ function openQuickEntry(entry) {
           </div>
 
           <div class="home__ai-offer">
-            <strong class="font-display">{{ marketingRecommendation.coupon.value }}</strong>
-            <p>{{ marketingRecommendation.coupon.hint }}</p>
+            <strong class="font-display">{{ marketingRecommendation.campaign.value }}</strong>
+            <p>{{ marketingRecommendation.campaign.hint }}</p>
           </div>
 
           <div class="home__ai-grid">
@@ -195,7 +195,7 @@ function openQuickEntry(entry) {
               v-if="marketingRecommendation.product"
               type="button"
               class="home__ai-pick"
-              @click="router.push(`/products/${marketingRecommendation.product.id}`)"
+              @click="router.push({ name: 'product-detail', params: { id: marketingRecommendation.product.id } })"
             >
               <span>推荐商品</span>
               <strong>{{ marketingRecommendation.product.title }}</strong>

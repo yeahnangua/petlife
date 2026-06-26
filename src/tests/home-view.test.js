@@ -60,7 +60,7 @@ async function mountHomeView() {
     history: createWebHashHistory(),
     routes: [
       { path: '/', name: 'home', component: HomeView },
-      { path: '/products/:id', name: 'product-detail', component: { template: '<div />' } },
+      { path: '/product/:id', name: 'product-detail', component: { template: '<div />' } },
       { path: '/service/:id', name: 'service-detail', component: { template: '<div />' } },
       { path: '/products', name: 'product-list', component: { template: '<div />' } },
       { path: '/service', name: 'service', component: { template: '<div />' } },
@@ -114,5 +114,14 @@ describe('HomeView', () => {
     await flushPromises()
 
     expect(router.currentRoute.value.path).toBe('/ai-consult')
+  })
+
+  it('opens the AI marketing product recommendation through the product detail route', async () => {
+    const { wrapper, router } = await mountHomeView()
+
+    await wrapper.get('.home__ai-pick').trigger('click')
+    await flushPromises()
+
+    expect(router.currentRoute.value.path).toBe('/product/p-001')
   })
 })

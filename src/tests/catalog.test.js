@@ -28,7 +28,7 @@ describe('catalog helpers', () => {
     expect(items.every((item) => item.petType === 'dog' || item.petType === 'all')).toBe(true)
   })
 
-  it('builds a cart-aware marketing recommendation for active pet type', () => {
+  it('builds a cart-aware marketing recommendation for active pet type without claiming a real coupon', () => {
     const recommendation = getMarketingRecommendation({
       petType: 'dog',
       products,
@@ -39,7 +39,9 @@ describe('catalog helpers', () => {
 
     expect(recommendation.profileTags).toContain('高复购用户')
     expect(recommendation.profileTags).toContain('购物车待转化')
-    expect(recommendation.coupon.title).toBe('铂金专属加购券')
+    expect(recommendation.campaign.title).toBe('会员加购方案')
+    expect(recommendation.campaign.value).toBe('高客单组合')
+    expect(`${recommendation.campaign.title}${recommendation.campaign.value}`).not.toContain('券')
     expect(recommendation.product.petType).toBe('dog')
     expect(recommendation.service.title).toBe('狗狗精洗护理')
   })
