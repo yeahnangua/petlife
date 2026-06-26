@@ -503,7 +503,7 @@ async function sendMessage(text = inputText.value) {
 
 .consult__message p {
   padding: var(--space-3) var(--space-4);
-  font-size: var(--text-sm);
+  font-size: var(--text-md);
   line-height: var(--leading-relaxed);
 }
 
