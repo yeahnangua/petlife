@@ -13,6 +13,7 @@ const userApi = vi.hoisted(() => ({
   createAddress: vi.fn(),
   updateAddress: vi.fn(),
   deleteAddress: vi.fn(),
+  getCoupons: vi.fn(),
   createOrder: vi.fn(),
   getOrderDetail: vi.fn()
 }))
@@ -128,6 +129,7 @@ describe('cart and order flow', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
     Object.values(userApi).forEach((mock) => mock.mockReset())
+    userApi.getCoupons.mockResolvedValue({ list: [] })
   })
 
   it('adds products through the real cart api and refreshes merged quantities', async () => {
@@ -261,5 +263,67 @@ describe('cart and order flow', () => {
     })
     expect(userApi.getCart).toHaveBeenCalledTimes(2)
     expect(router.currentRoute.value.fullPath).toBe('/orders/order_002?backTo=/')
+  })
+
+  it('loads usable coupons on the confirm page and submits the selected coupon id', async () => {
+    userApi.getCart
+      .mockResolvedValueOnce(makeCartResponse({
+        list: [makeCartResponse().list[0]],
+        summary: { selectedCount: 1, invalidCount: 0, totalAmount: 248 }
+      }))
+      .mockResolvedValueOnce({
+        list: [],
+        summary: { selectedCount: 0, invalidCount: 0, totalAmount: 0 }
+      })
+    userApi.getAddresses.mockResolvedValue(makeAddressResponse())
+    userApi.getCoupons.mockResolvedValue({
+      list: [
+        {
+          id: 'uc_demo_001',
+          campaign_id: 'coupon_cart_199_35',
+          name: '购物车唤醒券',
+          description: '满 199 减 35',
+          discount_amount: 35,
+          min_order_amount: 199,
+          status: 'available',
+          available: true,
+          unavailable_reason: ''
+        }
+      ]
+    })
+    userApi.createOrder.mockResolvedValue({
+      order: {
+        id: 'order_002',
+        status: 'pendingShipment'
+      }
+    })
+
+    const router = createTestRouter([
+      { path: '/order/confirm', component: OrderConfirmView },
+      { path: '/orders/:id', component: { template: '<div>detail</div>' } }
+    ])
+    router.push('/order/confirm')
+    await router.isReady()
+
+    const wrapper = mount(OrderConfirmView, {
+      global: {
+        plugins: [router]
+      }
+    })
+
+    await flushPromises()
+    expect(wrapper.text()).toContain('购物车唤醒券')
+    expect(wrapper.text()).toContain('优惠抵扣')
+    expect(wrapper.text()).toContain('¥225')
+
+    await wrapper.find('.button-primary').trigger('click')
+    await flushPromises()
+
+    expect(userApi.getCoupons).toHaveBeenCalledWith({ subtotal: 248 })
+    expect(userApi.createOrder).toHaveBeenCalledWith({
+      address_id: 'addr_001',
+      coupon_id: 'uc_demo_001',
+      remark: ''
+    })
   })
 })

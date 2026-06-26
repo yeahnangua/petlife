@@ -1,4 +1,4 @@
-import { request } from './http'
+import { request, withQuery } from './http'
 
 export function getProfile() {
   return request('/api/user/profile')
@@ -37,6 +37,10 @@ export function deleteAddress(id) {
 
 export function getPets() {
   return request('/api/user/pets')
+}
+
+export function getCoupons(params = {}) {
+  return request(withQuery('/api/user/coupons', params))
 }
 
 export function createPet(payload) {

@@ -138,6 +138,12 @@ export const routes = [
     name: 'member',
     component: () => import('@/views/MemberView.vue'),
     meta: { title: '会员权益' }
+  },
+  {
+    path: '/coupons',
+    name: 'coupons',
+    component: () => import('@/views/CouponListView.vue'),
+    meta: { title: '我的优惠券' }
   }
 ]
 

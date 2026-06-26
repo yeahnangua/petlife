@@ -21,6 +21,10 @@ export function adaptOrder(order = {}) {
   const items = Array.isArray(order.items) ? order.items.map(adaptOrderItem) : []
   const rawTotalAmount = order.total_amount ?? order.totalAmount ?? 0
   const amountBreakdown = getPersistedProductOrderBreakdown(rawTotalAmount)
+  const subtotalAmount = order.subtotal_amount ?? amountBreakdown.subtotal
+  const shippingAmount = order.shipping_fee ?? amountBreakdown.shipping
+  const discountAmount = order.discount_amount ?? 0
+  const payableAmount = order.payable_amount ?? amountBreakdown.payable
 
   return {
     id: order.id,
@@ -30,9 +34,12 @@ export function adaptOrder(order = {}) {
     statusLabel: order.status_label,
     createdAt: order.created_at,
     totalAmount: rawTotalAmount,
-    subtotalAmount: amountBreakdown.subtotal,
-    shippingAmount: amountBreakdown.shipping,
-    payableAmount: amountBreakdown.payable,
+    subtotalAmount,
+    shippingAmount,
+    discountAmount,
+    payableAmount,
+    couponId: order.coupon_id || '',
+    couponName: order.coupon_name_snapshot || '',
     itemCount: order.item_count ?? items.reduce((sum, item) => sum + (item.quantity || 0), 0),
     address: formatAddress(order),
     remark: order.remark,

@@ -10,14 +10,17 @@ import { getAddresses, createOrder } from '@/api/user'
 import { adaptAddress } from '@/adapters/profile'
 import { formatCurrency, getOrderPriceBreakdown } from '@/lib/pricing'
 import { useCartStore } from '@/stores/cart'
+import { useCouponStore } from '@/stores/coupons'
 
 const router = useRouter()
 const cartStore = useCartStore()
+const couponStore = useCouponStore()
 
 const loading = ref(false)
 const note = ref('')
 const addresses = ref([])
 const selectedAddressId = ref('')
+const selectedCouponId = ref('')
 const submitError = ref('')
 const submitting = ref(false)
 
@@ -25,7 +28,10 @@ const selectedItems = computed(() => cartStore.selectedItems)
 const selectedAddress = computed(
   () => addresses.value.find((item) => item.id === selectedAddressId.value) ?? null
 )
-const priceBreakdown = computed(() => getOrderPriceBreakdown(selectedItems.value))
+const selectedCoupon = computed(
+  () => couponStore.items.find((item) => item.id === selectedCouponId.value && item.available) ?? null
+)
+const priceBreakdown = computed(() => getOrderPriceBreakdown(selectedItems.value, selectedCoupon.value))
 
 watch(
   addresses,
@@ -49,13 +55,15 @@ async function loadPage() {
   submitError.value = ''
 
   try {
-    const [cartData, addressData] = await Promise.all([
-      cartStore.fetchCart(),
-      getAddresses()
+    await cartStore.fetchCart()
+    const subtotal = getOrderPriceBreakdown(selectedItems.value).subtotal
+    const [addressData] = await Promise.all([
+      getAddresses(),
+      couponStore.fetchCoupons({ subtotal })
     ])
 
-    void cartData
     addresses.value = (addressData.list || []).map(adaptAddress)
+    selectedCouponId.value = couponStore.availableCoupons[0]?.id ?? ''
   } catch (requestError) {
     submitError.value = requestError instanceof Error ? requestError.message : '订单确认页加载失败'
   } finally {
@@ -75,6 +83,7 @@ async function submitOrder() {
   try {
     const data = await createOrder({
       address_id: selectedAddressId.value,
+      ...(selectedCoupon.value ? { coupon_id: selectedCoupon.value.id } : {}),
       remark: note.value.trim()
     })
     await cartStore.fetchCart()
@@ -173,12 +182,40 @@ onMounted(() => {
           </label>
         </section>
 
+        <!-- 优惠券 -->
+        <section class="oconfirm__card surface-card">
+          <header class="oconfirm__card-head">
+            <h2 class="oconfirm__card-title">优惠券</h2>
+            <span class="oconfirm__coupon-count">{{ couponStore.availableCoupons.length }} 张可用</span>
+          </header>
+
+          <div v-if="couponStore.availableCoupons.length" class="oconfirm__coupons">
+            <label
+              v-for="coupon in couponStore.availableCoupons"
+              :key="coupon.id"
+              class="oconfirm__coupon"
+              :class="{ 'oconfirm__coupon--active': selectedCouponId === coupon.id }"
+            >
+              <input v-model="selectedCouponId" type="radio" :value="coupon.id" class="sr-only" />
+              <span class="oconfirm__coupon-main">
+                <strong>{{ coupon.name }}</strong>
+                <small>{{ coupon.description || `满 ${coupon.minOrderAmount} 减 ${coupon.amount}` }}</small>
+              </span>
+              <span class="oconfirm__coupon-amount">-{{ formatCurrency(coupon.amount) }}</span>
+            </label>
+          </div>
+          <p v-else class="oconfirm__coupon-empty">暂无可用优惠券</p>
+        </section>
+
         <!-- 金额明细 -->
         <section class="oconfirm__card surface-card">
           <h2 class="oconfirm__card-title">金额明细</h2>
           <div class="oconfirm__breakdown">
             <div><span>商品小计</span><strong>{{ formatCurrency(priceBreakdown.subtotal) }}</strong></div>
             <div><span>配送费</span><strong>{{ formatCurrency(priceBreakdown.shipping) }}</strong></div>
+            <div v-if="priceBreakdown.discount > 0">
+              <span>优惠抵扣</span><strong>-{{ formatCurrency(priceBreakdown.discount) }}</strong>
+            </div>
             <div class="oconfirm__total">
               <span>应付金额</span>
               <PriceText :value="priceBreakdown.payable" size="md" />
@@ -424,6 +461,57 @@ onMounted(() => {
 .oconfirm__note textarea:focus {
   border-color: var(--color-primary);
   box-shadow: 0 0 0 3px var(--color-primary-tint);
+}
+
+.oconfirm__coupon-count,
+.oconfirm__coupon-empty {
+  color: var(--color-text-mute);
+  font-size: var(--text-sm);
+}
+
+.oconfirm__coupons {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.oconfirm__coupon {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  border: 1px solid var(--color-border-soft);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-soft);
+  cursor: pointer;
+  transition: border-color var(--dur-base) var(--ease-out), background var(--dur-base) var(--ease-out);
+}
+
+.oconfirm__coupon--active {
+  border-color: var(--color-coral);
+  background: var(--color-coral-soft);
+}
+
+.oconfirm__coupon-main {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.oconfirm__coupon-main strong {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+}
+
+.oconfirm__coupon-main small {
+  color: var(--color-text-mute);
+  font-size: var(--text-xs);
+}
+
+.oconfirm__coupon-amount {
+  color: var(--color-coral);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-bold);
 }
 
 .oconfirm__breakdown {

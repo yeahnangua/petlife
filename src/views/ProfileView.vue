@@ -113,7 +113,7 @@ const functions = [
         </section>
 
         <!-- 积分与权益 -->
-        <section class="me__points surface-card" @click="router.push('/member')">
+        <section class="me__points surface-card" @click="router.push('/coupons')">
           <div class="me__points-info">
             <p class="me__pet-eyebrow">积分与权益</p>
             <h3 class="me__points-value font-display">{{ profile.points }} <small>积分</small></h3>

@@ -42,10 +42,10 @@ const profile = computed(() => profileStore.profile)
               <strong class="font-display">{{ profile.points }}</strong>
               <span>当前积分</span>
             </div>
-            <div class="member__points">
+            <button type="button" class="member__points member__points--button" @click="router.push('/coupons')">
               <strong class="font-display">{{ profile.couponCount }}</strong>
               <span>可用优惠券</span>
-            </div>
+            </button>
             <button
               type="button"
               class="member__edit"
@@ -187,6 +187,14 @@ const profile = computed(() => profileStore.profile)
 .member__points {
   display: grid;
   gap: 1px;
+}
+
+.member__points--button {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
 }
 
 .member__points strong {

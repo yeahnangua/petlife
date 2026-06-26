@@ -25,6 +25,7 @@ import {
   getBookingDetail,
   getBookings,
   getCart,
+  getCoupons,
   getOrderDetail,
   getOrders,
   getPets,
@@ -302,6 +303,19 @@ describe('frontend api client', () => {
     expect(fetchMock.mock.calls[21][0]).toBe('/api/user/bookings/booking_002/cancel')
   })
 
+  it('requests user coupons with checkout subtotal query', async () => {
+    fetchMock.mockResolvedValueOnce(createJsonResponse({
+      code: 0,
+      message: 'ok',
+      data: { list: [{ id: 'uc_demo_001' }] }
+    }))
+
+    await expect(getCoupons({ subtotal: 248 })).resolves.toEqual({
+      list: [{ id: 'uc_demo_001' }]
+    })
+    expect(fetchMock).toHaveBeenCalledWith('/api/user/coupons?subtotal=248', expect.any(Object))
+  })
+
   it('adapts backend payloads into the current UI-friendly shapes', () => {
     expect(adaptCategory({
       id: 'cat-food',
@@ -554,7 +568,10 @@ describe('frontend api client', () => {
       totalAmount: 248,
       subtotalAmount: 248,
       shippingAmount: 12,
+      discountAmount: 0,
       payableAmount: 260,
+      couponId: '',
+      couponName: '',
       itemCount: 1,
       address: '上海市 静安区 南京西路街道 梅园里小区 12 号 3B 室',
       remark: undefined,
