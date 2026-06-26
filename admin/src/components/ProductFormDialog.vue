@@ -1,5 +1,6 @@
 <script setup>
 import { computed, reactive, ref, watch } from 'vue'
+import { generateProductAiDraft } from '@/api/catalog'
 import UploadImageField from '@/components/UploadImageField.vue'
 import {
   getPetTypeLabel,
@@ -24,10 +25,12 @@ const props = defineProps({
 const emit = defineEmits(['update:modelValue', 'submit'])
 const specsError = ref('')
 const introGenerating = ref(false)
+const introAiError = ref('')
 const specsAiOpen = ref(false)
 const specsAiPrompt = ref('')
 const specsAiError = ref('')
 const specsAiPreview = ref('')
+const specsGenerating = ref(false)
 
 const form = reactive({
   category_id: '',
@@ -101,10 +104,12 @@ function syncForm(value = null) {
   form.status = value?.status ?? 'active'
   form.image_urls = [...(value?.image_urls || [])]
   specsError.value = ''
+  introAiError.value = ''
   specsAiOpen.value = false
   specsAiPrompt.value = ''
   specsAiError.value = ''
   specsAiPreview.value = ''
+  specsGenerating.value = false
 }
 
 watch(
@@ -117,86 +122,46 @@ watch(
   { immediate: true }
 )
 
-function generateIntroDraft() {
+function buildProductAiContext() {
   return {
-    tags: ['低敏', '无谷', '鲜肉70%', '猫粮'],
-    summary: [
-      '鲜肉含量 70%，保留原始营养',
-      '低敏配方，适合肠胃敏感猫咪',
-      '自研冷鲜锁鲜工艺'
-    ],
-    suitableText: '适合 1-8 岁成猫 / 全品种'
+    category_id: form.category_id,
+    category_name: selectedCategory.value?.name || '',
+    pet_type: form.pet_type,
+    pet_type_label: getPetTypeLabel(form.pet_type) || form.pet_type,
+    title: form.title.trim(),
+    subtitle: form.subtitle.trim(),
+    price: Number(form.price),
+    member_price: Number(form.member_price),
+    original_price: Number(form.original_price),
+    badge: form.badge.trim(),
+    tags: splitValues(form.tags_text),
+    summary: splitValues(form.summary_text),
+    suitable_text: form.suitable_text.trim()
   }
 }
 
-function generateIntro() {
+async function generateIntro() {
   if (!introContextReady.value || introGenerating.value) {
     return
   }
 
   introGenerating.value = true
-  const draft = generateIntroDraft()
-  form.tags_text = draft.tags.join(', ')
-  form.summary_text = listToText(draft.summary)
-  form.suitable_text = draft.suitableText
-  introGenerating.value = false
-}
+  introAiError.value = ''
 
-function extractOptionsAfterKeyword(prompt, keyword, nextKeywords = []) {
-  const keywordIndex = prompt.indexOf(keyword)
-
-  if (keywordIndex === -1) {
-    return []
-  }
-
-  const start = keywordIndex + keyword.length
-  let end = prompt.length
-
-  nextKeywords.forEach((nextKeyword) => {
-    const nextIndex = prompt.indexOf(nextKeyword, start)
-    if (nextIndex !== -1 && nextIndex < end) {
-      end = nextIndex
-    }
-  })
-
-  return prompt
-    .slice(start, end)
-    .replace(/[，,。；;：:]/g, ' ')
-    .replace(/\s+和\s*/g, ' ')
-    .split(/\s+/)
-    .map((item) => item.trim())
-    .filter(Boolean)
-}
-
-function generateSpecsDraft(prompt) {
-  const specOptions = extractOptionsAfterKeyword(prompt, '规格有', ['口味有'])
-  const flavorOptions = extractOptionsAfterKeyword(prompt, '口味有', ['规格有'])
-  const draft = []
-
-  if (specOptions.length) {
-    draft.push({
-      group: '规格',
-      options: specOptions
+  try {
+    const data = await generateProductAiDraft({
+      mode: 'intro',
+      product: buildProductAiContext()
     })
+    const draft = data.draft || {}
+    form.tags_text = Array.isArray(draft.tags) ? draft.tags.join(', ') : ''
+    form.summary_text = Array.isArray(draft.summary) ? listToText(draft.summary) : ''
+    form.suitable_text = draft.suitable_text || ''
+  } catch (requestError) {
+    introAiError.value = requestError instanceof Error ? requestError.message : 'AI 介绍生成失败'
+  } finally {
+    introGenerating.value = false
   }
-
-  if (flavorOptions.length) {
-    draft.push({
-      group: '口味',
-      options: flavorOptions
-    })
-  }
-
-  if (draft.length) {
-    return draft
-  }
-
-  return [
-    {
-      group: '规格',
-      options: ['默认规格']
-    }
-  ]
 }
 
 function openSpecsAiDialog() {
@@ -206,11 +171,15 @@ function openSpecsAiDialog() {
 }
 
 function closeSpecsAiDialog() {
+  if (specsGenerating.value) {
+    return
+  }
+
   specsAiOpen.value = false
   specsAiError.value = ''
 }
 
-function generateSpecsJson() {
+async function generateSpecsJson() {
   const prompt = specsAiPrompt.value.trim()
 
   if (!prompt) {
@@ -219,11 +188,29 @@ function generateSpecsJson() {
     return
   }
 
-  const specs = generateSpecsDraft(prompt)
-  const text = JSON.stringify(specs, null, 2)
-  form.specs_text = text
-  specsAiPreview.value = text
+  if (specsGenerating.value) {
+    return
+  }
+
+  specsGenerating.value = true
   specsAiError.value = ''
+  specsAiPreview.value = ''
+
+  try {
+    const data = await generateProductAiDraft({
+      mode: 'specs',
+      prompt,
+      product: buildProductAiContext()
+    })
+    const specs = Array.isArray(data.draft?.specs) ? data.draft.specs : []
+    const text = JSON.stringify(specs, null, 2)
+    form.specs_text = text
+    specsAiPreview.value = text
+  } catch (requestError) {
+    specsAiError.value = requestError instanceof Error ? requestError.message : 'AI 规格生成失败'
+  } finally {
+    specsGenerating.value = false
+  }
 }
 
 function closeDialog() {
@@ -329,6 +316,7 @@ function submitForm() {
             <span class="ai-helper__eyebrow">AI 介绍生成</span>
             <p>{{ introContextReady ? introContextText : '请先填写分类、宠物类型、标题、副标题' }}</p>
             <small>会覆盖当前标签、摘要、适用描述</small>
+            <p v-if="introAiError" class="dialog-card__error">{{ introAiError }}</p>
           </div>
           <button
             type="button"
@@ -405,9 +393,10 @@ function submitForm() {
           type="button"
           class="button-primary"
           data-test="generate-specs-json"
+          :disabled="specsGenerating"
           @click="generateSpecsJson"
         >
-          生成 JSON
+          {{ specsGenerating ? '生成中...' : '生成 JSON' }}
         </button>
       </footer>
     </section>

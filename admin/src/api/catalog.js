@@ -61,6 +61,13 @@ export function deleteProduct(id) {
   })
 }
 
+export function generateProductAiDraft(payload) {
+  return request('/api/admin/products/ai-draft', {
+    method: 'POST',
+    body: payload
+  })
+}
+
 export function listServices(query = {}) {
   return request(withQuery('/api/admin/services', query))
 }
