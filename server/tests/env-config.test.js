@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest'
-import { loadEnv } from '../src/config/env.js'
+import { loadEnv, mergeEnvSources } from '../src/config/env.js'
 
 const originalEnv = {
   key: process.env.key,
@@ -39,5 +39,21 @@ describe('environment config', () => {
     expect(config.aiApiKey).toBe('test-lowercase-key')
     expect(config.aiModel).toBe('deepseek-lowercase-model')
     expect(config.aiBaseUrl).toBe('https://api.siliconflow.cn/v1')
+  })
+
+  it('lets the project .env override stale startup environment values', () => {
+    const env = mergeEnvSources(
+      {
+        BASE_URL: 'http://127.0.0.1:8787',
+        WECHAT_OFFICIAL_ACCOUNT_APP_ID: 'old-app-id'
+      },
+      {
+        BASE_URL: 'https://api.petlife.example.test',
+        WECHAT_OFFICIAL_ACCOUNT_APP_ID: 'wx-from-dotenv'
+      }
+    )
+
+    expect(env.BASE_URL).toBe('https://api.petlife.example.test')
+    expect(env.WECHAT_OFFICIAL_ACCOUNT_APP_ID).toBe('wx-from-dotenv')
   })
 })
