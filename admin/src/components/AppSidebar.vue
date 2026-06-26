@@ -23,7 +23,7 @@ const menuItems = [
         :key="item.to"
         :to="item.to"
         class="app-sidebar__link"
-        active-class="is-active"
+        exact-active-class="is-active"
       >
         {{ item.label }}
       </RouterLink>
@@ -33,6 +33,8 @@ const menuItems = [
 
 <style scoped>
 .app-sidebar {
+  align-self: start;
+  align-content: start;
   display: grid;
   gap: 24px;
   padding: 24px 20px;
@@ -53,13 +55,16 @@ const menuItems = [
 
 .app-sidebar__nav {
   display: grid;
+  align-content: start;
   gap: 8px;
 }
 
 .app-sidebar__link {
+  display: block;
   padding: 12px 14px;
   border-radius: 14px;
   color: inherit;
+  line-height: 1.2;
   text-decoration: none;
 }
 
