@@ -147,6 +147,11 @@ export const routes = [
   }
 ]
 
+function getSafeRedirectPath(value) {
+  const redirect = typeof value === 'string' ? value : ''
+  return redirect.startsWith('/') && !redirect.startsWith('//') ? redirect : '/'
+}
+
 export function createMobileRouter(pinia, routeDefinitions = routes) {
   const router = createRouter({
     history: createWebHashHistory(),
@@ -170,6 +175,20 @@ export function createMobileRouter(pinia, routeDefinitions = routes) {
 
   router.beforeEach(async (to) => {
     const authStore = useAuthStore(pinia)
+
+    if (to.path === '/login' && typeof to.query.wechat_token === 'string' && to.query.wechat_token) {
+      const redirectPath = getSafeRedirectPath(to.query.redirect)
+
+      try {
+        await authStore.consumeWechatOAuthToken(to.query.wechat_token)
+        return redirectPath
+      } catch {
+        return {
+          path: '/login',
+          query: redirectPath === '/' ? {} : { redirect: redirectPath }
+        }
+      }
+    }
 
     if (to.meta.public) {
       if (authStore.isAuthenticated && to.path === '/login') {

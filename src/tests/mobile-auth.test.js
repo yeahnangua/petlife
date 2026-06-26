@@ -157,7 +157,6 @@ describe('mobile auth', () => {
     ])
     router.push('/login?wechat_token=real-wechat-session-token&redirect=/cart')
     await router.isReady()
-    const replaceSpy = vi.spyOn(router, 'replace')
 
     mount(App, {
       global: {
@@ -178,7 +177,38 @@ describe('mobile auth', () => {
         })
       })
     )
-    expect(replaceSpy).toHaveBeenCalledWith('/cart')
+    expect(router.currentRoute.value.fullPath).toBe('/cart')
+  })
+
+  it('consumes the official account OAuth token before rendering the login callback route', async () => {
+    fetchMock.mockResolvedValueOnce(createJsonResponse(createOkEnvelope({
+      user: {
+        id: 'u_wx_001',
+        nickname: '微信测试用户',
+        avatar_url: 'https://example.com/wechat.jpg'
+      }
+    })))
+
+    const pinia = createPinia()
+    setActivePinia(pinia)
+    const router = createMobileRouter(pinia, [
+      { path: '/login', component: LoginView, meta: { public: true, hideShell: true, title: '登录' } },
+      { path: '/cart', component: { template: '<section>cart</section>' }, meta: { title: '购物车' } }
+    ])
+
+    router.push('/login?wechat_token=real-wechat-session-token&redirect=/cart')
+    await router.isReady()
+
+    expect(router.currentRoute.value.fullPath).toBe('/cart')
+    expect(window.localStorage.getItem(MOBILE_TOKEN_STORAGE)).toBe('real-wechat-session-token')
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/auth/session',
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          Authorization: 'Bearer real-wechat-session-token'
+        })
+      })
+    )
   })
 
   it('adds Authorization to user requests when a token exists', async () => {
