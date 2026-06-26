@@ -18,6 +18,7 @@ import {
 } from '../controllers/adminOrderController.js'
 import {
   createProduct,
+  createProductAiDraft,
   deleteProduct,
   listAdminProducts,
   updateProduct
@@ -56,6 +57,7 @@ export function createAdminRouter() {
   router.delete('/categories/:id', deleteCategory)
 
   router.get('/products', listAdminProducts)
+  router.post('/products/ai-draft', createProductAiDraft)
   router.post('/products', createProduct)
   router.put('/products/:id', updateProduct)
   router.delete('/products/:id', deleteProduct)

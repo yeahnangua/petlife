@@ -5,11 +5,25 @@ import {
   getAdminProducts,
   updateAdminProduct
 } from '../services/adminCatalogService.js'
+import { createAdminProductAiDraft } from '../services/adminProductAiDraftService.js'
 
 export function listAdminProducts(req, res, next) {
   try {
     const list = getAdminProducts(req.app.locals.db)
     res.json(success({ list }))
+  } catch (error) {
+    next(error)
+  }
+}
+
+export async function createProductAiDraft(req, res, next) {
+  try {
+    const data = await createAdminProductAiDraft({
+      config: req.app.locals.config,
+      chatClient: req.app.locals.aiChatClient,
+      body: req.body
+    })
+    res.json(success(data))
   } catch (error) {
     next(error)
   }
