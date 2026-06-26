@@ -3,7 +3,7 @@ import express from 'express'
 import { loadEnv } from './config/env.js'
 import { createDatabase } from './db/index.js'
 import { migrate } from './db/migrate.js'
-import { seed } from './db/seed.js'
+import { ensureDemoCoupons, seed } from './db/seed.js'
 import { errorHandler } from './middleware/errorHandler.js'
 import { notFound } from './middleware/notFound.js'
 import { createAuthRouter } from './routes/auth.js'
@@ -24,6 +24,7 @@ function initializeDatabase(config, existingDatabase) {
   if (userCount === 0) {
     seed(db)
   }
+  ensureDemoCoupons(db)
 
   return db
 }

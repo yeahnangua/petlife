@@ -71,6 +71,78 @@ const userCoupons = [
   }
 ]
 
+export function ensureDemoCoupons(db) {
+  const insertCampaign = db.prepare(
+    `
+      INSERT OR IGNORE INTO coupon_campaigns (
+        id,
+        name,
+        description,
+        discount_amount,
+        min_order_amount,
+        total_limit,
+        issued_count,
+        status,
+        valid_from,
+        valid_to,
+        created_at,
+        updated_at
+      )
+      VALUES (
+        @id,
+        @name,
+        @description,
+        @discount_amount,
+        @min_order_amount,
+        @total_limit,
+        @issued_count,
+        @status,
+        @valid_from,
+        @valid_to,
+        @created_at,
+        @updated_at
+      )
+    `
+  )
+  const insertUserCoupon = db.prepare(
+    `
+      INSERT OR IGNORE INTO user_coupons (
+        id,
+        campaign_id,
+        user_id,
+        status,
+        issued_at,
+        used_at,
+        used_order_id,
+        created_at,
+        updated_at
+      )
+      VALUES (
+        @id,
+        @campaign_id,
+        @user_id,
+        @status,
+        @issued_at,
+        @used_at,
+        @used_order_id,
+        @created_at,
+        @updated_at
+      )
+    `
+  )
+
+  const transaction = db.transaction(() => {
+    couponCampaigns.forEach((campaign) => insertCampaign.run(campaign))
+    userCoupons.forEach((coupon) => {
+      if (db.prepare('SELECT 1 FROM users WHERE id = ?').get(coupon.user_id)) {
+        insertUserCoupon.run(coupon)
+      }
+    })
+  })
+
+  transaction()
+}
+
 const addresses = [
   {
     id: 'addr_001',
