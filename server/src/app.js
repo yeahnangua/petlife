@@ -4,6 +4,7 @@ import { loadEnv } from './config/env.js'
 import { createDatabase } from './db/index.js'
 import { migrate } from './db/migrate.js'
 import { ensureDemoCoupons, seed } from './db/seed.js'
+import { apiCache } from './middleware/apiCache.js'
 import { errorHandler } from './middleware/errorHandler.js'
 import { notFound } from './middleware/notFound.js'
 import { createAuthRouter } from './routes/auth.js'
@@ -44,6 +45,7 @@ export function createApp(overrides = {}) {
     overrides.wechatOfficialAccountClient ?? createWechatOfficialAccountClient(config)
 
   app.use(express.json())
+  app.use(apiCache)
   app.use('/uploads', express.static(config.uploadDir))
   app.use('/api/public', createPublicRouter())
   app.use('/api/auth', createAuthRouter())
