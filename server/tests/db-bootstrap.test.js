@@ -11,6 +11,7 @@ const expectedTables = [
   'bookings',
   'cart_items',
   'categories',
+  'coupon_campaigns',
   'order_items',
   'orders',
   'pets',
@@ -20,6 +21,8 @@ const expectedTables = [
   'services',
   'stores',
   'time_slots',
+  'user_coupons',
+  'user_sessions',
   'users'
 ]
 
@@ -40,6 +43,8 @@ function getSeedSnapshot(db) {
     serviceIds: db.prepare('SELECT id FROM services ORDER BY id').all().map((row) => row.id),
     storeIds: db.prepare('SELECT id FROM stores ORDER BY id').all().map((row) => row.id),
     slotIds: db.prepare('SELECT id FROM time_slots ORDER BY id').all().map((row) => row.id),
+    couponCampaignIds: db.prepare('SELECT id FROM coupon_campaigns ORDER BY id').all().map((row) => row.id),
+    userCouponIds: db.prepare('SELECT id FROM user_coupons ORDER BY id').all().map((row) => row.id),
     cartItemCount: db.prepare('SELECT COUNT(*) AS count FROM cart_items').get().count,
     orderIds: db.prepare('SELECT id FROM orders ORDER BY id').all().map((row) => row.id),
     bookingIds: db.prepare('SELECT id FROM bookings ORDER BY id').all().map((row) => row.id)
@@ -104,6 +109,8 @@ describe('database bootstrap', () => {
       serviceIds: ['s-001', 's-002'],
       storeIds: ['store-1', 'store-2'],
       slotIds: ['t-1', 't-2', 't-3'],
+      couponCampaignIds: ['coupon_cart_199_35'],
+      userCouponIds: ['uc_demo_001'],
       cartItemCount: 2,
       orderIds: ['order_001'],
       bookingIds: ['booking_001']

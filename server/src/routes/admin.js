@@ -12,6 +12,14 @@ import {
   updateCategory
 } from '../controllers/adminCategoryController.js'
 import {
+  createCouponCampaign,
+  issueCoupon,
+  listCouponCampaigns,
+  listIssuedCoupons,
+  updateCouponCampaign,
+  updateUserCoupon
+} from '../controllers/adminCouponController.js'
+import {
   getAdminOrder,
   listAdminOrders,
   updateAdminOrder
@@ -76,6 +84,13 @@ export function createAdminRouter() {
   router.post('/time-slots', createTimeSlot)
   router.put('/time-slots/:id', updateTimeSlot)
   router.delete('/time-slots/:id', deleteTimeSlot)
+
+  router.get('/coupon-campaigns', listCouponCampaigns)
+  router.post('/coupon-campaigns', createCouponCampaign)
+  router.put('/coupon-campaigns/:id', updateCouponCampaign)
+  router.post('/coupon-campaigns/:id/issue', issueCoupon)
+  router.get('/user-coupons', listIssuedCoupons)
+  router.put('/user-coupons/:id', updateUserCoupon)
 
   router.get('/orders', listAdminOrders)
   router.get('/orders/:id', getAdminOrder)

@@ -13,6 +13,7 @@ import {
 } from '../repositories/orderRepository.js'
 import { findAnyProductById, updateProductInventory } from '../repositories/productRepository.js'
 import { getCart } from './cartService.js'
+import { PRODUCT_ORDER_SHIPPING_FEE, getRedeemableCoupon, markCouponUsed } from './couponService.js'
 
 const ORDER_STATUS_LABELS = {
   pendingShipment: '待发货',
@@ -67,6 +68,12 @@ function mapOrder(db, row) {
     status: row.status,
     status_label: row.status_label,
     total_amount: row.total_amount,
+    subtotal_amount: row.subtotal_amount,
+    shipping_fee: row.shipping_fee,
+    discount_amount: row.discount_amount,
+    payable_amount: row.payable_amount,
+    coupon_id: row.coupon_id,
+    coupon_name_snapshot: row.coupon_name_snapshot,
     remark: row.remark,
     receiver_name_snapshot: row.receiver_name_snapshot,
     receiver_phone_snapshot: row.receiver_phone_snapshot,
@@ -160,13 +167,24 @@ export function createUserOrder(db, userId, payload) {
   const transaction = db.transaction(() => {
     const timestamp = now()
     const pendingOrderItems = buildOrderItems(db, selectedCartItems)
+    const subtotalAmount = pendingOrderItems.reduce((sum, item) => sum + item.orderItem.line_total, 0)
+    const coupon = getRedeemableCoupon(db, userId, payload.coupon_id, subtotalAmount)
+    const discountAmount = coupon ? Math.min(coupon.discount_amount, subtotalAmount) : 0
+    const productPayableAmount = Math.max(subtotalAmount - discountAmount, 0)
+    const shippingFee = subtotalAmount > 0 ? PRODUCT_ORDER_SHIPPING_FEE : 0
     const order = {
       id: `order_${randomUUID().slice(0, 8)}`,
       order_no: formatOrderNumber(),
       user_id: userId,
       status: 'pendingShipment',
       status_label: getStatusLabel('pendingShipment'),
-      total_amount: pendingOrderItems.reduce((sum, item) => sum + item.orderItem.line_total, 0),
+      total_amount: productPayableAmount,
+      subtotal_amount: subtotalAmount,
+      shipping_fee: shippingFee,
+      discount_amount: discountAmount,
+      payable_amount: productPayableAmount + shippingFee,
+      coupon_id: coupon?.id ?? '',
+      coupon_name_snapshot: coupon?.name ?? '',
       remark,
       receiver_name_snapshot: address.receiver_name,
       receiver_phone_snapshot: address.receiver_phone,
@@ -177,6 +195,9 @@ export function createUserOrder(db, userId, payload) {
     }
 
     createOrder(db, order)
+    if (coupon) {
+      markCouponUsed(db, coupon.id, order.id, timestamp)
+    }
 
     for (const item of pendingOrderItems) {
       createOrderItem(db, {

@@ -14,6 +14,28 @@ function loadMigrationSql() {
 
 export function migrate(db) {
   db.exec(loadMigrationSql())
+  ensureOrderPricingColumns(db)
+}
+
+function columnExists(db, tableName, columnName) {
+  return db.prepare(`PRAGMA table_info(${tableName})`).all().some((column) => column.name === columnName)
+}
+
+function addColumnIfMissing(db, tableName, columnName, definition) {
+  if (columnExists(db, tableName, columnName)) {
+    return
+  }
+
+  db.exec(`ALTER TABLE ${tableName} ADD COLUMN ${columnName} ${definition}`)
+}
+
+function ensureOrderPricingColumns(db) {
+  addColumnIfMissing(db, 'orders', 'subtotal_amount', 'INTEGER NOT NULL DEFAULT 0')
+  addColumnIfMissing(db, 'orders', 'shipping_fee', 'INTEGER NOT NULL DEFAULT 0')
+  addColumnIfMissing(db, 'orders', 'discount_amount', 'INTEGER NOT NULL DEFAULT 0')
+  addColumnIfMissing(db, 'orders', 'payable_amount', 'INTEGER NOT NULL DEFAULT 0')
+  addColumnIfMissing(db, 'orders', 'coupon_id', "TEXT NOT NULL DEFAULT ''")
+  addColumnIfMissing(db, 'orders', 'coupon_name_snapshot', "TEXT NOT NULL DEFAULT ''")
 }
 
 function runCli() {

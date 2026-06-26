@@ -27,6 +27,7 @@ import {
   findUserById,
   updateUser
 } from '../repositories/userRepository.js'
+import { getAvailableCouponCount } from './couponService.js'
 
 function now() {
   return new Date().toISOString().slice(0, 19).replace('T', ' ')
@@ -128,7 +129,7 @@ function mapProfile(db, userId, user) {
     member_level: user.member_level,
     points: user.points,
     join_date: user.created_at.slice(0, 7),
-    coupon_count: 0,
+    coupon_count: getAvailableCouponCount(db, userId),
     pet_count: listPetsByUserId(db, userId).length,
     stats: {
       order_count: countOrdersByUserId(db, userId),

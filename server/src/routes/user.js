@@ -15,6 +15,7 @@ import {
   removeCartItem,
   updateCartItem
 } from '../controllers/userCartController.js'
+import { listUserCouponsController } from '../controllers/userCouponController.js'
 import {
   cancelOrder,
   createOrder,
@@ -45,6 +46,7 @@ export function createUserRouter() {
   router.put('/cart/items/:id', updateCartItem)
   router.delete('/cart/items/:id', removeCartItem)
   router.delete('/cart/invalid-items', clearInvalidCartItems)
+  router.get('/coupons', listUserCouponsController)
   router.post('/orders', createOrder)
   router.get('/orders', listUserOrders)
   router.get('/orders/:id', getUserOrder)

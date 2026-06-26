@@ -40,6 +40,37 @@ const users = [
   }
 ]
 
+const couponCampaigns = [
+  {
+    id: 'coupon_cart_199_35',
+    name: '购物车唤醒券',
+    description: '满 199 减 35',
+    discount_amount: 35,
+    min_order_amount: 199,
+    total_limit: 1000,
+    issued_count: 1,
+    status: 'active',
+    valid_from: '2026-01-01 00:00:00',
+    valid_to: '2099-12-31 23:59:59',
+    created_at: timestamp,
+    updated_at: timestamp
+  }
+]
+
+const userCoupons = [
+  {
+    id: 'uc_demo_001',
+    campaign_id: 'coupon_cart_199_35',
+    user_id: 'u_demo_001',
+    status: 'available',
+    issued_at: timestamp,
+    used_at: '',
+    used_order_id: '',
+    created_at: timestamp,
+    updated_at: timestamp
+  }
+]
+
 const addresses = [
   {
     id: 'addr_001',
@@ -453,6 +484,9 @@ export function seed(db) {
     db.exec(`
       DELETE FROM order_items;
       DELETE FROM orders;
+      DELETE FROM user_coupons;
+      DELETE FROM coupon_campaigns;
+      DELETE FROM user_sessions;
       DELETE FROM bookings;
       DELETE FROM cart_items;
       DELETE FROM product_images;
@@ -468,6 +502,8 @@ export function seed(db) {
     `)
 
     insertRows(db, 'users', ['id', 'nickname', 'phone', 'avatar_url', 'member_level', 'points', 'created_at', 'updated_at'], users)
+    insertRows(db, 'coupon_campaigns', ['id', 'name', 'description', 'discount_amount', 'min_order_amount', 'total_limit', 'issued_count', 'status', 'valid_from', 'valid_to', 'created_at', 'updated_at'], couponCampaigns)
+    insertRows(db, 'user_coupons', ['id', 'campaign_id', 'user_id', 'status', 'issued_at', 'used_at', 'used_order_id', 'created_at', 'updated_at'], userCoupons)
     insertRows(db, 'addresses', ['id', 'user_id', 'receiver_name', 'receiver_phone', 'region', 'detail_address', 'tag', 'is_default', 'created_at', 'updated_at'], addresses)
     insertRows(db, 'pets', ['id', 'user_id', 'name', 'type', 'breed', 'gender', 'birthday', 'weight', 'neutered', 'allergies_json', 'preferences_json', 'avatar_url', 'color', 'created_at', 'updated_at'], pets)
     insertRows(db, 'categories', ['id', 'name', 'slug', 'pet_type', 'sort_order', 'cover_url', 'is_enabled', 'created_at', 'updated_at'], categories)
