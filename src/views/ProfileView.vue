@@ -4,9 +4,11 @@ import { useRouter } from 'vue-router'
 import EmptyState from '@/components/EmptyState.vue'
 import IconSvg from '@/components/IconSvg.vue'
 import SkeletonBlock from '@/components/SkeletonBlock.vue'
+import { useAuthStore } from '@/stores/auth'
 import { useProfileStore } from '@/stores/profile'
 
 const router = useRouter()
+const authStore = useAuthStore()
 const profileStore = useProfileStore()
 
 onMounted(async () => {
@@ -28,6 +30,14 @@ const functions = [
   { label: '收货地址', icon: 'location', to: '/addresses' },
   { label: '编辑资料', icon: 'edit', to: { path: '/profile/edit', query: { redirect: '/profile' } } }
 ]
+
+async function handleLogout() {
+  try {
+    await authStore.logout()
+  } finally {
+    router.replace('/login')
+  }
+}
 </script>
 
 <template>
@@ -136,6 +146,16 @@ const functions = [
           >
             <IconSvg :name="item.icon" :size="17" :stroke="1.7" class="me__function-icon" />
             <span>{{ item.label }}</span>
+            <IconSvg name="arrow-right" :size="14" :stroke="2" class="me__function-arrow" />
+          </button>
+          <button
+            type="button"
+            class="me__function me__function--logout"
+            data-test="profile-logout"
+            @click="handleLogout"
+          >
+            <IconSvg name="logout" :size="17" :stroke="1.7" class="me__function-icon" />
+            <span>退出登录</span>
             <IconSvg name="arrow-right" :size="14" :stroke="2" class="me__function-arrow" />
           </button>
         </section>
@@ -431,6 +451,14 @@ const functions = [
 
 .me__function-icon {
   color: var(--color-primary);
+}
+
+.me__function--logout {
+  color: var(--color-danger);
+}
+
+.me__function--logout .me__function-icon {
+  color: var(--color-danger);
 }
 
 .me__function span {

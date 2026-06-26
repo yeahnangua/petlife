@@ -6,6 +6,7 @@ import App from '@/App.vue'
 import { createMobileRouter } from '@/router'
 import { MOBILE_TOKEN_STORAGE, useAuthStore } from '@/stores/auth'
 import LoginView from '@/views/LoginView.vue'
+import ProfileView from '@/views/ProfileView.vue'
 
 function createJsonResponse(body, init = {}) {
   return new Response(JSON.stringify(body), {
@@ -208,5 +209,70 @@ describe('mobile auth', () => {
     await expect(request('/api/user/profile')).rejects.toThrow('unauthorized')
     expect(window.localStorage.getItem(MOBILE_TOKEN_STORAGE)).toBeNull()
     expect(authStore.isAuthenticated).toBe(false)
+  })
+
+  it('logs out from the profile page and returns to login', async () => {
+    fetchMock
+      .mockResolvedValueOnce(createJsonResponse(createOkEnvelope({
+        profile: {
+          id: 'u_demo_001',
+          nickname: '拾柒',
+          avatar_url: 'https://example.com/avatar.jpg',
+          phone: '13800000000',
+          member_level: '微信会员',
+          join_date: '2026-06',
+          points: 120,
+          coupon_count: 1,
+          stats: {
+            order_count: 2,
+            service_count: 1,
+            saved_amount: 35
+          }
+        }
+      })))
+      .mockResolvedValueOnce(createJsonResponse(createOkEnvelope({ list: [] })))
+      .mockResolvedValueOnce(createJsonResponse(createOkEnvelope({ ok: true })))
+
+    const pinia = createPinia()
+    setActivePinia(pinia)
+    const authStore = useAuthStore()
+    authStore.setSession({
+      token: 'demo-session-token',
+      user: { id: 'u_demo_001', nickname: '拾柒' }
+    })
+    const router = createMobileRouter(pinia, [
+      { path: '/login', component: LoginView, meta: { public: true, hideShell: true, title: '登录' } },
+      { path: '/', component: { template: '<section>home</section>' }, meta: { tab: 'home', title: '首页' } },
+      { path: '/category', component: { template: '<section>category</section>' }, meta: { tab: 'category', title: '分类' } },
+      { path: '/service', component: { template: '<section>service</section>' }, meta: { tab: 'service', title: '服务' } },
+      { path: '/orders', component: { template: '<section>orders</section>' }, meta: { tab: 'orders', title: '订单' } },
+      { path: '/profile', component: ProfileView, meta: { tab: 'profile', title: '我的' } }
+    ])
+    router.push('/profile')
+    await router.isReady()
+    const replaceSpy = vi.spyOn(router, 'replace')
+
+    const wrapper = mount(App, {
+      global: {
+        plugins: [pinia, router]
+      }
+    })
+    await flushPromises()
+
+    await wrapper.get('[data-test="profile-logout"]').trigger('click')
+    await flushPromises()
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/auth/logout',
+      expect.objectContaining({
+        method: 'POST',
+        headers: expect.objectContaining({
+          Authorization: 'Bearer demo-session-token'
+        })
+      })
+    )
+    expect(window.localStorage.getItem(MOBILE_TOKEN_STORAGE)).toBeNull()
+    expect(authStore.isAuthenticated).toBe(false)
+    expect(replaceSpy).toHaveBeenCalledWith('/login')
   })
 })
