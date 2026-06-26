@@ -16,6 +16,10 @@ export function mergeEnvSources(startupEnv = {}, projectEnv = {}) {
   }
 }
 
+function decodeEscapedNewlines(value) {
+  return String(value ?? '').replaceAll('\\n', '\n')
+}
+
 export function loadEnv(overrides = {}) {
   const env = mergeEnvSources(process.env)
 
@@ -47,10 +51,12 @@ export function loadEnv(overrides = {}) {
       env.WECHAT_OA_TOKEN ??
       '',
     wechatOfficialAccountWelcomeMessage:
-      overrides.wechatOfficialAccountWelcomeMessage ??
-      env.WECHAT_OFFICIAL_ACCOUNT_WELCOME_MESSAGE ??
-      env.WECHAT_OA_WELCOME_MESSAGE ??
-      '欢迎关注 PetLife，点击菜单可进入商城。',
+      decodeEscapedNewlines(
+        overrides.wechatOfficialAccountWelcomeMessage ??
+        env.WECHAT_OFFICIAL_ACCOUNT_WELCOME_MESSAGE ??
+        env.WECHAT_OA_WELCOME_MESSAGE ??
+        '欢迎关注 PetLife，点击菜单可进入商城。'
+      ),
     aiApiKey:
       overrides.aiApiKey ??
       env.DEEPSEEK_API_KEY ??

@@ -89,6 +89,35 @@ describe('WeChat official account event callback', () => {
     expect(response.text).toContain('<Content><![CDATA[欢迎关注 PetLife，点击菜单可进入商城。]]></Content>')
   })
 
+  it('converts escaped newline characters in the configured welcome message', async () => {
+    const { app } = createSeededApp(cleanups, {
+      wechatOfficialAccountWelcomeMessage: '欢迎关注 PetLife\\nhttps://petlife.20050129.xyz'
+    })
+    const timestamp = '1780000002'
+    const nonce = 'nonce-003'
+    const signature = sign({ token: 'wechat-event-token', timestamp, nonce })
+    const eventXml = `
+      <xml>
+        <ToUserName><![CDATA[gh_petlife_test]]></ToUserName>
+        <FromUserName><![CDATA[openid_user_001]]></FromUserName>
+        <CreateTime>1780000002</CreateTime>
+        <MsgType><![CDATA[event]]></MsgType>
+        <Event><![CDATA[subscribe]]></Event>
+      </xml>
+    `
+
+    const response = await request(app)
+      .post('/api/wechat/events')
+      .query({ signature, timestamp, nonce })
+      .set('Content-Type', 'text/xml')
+      .send(eventXml)
+
+    expect(response.status).toBe(200)
+    expect(response.text).toContain(
+      '<Content><![CDATA[欢迎关注 PetLife\nhttps://petlife.20050129.xyz]]></Content>'
+    )
+  })
+
   it('rejects callbacks with an invalid signature', async () => {
     const { app } = createSeededApp(cleanups)
 
