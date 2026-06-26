@@ -204,7 +204,25 @@ onMounted(() => {
               <span class="oconfirm__coupon-amount">-{{ formatCurrency(coupon.amount) }}</span>
             </label>
           </div>
-          <p v-else class="oconfirm__coupon-empty">暂无可用优惠券</p>
+          <div v-if="couponStore.checkoutUnavailableCoupons.length" class="oconfirm__coupons oconfirm__coupons--muted">
+            <article
+              v-for="coupon in couponStore.checkoutUnavailableCoupons"
+              :key="coupon.id"
+              class="oconfirm__coupon oconfirm__coupon--disabled"
+            >
+              <span class="oconfirm__coupon-main">
+                <strong>{{ coupon.name }}</strong>
+                <small>{{ coupon.unavailableReason || `满 ${coupon.minOrderAmount} 可用` }}</small>
+              </span>
+              <span class="oconfirm__coupon-amount">-{{ formatCurrency(coupon.amount) }}</span>
+            </article>
+          </div>
+          <p
+            v-if="!couponStore.availableCoupons.length && !couponStore.checkoutUnavailableCoupons.length"
+            class="oconfirm__coupon-empty"
+          >
+            暂无可用优惠券
+          </p>
         </section>
 
         <!-- 金额明细 -->
@@ -474,6 +492,10 @@ onMounted(() => {
   gap: var(--space-2);
 }
 
+.oconfirm__coupons--muted {
+  margin-top: var(--space-2);
+}
+
 .oconfirm__coupon {
   display: grid;
   grid-template-columns: 1fr auto;
@@ -490,6 +512,11 @@ onMounted(() => {
 .oconfirm__coupon--active {
   border-color: var(--color-coral);
   background: var(--color-coral-soft);
+}
+
+.oconfirm__coupon--disabled {
+  cursor: default;
+  opacity: 0.62;
 }
 
 .oconfirm__coupon-main {

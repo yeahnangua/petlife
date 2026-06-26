@@ -8,8 +8,10 @@ import { useCouponStore } from '@/stores/coupons'
 
 const couponStore = useCouponStore()
 
-const availableCoupons = computed(() => couponStore.items.filter((coupon) => coupon.available))
-const unavailableCoupons = computed(() => couponStore.items.filter((coupon) => !coupon.available))
+const visibleCoupons = computed(() => [
+  ...couponStore.accountAvailableCoupons,
+  ...couponStore.usedCoupons
+])
 
 function formatDate(value) {
   return String(value || '').slice(0, 10)
@@ -41,9 +43,9 @@ onMounted(() => {
       @action="couponStore.fetchCoupons()"
     />
 
-    <template v-else-if="couponStore.items.length">
-      <section v-if="availableCoupons.length" class="coupons__stack">
-        <article v-for="coupon in availableCoupons" :key="coupon.id" class="coupons__item surface-card">
+    <template v-else-if="visibleCoupons.length">
+      <section v-if="couponStore.accountAvailableCoupons.length" class="coupons__stack">
+        <article v-for="coupon in couponStore.accountAvailableCoupons" :key="coupon.id" class="coupons__item surface-card">
           <div class="coupons__amount">
             <small>¥</small>
             <strong>{{ coupon.amount }}</strong>
@@ -57,9 +59,9 @@ onMounted(() => {
         </article>
       </section>
 
-      <section v-if="unavailableCoupons.length" class="coupons__stack coupons__stack--muted">
-        <h2 class="coupons__section-title">不可用</h2>
-        <article v-for="coupon in unavailableCoupons" :key="coupon.id" class="coupons__item coupons__item--muted surface-card">
+      <section v-if="couponStore.usedCoupons.length" class="coupons__stack coupons__stack--muted">
+        <h2 class="coupons__section-title">已使用</h2>
+        <article v-for="coupon in couponStore.usedCoupons" :key="coupon.id" class="coupons__item coupons__item--muted surface-card">
           <div class="coupons__amount">
             <small>¥</small>
             <strong>{{ coupon.amount }}</strong>
@@ -67,7 +69,7 @@ onMounted(() => {
           <div class="coupons__body">
             <h2>{{ coupon.name }}</h2>
             <p>{{ coupon.description }}</p>
-            <span>{{ coupon.unavailableReason || '不可用' }}</span>
+            <span>已使用 · 有效期至 {{ formatDate(coupon.validTo) }}</span>
           </div>
         </article>
       </section>

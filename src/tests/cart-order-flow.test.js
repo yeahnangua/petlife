@@ -288,6 +288,17 @@ describe('cart and order flow', () => {
           status: 'available',
           available: true,
           unavailable_reason: ''
+        },
+        {
+          id: 'uc_high_threshold_001',
+          campaign_id: 'coupon_cart_399_50',
+          name: '大额护理券',
+          description: '满 399 减 50',
+          discount_amount: 50,
+          min_order_amount: 399,
+          status: 'available',
+          available: false,
+          unavailable_reason: 'coupon threshold is not met'
         }
       ]
     })
@@ -313,6 +324,9 @@ describe('cart and order flow', () => {
 
     await flushPromises()
     expect(wrapper.text()).toContain('购物车唤醒券')
+    expect(wrapper.text()).toContain('大额护理券')
+    expect(wrapper.text()).toContain('订单金额未满足使用门槛')
+    expect(wrapper.text()).not.toContain('coupon threshold is not met')
     expect(wrapper.text()).toContain('优惠抵扣')
     expect(wrapper.text()).toContain('¥225')
 

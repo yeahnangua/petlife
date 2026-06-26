@@ -35,8 +35,8 @@ describe('coupon list view', () => {
           discount_amount: 35,
           min_order_amount: 199,
           status: 'available',
-          available: true,
-          unavailable_reason: '',
+          available: false,
+          unavailable_reason: 'coupon threshold is not met',
           valid_to: '2099-12-31 23:59:59'
         },
         {
@@ -47,6 +47,18 @@ describe('coupon list view', () => {
           discount_amount: 10,
           min_order_amount: 99,
           status: 'used',
+          available: false,
+          unavailable_reason: 'coupon is unavailable',
+          valid_to: '2026-01-31 23:59:59'
+        },
+        {
+          id: 'uc_disabled_001',
+          campaign_id: 'coupon_disabled',
+          name: '停用券',
+          description: '不可用',
+          discount_amount: 5,
+          min_order_amount: 59,
+          status: 'disabled',
           available: false,
           unavailable_reason: 'coupon is unavailable',
           valid_to: '2026-01-31 23:59:59'
@@ -71,7 +83,11 @@ describe('coupon list view', () => {
     expect(wrapper.text()).toContain('购物车唤醒券')
     expect(wrapper.text()).toContain('¥35')
     expect(wrapper.text()).toContain('满 199 可用')
+    expect(wrapper.text()).toContain('已使用')
     expect(wrapper.text()).toContain('旧券')
-    expect(wrapper.text()).toContain('不可用')
+    expect(wrapper.text()).not.toContain('不可用')
+    expect(wrapper.text()).not.toContain('停用券')
+    expect(wrapper.text()).not.toContain('coupon threshold is not met')
+    expect(wrapper.text()).not.toContain('coupon is unavailable')
   })
 })
