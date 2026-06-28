@@ -5,7 +5,6 @@ import BottomSheet from '@/components/BottomSheet.vue'
 import EmptyState from '@/components/EmptyState.vue'
 import IconSvg from '@/components/IconSvg.vue'
 import PriceText from '@/components/PriceText.vue'
-import { products } from '@/mocks'
 import { buildProductImageSimilarities, recognizeImageElement } from '@/lib/imageRecognition'
 import {
   loadVisualSearchHistory,
@@ -15,8 +14,10 @@ import {
   toggleVisualSearchFavorite,
   upsertVisualSearchHistory
 } from '@/lib/visualSearch'
+import { useCatalogStore } from '@/stores/catalog'
 
 const router = useRouter()
+const catalogStore = useCatalogStore()
 
 const searchKeyword = ref('')
 const visualSearchStatus = ref('idle')
@@ -46,6 +47,7 @@ const statusTitle = computed(() => {
 
 onMounted(() => {
   history.value = loadVisualSearchHistory()
+  catalogStore.fetchVisualSearchProducts()
 })
 
 onBeforeUnmount(() => {
@@ -73,15 +75,38 @@ function chooseAlbum() {
   }
 }
 
-function useDemoImage() {
+async function ensureVisualSearchProducts({ force = false } = {}) {
+  if (catalogStore.visualSearchProducts.length && !force) {
+    return catalogStore.visualSearchProducts
+  }
+
+  const loadedProducts = await catalogStore.fetchVisualSearchProducts({ force })
+  const products = loadedProducts.length ? loadedProducts : catalogStore.visualSearchProducts
+
+  if (!products.length) {
+    throw new Error(catalogStore.error.visualSearch || '商品目录加载失败，请稍后重试。')
+  }
+
+  return products
+}
+
+async function useDemoImage() {
   showActionSheet.value = false
   revokePreview()
   selectedPetType.value = 'cat'
   selectedImageName.value = 'cat-food-package.jpg'
   recognitionResult.value = null
   recognitionError.value = ''
-  previewUrl.value = products[0]?.cover || ''
-  visualSearchStatus.value = 'preview'
+
+  try {
+    const products = await ensureVisualSearchProducts()
+    previewUrl.value = products[0]?.cover || ''
+    visualSearchStatus.value = previewUrl.value ? 'preview' : 'empty'
+  } catch (error) {
+    previewUrl.value = ''
+    recognitionError.value = error instanceof Error ? error.message : '商品目录加载失败，请稍后重试。'
+    visualSearchStatus.value = 'error'
+  }
 }
 
 function openHistory() {
@@ -117,6 +142,7 @@ async function confirmVisualSearch() {
     const recognition = await recognizeImageElement(previewImageRef.value)
     recognitionResult.value = recognition
     selectedPetType.value = recognition.petType || selectedPetType.value
+    const products = await ensureVisualSearchProducts({ force: true })
     const imageSimilarities = await buildProductImageSimilarities(products, recognition.embedding || [])
 
     const rankedMatches = rankVisualSearchMatches({

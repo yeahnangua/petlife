@@ -159,6 +159,46 @@ describe('catalog integration', () => {
     })
   })
 
+  it('loads visual search product candidates from the public catalog', async () => {
+    publicApi.getProducts.mockResolvedValue({
+      list: [
+        {
+          id: 'p-visual',
+          category_id: 'cat-food',
+          category_slug: 'food',
+          title: '后台更新主图商品',
+          subtitle: '用于以图搜商品',
+          pet_type: 'cat',
+          price: 268,
+          member_price: 248,
+          original_price: 298,
+          stock_status: 'inStock',
+          badge: '热卖',
+          tags: ['低敏'],
+          specs: [],
+          summary: [],
+          suitable_text: '适合成猫',
+          cover_url: '/uploads/2026/04/product-updated.png',
+          rating: 4.9,
+          review_count: 1283,
+          sold_count: 12800
+        }
+      ],
+      pagination: { page: 1, pageSize: 100, total: 1, totalPages: 1 }
+    })
+
+    const store = useCatalogStore()
+    await store.fetchVisualSearchProducts()
+
+    expect(publicApi.getProducts).toHaveBeenCalledWith({ page: 1, pageSize: 100 })
+    expect(store.visualSearchProducts).toEqual([
+      expect.objectContaining({
+        id: 'p-visual',
+        cover: '/uploads/2026/04/product-updated.png'
+      })
+    ])
+  })
+
   it('loads product detail with images and specs intact', async () => {
     publicApi.getProductDetail.mockResolvedValue({
       item: {

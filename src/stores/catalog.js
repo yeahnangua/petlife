@@ -53,6 +53,7 @@ function createLoadingState() {
   return {
     home: false,
     products: false,
+    visualSearch: false,
     productDetail: false,
     services: false,
     serviceDetail: false,
@@ -64,6 +65,7 @@ function createErrorState() {
   return {
     home: '',
     products: '',
+    visualSearch: '',
     productDetail: '',
     services: '',
     serviceDetail: '',
@@ -134,6 +136,7 @@ export const useCatalogStore = defineStore('catalog', {
     homeProducts: [],
     homeServices: [],
     productList: [],
+    visualSearchProducts: [],
     productPagination: createPagination({ pageSize: 6 }),
     productFilters: createProductFilters(),
     currentProduct: null,
@@ -228,6 +231,29 @@ export const useCatalogStore = defineStore('catalog', {
       } finally {
         this.loading.products = false
       }
+    },
+
+    async fetchVisualSearchProducts({ force = false } = {}) {
+      if (this.visualSearchProducts.length > 0 && !force) {
+        return this.visualSearchProducts
+      }
+
+      this.loading.visualSearch = true
+      this.error.visualSearch = ''
+
+      try {
+        const data = await getProducts({ page: 1, pageSize: 100 })
+        this.visualSearchProducts = (data.list || []).map(adaptProduct)
+      } catch (error) {
+        this.error.visualSearch = getErrorMessage(error)
+        if (!this.visualSearchProducts.length) {
+          this.visualSearchProducts = []
+        }
+      } finally {
+        this.loading.visualSearch = false
+      }
+
+      return this.visualSearchProducts
     },
 
     async fetchProductDetail(id) {
