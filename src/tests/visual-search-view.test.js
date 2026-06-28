@@ -206,6 +206,7 @@ describe('SearchView visual search flow', () => {
     await wrapper.vm.$nextTick()
 
     expect(wrapper.text()).toContain('AI正在分析')
+    expect(wrapper.find('.search__ai-spinner').exists()).toBe(true)
     expect(wrapper.text()).toContain('图片相似度 94%')
     expect(wrapper.text()).not.toContain('AI相似度 96%')
     expect(wrapper.find('.search__card h3').text()).toBe('鲜肉全价猫粮')
@@ -221,6 +222,7 @@ describe('SearchView visual search flow', () => {
     await wrapper.vm.$nextTick()
 
     expect(wrapper.text()).not.toContain('AI正在分析')
+    expect(wrapper.find('.search__ai-spinner').exists()).toBe(false)
     expect(wrapper.text()).toContain('AI相似度 100%')
     expect(wrapper.text()).toContain('逗猫玩具')
     expect(wrapper.text()).not.toContain('识别标签和逗猫玩具高度相关')

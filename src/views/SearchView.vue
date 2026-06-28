@@ -400,7 +400,10 @@ function formatTime(value) {
           <div class="search__tags">
             <span v-for="label in labels" :key="label">{{ label }}</span>
           </div>
-          <p v-if="aiSimilarityStatus === 'analyzing'" class="search__ai-warning">AI正在分析，稍后会按 AI 相似度重新排序。</p>
+          <p v-if="aiSimilarityStatus === 'analyzing'" class="search__ai-warning">
+            <span class="search__ai-spinner" aria-hidden="true" />
+            <span>AI正在分析，稍后会按 AI 相似度重新排序。</span>
+          </p>
           <p v-else-if="aiSimilarityError" class="search__ai-warning">{{ aiSimilarityError }}</p>
         </div>
       </header>
@@ -718,10 +721,29 @@ function formatTime(value) {
 }
 
 .search__result-head .search__ai-warning {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   margin: var(--space-2) 0 0;
   color: var(--color-text-soft);
   font-size: var(--text-2xs);
   line-height: var(--leading-snug);
+}
+
+.search__ai-spinner {
+  width: 12px;
+  height: 12px;
+  flex: 0 0 auto;
+  border: 2px solid color-mix(in srgb, var(--color-primary) 24%, transparent);
+  border-top-color: var(--color-primary);
+  border-radius: 50%;
+  animation: search-ai-spin 0.75s linear infinite;
+}
+
+@keyframes search-ai-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .search__grid {
