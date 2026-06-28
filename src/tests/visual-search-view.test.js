@@ -72,6 +72,21 @@ const defaultCatalogProducts = [
   }
 ]
 
+function createDeferred() {
+  let resolve
+  let reject
+  const promise = new Promise((innerResolve, innerReject) => {
+    resolve = innerResolve
+    reject = innerReject
+  })
+
+  return { promise, resolve, reject }
+}
+
+async function flushPending() {
+  await new Promise((resolve) => setTimeout(resolve, 0))
+}
+
 async function mountSearchView({ catalogProducts = defaultCatalogProducts } = {}) {
   const pinia = createPinia()
   setActivePinia(pinia)
@@ -151,7 +166,68 @@ describe('SearchView visual search flow', () => {
     })
     expect(wrapper.text()).toContain('找到')
     expect(wrapper.text()).toContain('主粮包装')
+    expect(wrapper.find('.search__score-breakdown').exists()).toBe(true)
+    expect(wrapper.text()).toContain('AI相似度 96%')
+    expect(wrapper.text()).toContain('图片相似度 94%')
     expect(wrapper.text()).not.toContain('tabby cat')
+
+    wrapper.unmount()
+  })
+
+  it('shows a visible fallback notice when AI similarity scoring fails', async () => {
+    vi.mocked(scoreVisualSearchProducts).mockRejectedValueOnce(new Error('AI service request timed out'))
+    const wrapper = await mountSearchView()
+
+    await wrapper.findAll('button').find((button) => button.text() === '使用示例图').trigger('click')
+    await wrapper.vm.$nextTick()
+    await wrapper.findAll('button').find((button) => button.text() === '确认识别').trigger('click')
+    await new Promise((resolve) => setTimeout(resolve, 0))
+    await wrapper.vm.$nextTick()
+
+    expect(wrapper.text()).toContain('AI相似度暂不可用')
+    expect(wrapper.text()).toContain('图片相似度 94%')
+
+    wrapper.unmount()
+  })
+
+  it('shows image matches first and reranks when AI similarity returns', async () => {
+    const aiResult = createDeferred()
+    vi.mocked(scoreVisualSearchProducts).mockReturnValueOnce(aiResult.promise)
+    vi.mocked(buildProductImageSimilarities).mockResolvedValueOnce({
+      'p-001': 94,
+      'p-004': 30
+    })
+    const wrapper = await mountSearchView()
+
+    await wrapper.findAll('button').find((button) => button.text() === '使用示例图').trigger('click')
+    await wrapper.vm.$nextTick()
+    await wrapper.findAll('button').find((button) => button.text() === '确认识别').trigger('click')
+    await flushPending()
+    await wrapper.vm.$nextTick()
+
+    expect(wrapper.text()).toContain('AI正在分析')
+    expect(wrapper.text()).toContain('图片相似度 94%')
+    expect(wrapper.text()).not.toContain('AI相似度 96%')
+    expect(wrapper.find('.search__card h3').text()).toBe('鲜肉全价猫粮')
+
+    aiResult.resolve({
+      aiSimilarities: {
+        'p-001': 10,
+        'p-004': 100
+      },
+      reasons: {
+        'p-001': '语义相关性较低',
+        'p-004': '识别标签和逗猫玩具高度相关'
+      },
+      labels: ['逗猫玩具']
+    })
+    await flushPending()
+    await wrapper.vm.$nextTick()
+
+    expect(wrapper.text()).not.toContain('AI正在分析')
+    expect(wrapper.text()).toContain('AI相似度 100%')
+    expect(wrapper.text()).toContain('逗猫玩具')
+    expect(wrapper.find('.search__card h3').text()).toBe('羽毛逗猫棒套装')
 
     wrapper.unmount()
   })

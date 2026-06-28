@@ -5,11 +5,29 @@ const MAX_PRODUCTS = 120
 const MAX_TEXT_LENGTH = 240
 const MAX_REASON_LENGTH = 160
 
+const categoryLabelMap = {
+  food: '主粮',
+  snack: '零食',
+  litter: '猫砂',
+  toy: '玩具',
+  clean: '洗护',
+  travel: '出行',
+  care: '保健',
+  home: '居家'
+}
+
+const petTypeLabelMap = {
+  cat: '猫咪',
+  dog: '狗狗',
+  all: '猫犬通用'
+}
+
 const SYSTEM_PROMPT = [
   '你是 PetLife 宠物商城的以图搜商品相似度评估器。',
   '根据图片识别标签和商品目录，判断每个商品与查询图片的语义相似度。',
   '重点比较商品标题、副标题、后台标签、分类和适用宠物，不要只做字面匹配。',
   '必须用中文输出展示标签和原因。',
+  '不要在输出中保留英文识别标签、英文关键词或内部枚举值，需要先翻译成中文。',
   '你必须输出 JSON 对象，不要输出 Markdown 或额外解释。'
 ].join('\n')
 
@@ -49,6 +67,16 @@ function clampScore(value) {
   const number = Number(value)
   if (!Number.isFinite(number)) return null
   return Math.max(0, Math.min(100, Math.round(number)))
+}
+
+function translateCategory(value) {
+  const category = trimText(value, 80)
+  return categoryLabelMap[category] || category
+}
+
+function translatePetType(value) {
+  const petType = trimText(value, 40)
+  return petTypeLabelMap[petType] || petType
 }
 
 function normalizeRecognition(value = {}) {
@@ -91,6 +119,21 @@ function normalizeProducts(value) {
   return [...productsById.values()].slice(0, MAX_PRODUCTS)
 }
 
+function toPromptRecognition(recognition) {
+  return {
+    ...recognition,
+    categoryHints: recognition.categoryHints.map(translateCategory)
+  }
+}
+
+function toPromptProduct(product) {
+  return {
+    ...product,
+    category: translateCategory(product.category),
+    petType: translatePetType(product.petType)
+  }
+}
+
 function buildMessages({ recognition, products }) {
   return [
     { role: 'system', content: SYSTEM_PROMPT },
@@ -98,9 +141,9 @@ function buildMessages({ recognition, products }) {
       role: 'system',
       content: [
         '图片识别结果如下：',
-        JSON.stringify(recognition),
+        JSON.stringify(toPromptRecognition(recognition)),
         '候选商品目录如下：',
-        JSON.stringify(products)
+        JSON.stringify(products.map(toPromptProduct))
       ].join('\n')
     },
     { role: 'system', content: OUTPUT_PROMPT }

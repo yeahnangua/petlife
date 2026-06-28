@@ -5,6 +5,7 @@ import { AppError } from '../utils/appError.js'
 const MAX_HISTORY_MESSAGES = 12
 const MAX_MESSAGE_LENGTH = 1200
 const MAX_RECOMMENDATIONS = 2
+const MAX_AI_REQUEST_ATTEMPTS = 2
 
 const SYSTEM_PROMPT = [
   '你是 PetLife 宠物生活馆的售前咨询助手。',
@@ -201,61 +202,81 @@ function resolveRecommendations(db, structured) {
     .map(mapRecommendation)
 }
 
+function isRetriableAiError(error) {
+  return error instanceof AppError && [50200, 50201, 50400].includes(error.code)
+}
+
+async function requestChatCompletionOnce(config, payload) {
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), config.aiTimeoutMs)
+
+  try {
+    const response = await fetch(`${normalizeBaseUrl(config.aiBaseUrl)}/chat/completions`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${config.aiApiKey}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        model: payload.model,
+        messages: payload.messages,
+        stream: false,
+        temperature: 0.35,
+        max_tokens: 900,
+        response_format: payload.responseFormat
+      }),
+      signal: controller.signal
+    })
+    const data = await parseJsonResponse(response)
+
+    if (!response.ok) {
+      throw new AppError(502, 50200, data?.message || 'AI service request failed')
+    }
+
+    const content = data?.choices?.[0]?.message?.content?.trim()
+    if (!content) {
+      throw new AppError(502, 50201, 'AI service returned empty response')
+    }
+
+    return {
+      content,
+      model: data.model,
+      usage: data.usage ?? null
+    }
+  } catch (error) {
+    if (error instanceof AppError) {
+      throw error
+    }
+
+    if (error?.name === 'AbortError') {
+      throw new AppError(504, 50400, 'AI service request timed out')
+    }
+
+    throw new AppError(502, 50200, 'AI service request failed')
+  } finally {
+    clearTimeout(timeout)
+  }
+}
+
 export function createSiliconFlowChatClient(config) {
   return async function requestChatCompletion(payload) {
     if (!config.aiApiKey) {
       throw new AppError(500, 50010, 'AI service is not configured')
     }
 
-    const controller = new AbortController()
-    const timeout = setTimeout(() => controller.abort(), config.aiTimeoutMs)
-
-    try {
-      const response = await fetch(`${normalizeBaseUrl(config.aiBaseUrl)}/chat/completions`, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${config.aiApiKey}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          model: payload.model,
-          messages: payload.messages,
-          stream: false,
-          temperature: 0.35,
-          max_tokens: 900,
-          response_format: payload.responseFormat
-        }),
-        signal: controller.signal
-      })
-      const data = await parseJsonResponse(response)
-
-      if (!response.ok) {
-        throw new AppError(502, 50200, data?.message || 'AI service request failed')
+    let lastError = null
+    for (let attempt = 1; attempt <= MAX_AI_REQUEST_ATTEMPTS; attempt += 1) {
+      try {
+        return await requestChatCompletionOnce(config, payload)
+      } catch (error) {
+        lastError = error
+        if (attempt === MAX_AI_REQUEST_ATTEMPTS || !isRetriableAiError(error)) {
+          throw error
+        }
       }
-
-      const content = data?.choices?.[0]?.message?.content?.trim()
-      if (!content) {
-        throw new AppError(502, 50201, 'AI service returned empty response')
-      }
-
-      return {
-        content,
-        model: data.model,
-        usage: data.usage ?? null
-      }
-    } catch (error) {
-      if (error instanceof AppError) {
-        throw error
-      }
-
-      if (error?.name === 'AbortError') {
-        throw new AppError(504, 50400, 'AI service request timed out')
-      }
-
-      throw new AppError(502, 50200, 'AI service request failed')
-    } finally {
-      clearTimeout(timeout)
     }
+
+    throw lastError
   }
 }
 

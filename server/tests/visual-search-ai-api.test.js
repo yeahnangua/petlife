@@ -57,7 +57,8 @@ describe('public visual search AI similarity api', () => {
       .send({
         recognition: {
           labels: ['tabby cat', 'packet package'],
-          keywords: ['tabby', 'cat', 'packet', 'package']
+          keywords: ['tabby', 'cat', 'packet', 'package'],
+          categoryHints: ['food', 'clean']
         },
         products: [
           {
@@ -104,5 +105,9 @@ describe('public visual search AI similarity api', () => {
     expect(promptText).toContain('低敏冷鲜配方')
     expect(promptText).toContain('猫粮')
     expect(promptText).toContain('主粮')
+    expect(promptText).toContain('"categoryHints":["主粮","洗护"]')
+    expect(promptText).toContain('"category":"主粮"')
+    expect(promptText).not.toContain('"categoryHints":["food","clean"]')
+    expect(promptText).not.toContain('"category":"food"')
   })
 })

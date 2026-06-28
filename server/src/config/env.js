@@ -77,6 +77,6 @@ export function loadEnv(overrides = {}) {
       env.DEEPSEEK_BASE_URL ??
       env.OPENAI_BASE_URL ??
       'https://api.siliconflow.cn/v1',
-    aiTimeoutMs: Number(overrides.aiTimeoutMs ?? env.AI_TIMEOUT_MS ?? 30000)
+    aiTimeoutMs: Number(overrides.aiTimeoutMs ?? env.AI_TIMEOUT_MS ?? 60000)
   }
 }

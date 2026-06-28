@@ -31,8 +31,11 @@ const selectedImageName = ref('cat-food-package.jpg')
 const selectedPetType = ref('cat')
 const recognitionResult = ref(null)
 const recognitionError = ref('')
+const aiSimilarityStatus = ref('idle')
+const aiSimilarityError = ref('')
 const matches = ref([])
 const history = ref([])
+const activeVisualSearchId = ref(0)
 
 const labels = computed(() => {
   if (!matches.value.length) return ['宠物用品', '相似商品']
@@ -52,6 +55,7 @@ onMounted(() => {
 })
 
 onBeforeUnmount(() => {
+  activeVisualSearchId.value += 1
   revokePreview()
 })
 
@@ -98,6 +102,9 @@ async function useDemoImage() {
   selectedImageName.value = 'cat-food-package.jpg'
   recognitionResult.value = null
   recognitionError.value = ''
+  aiSimilarityStatus.value = 'idle'
+  aiSimilarityError.value = ''
+  activeVisualSearchId.value += 1
 
   try {
     const products = await ensureVisualSearchProducts()
@@ -126,6 +133,42 @@ function toVisualSearchCandidate(product) {
   }
 }
 
+function buildRankedMatches({
+  products,
+  recognition,
+  imageSimilarities,
+  aiResult = {}
+}) {
+  const enrichedRecognition = {
+    ...recognition,
+    displayLabels: aiResult.labels?.length ? aiResult.labels : recognition.displayLabels
+  }
+
+  return rankVisualSearchMatches({
+    products,
+    petType: selectedPetType.value,
+    imageName: selectedImageName.value,
+    recognition: enrichedRecognition,
+    imageSimilarities,
+    aiSimilarities: aiResult.aiSimilarities || {},
+    aiReasons: aiResult.reasons || {},
+    limit: 6
+  })
+}
+
+function saveSearchMatches(rankedMatches, historyId) {
+  if (!rankedMatches.length) return
+
+  history.value = upsertVisualSearchHistory(history.value, {
+    id: historyId,
+    imageUrl: previewUrl.value,
+    labels: labels.value,
+    matches: rankedMatches,
+    searchedAt: new Date().toISOString()
+  })
+  saveVisualSearchHistory(history.value)
+}
+
 async function resolveAiSimilarities(recognition, products) {
   try {
     return await scoreVisualSearchProducts({
@@ -140,7 +183,8 @@ async function resolveAiSimilarities(recognition, products) {
     return {
       aiSimilarities: {},
       reasons: {},
-      labels: []
+      labels: [],
+      errorMessage: 'AI相似度暂不可用，已按图片相似度展示。'
     }
   }
 }
@@ -160,51 +204,71 @@ function handleFileSelect(event) {
   selectedPetType.value = /dog|犬|狗/.test(file.name.toLowerCase()) ? 'dog' : 'cat'
   recognitionResult.value = null
   recognitionError.value = ''
+  aiSimilarityStatus.value = 'idle'
+  aiSimilarityError.value = ''
+  activeVisualSearchId.value += 1
   previewUrl.value = URL.createObjectURL(file)
   visualSearchStatus.value = 'preview'
   event.target.value = ''
 }
 
 async function confirmVisualSearch() {
+  activeVisualSearchId.value += 1
+  const searchId = activeVisualSearchId.value
+  const historyId = `vs-${Date.now()}`
+
   visualSearchStatus.value = 'recognizing'
   recognitionError.value = ''
+  aiSimilarityStatus.value = 'idle'
+  aiSimilarityError.value = ''
 
   try {
     const recognition = await recognizeImageElement(previewImageRef.value)
     recognitionResult.value = recognition
     selectedPetType.value = recognition.petType || selectedPetType.value
     const products = await ensureVisualSearchProducts({ force: true })
-    const [imageSimilarities, aiResult] = await Promise.all([
-      buildProductImageSimilarities(products, recognition.embedding || []),
-      resolveAiSimilarities(recognition, products)
-    ])
-    const enrichedRecognition = {
-      ...recognition,
-      displayLabels: aiResult.labels?.length ? aiResult.labels : recognition.displayLabels
+    const aiSimilarityPromise = resolveAiSimilarities(recognition, products)
+    const imageSimilarities = await buildProductImageSimilarities(products, recognition.embedding || [])
+
+    if (searchId !== activeVisualSearchId.value) {
+      return
     }
 
-    const rankedMatches = rankVisualSearchMatches({
+    const rankedMatches = buildRankedMatches({
       products,
-      petType: selectedPetType.value,
-      imageName: selectedImageName.value,
-      recognition: enrichedRecognition,
-      imageSimilarities,
-      aiSimilarities: aiResult.aiSimilarities || {},
-      aiReasons: aiResult.reasons || {},
-      limit: 6
+      recognition,
+      imageSimilarities
     })
 
     matches.value = rankedMatches
     visualSearchStatus.value = rankedMatches.length ? 'success' : 'empty'
 
     if (rankedMatches.length) {
-      history.value = upsertVisualSearchHistory(history.value, {
-        imageUrl: previewUrl.value,
-        labels: labels.value,
-        matches: rankedMatches,
-        searchedAt: new Date().toISOString()
+      aiSimilarityStatus.value = 'analyzing'
+      saveSearchMatches(rankedMatches, historyId)
+      aiSimilarityPromise.then((aiResult) => {
+        if (searchId !== activeVisualSearchId.value || visualSearchStatus.value !== 'success') {
+          return
+        }
+
+        aiSimilarityStatus.value = aiResult.errorMessage ? 'error' : 'done'
+        aiSimilarityError.value = aiResult.errorMessage || ''
+
+        if (aiResult.errorMessage) {
+          return
+        }
+
+        const aiRankedMatches = buildRankedMatches({
+          products,
+          recognition,
+          imageSimilarities,
+          aiResult
+        })
+        matches.value = aiRankedMatches
+        saveSearchMatches(aiRankedMatches, historyId)
       })
-      saveVisualSearchHistory(history.value)
+    } else {
+      aiSimilarityStatus.value = 'idle'
     }
   } catch (error) {
     matches.value = []
@@ -241,8 +305,11 @@ function resetVisualSearch() {
   previewUrl.value = ''
   recognitionResult.value = null
   recognitionError.value = ''
+  aiSimilarityStatus.value = 'idle'
+  aiSimilarityError.value = ''
   matches.value = []
   visualSearchStatus.value = 'idle'
+  activeVisualSearchId.value += 1
 }
 
 function revokePreview() {
@@ -335,6 +402,8 @@ function formatTime(value) {
           <div class="search__tags">
             <span v-for="label in labels" :key="label">{{ label }}</span>
           </div>
+          <p v-if="aiSimilarityStatus === 'analyzing'" class="search__ai-warning">AI正在分析，稍后会按 AI 相似度重新排序。</p>
+          <p v-else-if="aiSimilarityError" class="search__ai-warning">{{ aiSimilarityError }}</p>
         </div>
       </header>
 
@@ -346,6 +415,10 @@ function formatTime(value) {
           </div>
           <div class="search__card-body">
             <h3>{{ match.product.title }}</h3>
+            <div class="search__score-breakdown" aria-label="相似度构成">
+              <span v-if="match.aiSimilarity !== null">AI相似度 {{ match.aiSimilarity }}%</span>
+              <span v-if="match.imageSimilarity !== null">图片相似度 {{ match.imageSimilarity }}%</span>
+            </div>
             <p>{{ match.reason }}</p>
             <PriceText :value="match.product.memberPrice" :original="match.product.originalPrice" size="sm" />
           </div>
@@ -646,6 +719,13 @@ function formatTime(value) {
   font-weight: var(--weight-semibold);
 }
 
+.search__result-head .search__ai-warning {
+  margin: var(--space-2) 0 0;
+  color: var(--color-text-soft);
+  font-size: var(--text-2xs);
+  line-height: var(--leading-snug);
+}
+
 .search__grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -691,6 +771,22 @@ function formatTime(value) {
 
 .search__card-body h3 {
   font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  line-height: var(--leading-snug);
+}
+
+.search__score-breakdown {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+}
+
+.search__score-breakdown span {
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  background: var(--color-primary-tint);
+  color: var(--color-primary);
+  font-size: var(--text-2xs);
   font-weight: var(--weight-semibold);
   line-height: var(--leading-snug);
 }
