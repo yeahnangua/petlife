@@ -34,3 +34,10 @@ export function sendAiConsultMessage(payload) {
     body: payload
   })
 }
+
+export function scoreVisualSearchProducts(payload) {
+  return request('/api/public/visual-search/similarity', {
+    method: 'POST',
+    body: payload
+  })
+}

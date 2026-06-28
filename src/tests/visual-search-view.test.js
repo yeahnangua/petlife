@@ -2,9 +2,28 @@ import { mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import { createRouter, createWebHashHistory } from 'vue-router'
 import { describe, expect, it, vi } from 'vitest'
+import { scoreVisualSearchProducts } from '@/api/public'
 import { buildProductImageSimilarities, recognizeImageElement } from '@/lib/imageRecognition'
 import { useCatalogStore } from '@/stores/catalog'
 import SearchView from '@/views/SearchView.vue'
+
+vi.mock('@/api/public', () => ({
+  getCategories: vi.fn(),
+  getProductDetail: vi.fn(),
+  getProducts: vi.fn(),
+  getServiceDetail: vi.fn(),
+  getServices: vi.fn(),
+  getStoreSlots: vi.fn(),
+  getStores: vi.fn(),
+  scoreVisualSearchProducts: vi.fn().mockResolvedValue({
+    aiSimilarities: {
+      'p-001': 96,
+      'p-004': 35
+    },
+    labels: ['主粮包装'],
+    model: 'deepseek-test-model'
+  })
+}))
 
 vi.mock('@/lib/imageRecognition', () => ({
   buildProductImageSimilarities: vi.fn().mockResolvedValue({
@@ -102,6 +121,7 @@ describe('SearchView visual search flow', () => {
   it('recognizes the selected image before showing visual search matches', async () => {
     vi.mocked(recognizeImageElement).mockClear()
     vi.mocked(buildProductImageSimilarities).mockClear()
+    vi.mocked(scoreVisualSearchProducts).mockClear()
     const wrapper = await mountSearchView()
 
     await wrapper.findAll('button').find((button) => button.text() === '使用示例图').trigger('click')
@@ -115,8 +135,23 @@ describe('SearchView visual search flow', () => {
       expect.any(Array),
       [1, 0, 0]
     )
+    expect(scoreVisualSearchProducts).toHaveBeenCalledWith({
+      recognition: expect.objectContaining({
+        labels: ['tabby cat', 'packet package'],
+        keywords: ['tabby', 'cat', 'packet', 'package']
+      }),
+      products: expect.arrayContaining([
+        expect.objectContaining({
+          id: 'p-001',
+          title: '鲜肉全价猫粮',
+          subtitle: '低敏冷鲜配方',
+          tags: expect.any(Array)
+        })
+      ])
+    })
     expect(wrapper.text()).toContain('找到')
-    expect(wrapper.text()).toContain('tabby cat')
+    expect(wrapper.text()).toContain('主粮包装')
+    expect(wrapper.text()).not.toContain('tabby cat')
 
     wrapper.unmount()
   })

@@ -5,8 +5,8 @@
 
 const HISTORY_LIMIT = 20
 const DEFAULT_SIMILARITY_WEIGHTS = {
-  image: 0.6,
-  tag: 0.4
+  image: 0.4,
+  ai: 0.6
 }
 
 const categoryLabelMap = {
@@ -20,135 +20,91 @@ const categoryLabelMap = {
   home: '居家'
 }
 
-const categoryKeywordMap = {
-  food: ['food', '粮', '猫粮', '狗粮', '包装', 'package'],
-  snack: ['snack', '零食', '冻干', 'treat'],
-  litter: ['litter', '猫砂', '豆腐砂'],
-  toy: ['toy', '玩具', '逗猫', '洁齿'],
-  clean: ['clean', '洗护', '沐浴', 'shampoo'],
-  travel: ['travel', '外出', '背包', 'bag', 'harness', 'carrier'],
-  care: ['care', 'health', 'supplement', '益生菌', '营养膏', '保健'],
-  home: ['home', 'fountain', 'water', '饮水机', '居家']
-}
-
 function productPetLabel(product) {
   if (product?.petType === 'dog') return '狗狗'
   if (product?.petType === 'all') return '猫犬通用'
   return '猫咪'
 }
 
-function normalizeTokens(value = '') {
-  return String(value).toLowerCase().split(/[\s._-]+/).filter(Boolean)
-}
-
 function unique(values) {
   return [...new Set(values.filter(Boolean))]
 }
 
-function resolveRecognitionTokens(recognition = {}) {
-  return unique([
-    ...(recognition.keywords || []),
-    ...(recognition.labels || []).flatMap((label) => normalizeTokens(label))
-  ].map((token) => String(token).toLowerCase()))
-}
-
 function resolveWeights(weights = {}) {
   const image = Number.isFinite(Number(weights.image)) ? Number(weights.image) : DEFAULT_SIMILARITY_WEIGHTS.image
-  const tag = Number.isFinite(Number(weights.tag)) ? Number(weights.tag) : DEFAULT_SIMILARITY_WEIGHTS.tag
-  const total = image + tag
+  const ai = Number.isFinite(Number(weights.ai)) ? Number(weights.ai) : DEFAULT_SIMILARITY_WEIGHTS.ai
+  const total = image + ai
 
   if (total <= 0) return DEFAULT_SIMILARITY_WEIGHTS
 
   return {
     image: image / total,
-    tag: tag / total
+    ai: ai / total
   }
 }
 
-function resolveImageSimilarity(imageSimilarities = {}, productId) {
-  const value = imageSimilarities[productId]
+function resolveSimilarity(values = {}, productId) {
+  const value = values[productId]
   if (!Number.isFinite(Number(value))) return null
   return Math.max(0, Math.min(100, Number(value)))
 }
 
-function scoreProduct(product, { petType, imageName, recognition }) {
-  const tokens = normalizeTokens(imageName)
-  const recognitionTokens = resolveRecognitionTokens(recognition)
-  const categoryHints = recognition?.categoryHints || []
-  const searchable = [
-    product.title,
-    product.subtitle,
-    product.category,
-    ...(product.tags || []),
-    ...(categoryKeywordMap[product.category] || [])
-  ]
-    .join(' ')
-    .toLowerCase()
+function combineSimilarity({ imageSimilarity, aiSimilarity, weights }) {
+  if (aiSimilarity === null && imageSimilarity === null) return 0
+  if (aiSimilarity === null) return imageSimilarity
+  if (imageSimilarity === null) return aiSimilarity
 
-  let score = product.petType === petType ? 34 : 18
+  return Math.round((aiSimilarity * weights.ai) + (imageSimilarity * weights.image))
+}
 
-  tokens.forEach((token) => {
-    if (searchable.includes(token)) score += 12
-  })
+function buildScoreReason({ aiSimilarity, imageSimilarity }) {
+  const parts = []
 
-  recognitionTokens.forEach((token) => {
-    if (searchable.includes(token)) score += 10
-  })
+  if (aiSimilarity !== null) {
+    parts.push(`AI ${aiSimilarity}%`)
+  }
 
-  if (categoryHints.includes(product.category)) score += 24
+  if (imageSimilarity !== null) {
+    parts.push(`图片 ${imageSimilarity}%`)
+  }
 
-  if (petType === 'cat' && /cat|猫/.test(imageName)) score += product.petType === 'cat' ? 10 : 0
-  if (petType === 'dog' && /dog|犬|狗/.test(imageName)) score += product.petType === 'dog' ? 10 : 0
-  if (/food|粮|package|包装/.test(imageName) && product.category === 'food') score += 16
-  if (/toy|玩具/.test(imageName) && product.category === 'toy') score += 14
-  if (/clean|洗护|shampoo/.test(imageName) && product.category === 'clean') score += 14
-  if (/care|health|supplement|益生菌|营养/.test(imageName) && product.category === 'care') score += 14
-  if (/home|fountain|water|饮水/.test(imageName) && product.category === 'home') score += 14
-  if (recognitionTokens.includes('cat')) score += product.petType === 'cat' ? 8 : 0
-  if (recognitionTokens.includes('dog')) score += product.petType === 'dog' ? 8 : 0
-
-  score += Math.min(Number(product.rating || 4.5) * 2, 10)
-  score += Math.min(Number(product.sold || 0) / 3000, 8)
-
-  return Math.round(Math.min(score, 96))
+  return parts.length ? parts.join(' · ') : '相似度待评估'
 }
 
 export function rankVisualSearchMatches({
   products = [],
   petType = 'cat',
-  imageName = '',
   recognition = {},
   imageSimilarities = {},
+  aiSimilarities = {},
+  aiReasons = {},
   weights = DEFAULT_SIMILARITY_WEIGHTS,
   limit = 6
 } = {}) {
   const activePetType = recognition.petType || petType
-  const recognitionLabels = recognition.labels || []
+  const recognitionLabels = recognition.displayLabels?.length ? recognition.displayLabels : []
   const resolvedWeights = resolveWeights(weights)
 
   return products
     .filter((product) => product.stockStatus !== 'soldOut')
     .filter((product) => product.petType === activePetType || product.petType === 'all')
     .map((product) => {
-      const tagSimilarity = scoreProduct(product, { petType: activePetType, imageName, recognition })
-      const imageSimilarity = resolveImageSimilarity(imageSimilarities, product.id)
-      const similarity = imageSimilarity === null
-        ? tagSimilarity
-        : Math.round((imageSimilarity * resolvedWeights.image) + (tagSimilarity * resolvedWeights.tag))
+      const imageSimilarity = resolveSimilarity(imageSimilarities, product.id)
+      const aiSimilarity = resolveSimilarity(aiSimilarities, product.id)
+      const similarity = combineSimilarity({ imageSimilarity, aiSimilarity, weights: resolvedWeights })
       const label = categoryLabelMap[product.category] || '商品'
       const labels = unique([productPetLabel(product), label, ...recognitionLabels]).slice(0, 5)
-      const reasonPrefix = recognitionLabels.length ? 'AI识别' : productPetLabel(product)
-      const scoreReason = imageSimilarity === null
-        ? `标签 ${tagSimilarity}%`
-        : `图片 ${imageSimilarity}% · 标签 ${tagSimilarity}%`
+      const reasonPrefix = recognitionLabels.length || aiSimilarity !== null ? 'AI识别' : productPetLabel(product)
+      const scoreReason = buildScoreReason({ aiSimilarity, imageSimilarity })
+      const semanticReason = aiReasons[product.id] || `${label}特征匹配`
 
       return {
         product,
         similarity,
         imageSimilarity,
-        tagSimilarity,
+        aiSimilarity,
         labels,
-        reason: `${reasonPrefix} · ${scoreReason} · ${label}特征匹配 · 相似度 ${similarity}%`
+        reason: `${reasonPrefix} · ${scoreReason} · ${semanticReason} · 相似度 ${similarity}%`
       }
     })
     .sort((left, right) => right.similarity - left.similarity)

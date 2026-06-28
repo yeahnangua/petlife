@@ -12,61 +12,75 @@ describe('visual search helpers', () => {
     const matches = rankVisualSearchMatches({
       products,
       petType: 'cat',
-      imageName: 'cat-food-package.jpg',
+      imageSimilarities: {
+        'p-001': 90,
+        'p-002': 50,
+        'p-004': 20
+      },
+      aiSimilarities: {
+        'p-001': 96,
+        'p-002': 70,
+        'p-004': 30
+      },
       limit: 3
     })
 
     expect(matches).toHaveLength(3)
     expect(matches[0].product.petType).toBe('cat')
     expect(matches[0].similarity).toBeGreaterThan(matches[2].similarity)
-    expect(matches[0].reason).toContain('猫咪')
+    expect(matches[0].aiSimilarity).toBe(96)
+    expect(matches[0].labels).toContain('猫咪')
     expect(matches.every((match) => match.product.stockStatus !== 'soldOut')).toBe(true)
   })
 
-  it('uses recognition keywords and category hints when ranking matches', () => {
+  it('uses AI display labels instead of raw English recognition labels', () => {
+    const matches = rankVisualSearchMatches({
+      products,
+      petType: 'cat',
+      recognition: {
+        labels: ['tabby cat', 'packet package'],
+        displayLabels: ['猫咪', '主粮包装']
+      },
+      aiSimilarities: {
+        'p-001': 92
+      },
+      imageSimilarities: {
+        'p-001': 70
+      },
+      limit: 1
+    })
+
+    expect(matches[0].labels).toEqual(expect.arrayContaining(['猫咪', '主粮包装']))
+    expect(matches[0].labels).not.toContain('tabby cat')
+    expect(matches[0].labels).not.toContain('packet package')
+    expect(matches[0].reason).toContain('AI识别')
+  })
+
+  it('combines image similarity and AI similarity with AI weighted higher by default', () => {
     const matches = rankVisualSearchMatches({
       products,
       petType: 'dog',
-      imageName: 'uploaded-photo.jpg',
       recognition: {
-        labels: ['tennis ball', 'rubber toy'],
-        keywords: ['tennis', 'ball', 'rubber', 'toy'],
-        categoryHints: ['toy']
+        displayLabels: ['耐咬玩具']
+      },
+      imageSimilarities: {
+        'p-005': 96,
+        'p-006': 40
+      },
+      aiSimilarities: {
+        'p-005': 20,
+        'p-006': 90
       },
       limit: 2
     })
 
     expect(matches[0].product.id).toBe('p-006')
-    expect(matches[0].labels).toEqual(expect.arrayContaining(['狗狗', '玩具']))
-    expect(matches[0].reason).toContain('AI识别')
-  })
-
-  it('combines image similarity and tag similarity with configurable weights', () => {
-    const matches = rankVisualSearchMatches({
-      products,
-      petType: 'dog',
-      imageName: 'uploaded-photo.jpg',
-      recognition: {
-        labels: ['rubber toy'],
-        keywords: ['rubber', 'toy'],
-        categoryHints: ['toy']
-      },
-      imageSimilarities: {
-        'p-005': 96,
-        'p-006': 50
-      },
-      weights: {
-        image: 0.8,
-        tag: 0.2
-      },
-      limit: 2
-    })
-
-    expect(matches[0].product.id).toBe('p-005')
-    expect(matches[0].imageSimilarity).toBe(96)
-    expect(matches[0].tagSimilarity).toBeLessThan(matches[1].tagSimilarity)
-    expect(matches[0].reason).toContain('图片 96%')
-    expect(matches[0].reason).toContain('标签')
+    expect(matches[0].similarity).toBe(70)
+    expect(matches[0].imageSimilarity).toBe(40)
+    expect(matches[0].aiSimilarity).toBe(90)
+    expect(matches[0].tagSimilarity).toBeUndefined()
+    expect(matches[0].reason).toContain('AI 90%')
+    expect(matches[0].reason).toContain('图片 40%')
   })
 
   it('prepends a new history record and limits history to twenty items', () => {

@@ -4,6 +4,7 @@ import {
   getProductDetail,
   getProducts,
   sendAiConsultMessage,
+  scoreVisualSearchProducts,
   getServiceDetail,
   getServices,
   getStoreSlots,
@@ -173,6 +174,45 @@ describe('frontend api client', () => {
     })
     expect(fetchMock).toHaveBeenCalledWith(
       '/api/public/ai-consult',
+      expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify(payload)
+      })
+    )
+  })
+
+  it('sends visual search candidates to the public AI similarity proxy', async () => {
+    const payload = {
+      recognition: {
+        labels: ['packet package'],
+        keywords: ['packet', 'package']
+      },
+      products: [
+        {
+          id: 'p-001',
+          title: '鲜肉全价猫粮',
+          subtitle: '低敏冷鲜配方',
+          tags: ['猫粮', '主粮']
+        }
+      ]
+    }
+    fetchMock.mockResolvedValueOnce(createJsonResponse({
+      code: 0,
+      message: 'ok',
+      data: {
+        aiSimilarities: { 'p-001': 92 },
+        labels: ['主粮包装'],
+        model: 'deepseek-test-model'
+      }
+    }))
+
+    await expect(scoreVisualSearchProducts(payload)).resolves.toEqual({
+      aiSimilarities: { 'p-001': 92 },
+      labels: ['主粮包装'],
+      model: 'deepseek-test-model'
+    })
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/public/visual-search/similarity',
       expect.objectContaining({
         method: 'POST',
         body: JSON.stringify(payload)

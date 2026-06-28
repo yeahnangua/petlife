@@ -5,6 +5,7 @@ import BottomSheet from '@/components/BottomSheet.vue'
 import EmptyState from '@/components/EmptyState.vue'
 import IconSvg from '@/components/IconSvg.vue'
 import PriceText from '@/components/PriceText.vue'
+import { scoreVisualSearchProducts } from '@/api/public'
 import { buildProductImageSimilarities, recognizeImageElement } from '@/lib/imageRecognition'
 import {
   loadVisualSearchHistory,
@@ -114,6 +115,36 @@ function openHistory() {
   showHistory.value = true
 }
 
+function toVisualSearchCandidate(product) {
+  return {
+    id: product.id,
+    title: product.title,
+    subtitle: product.subtitle,
+    tags: product.tags || [],
+    category: product.category,
+    petType: product.petType
+  }
+}
+
+async function resolveAiSimilarities(recognition, products) {
+  try {
+    return await scoreVisualSearchProducts({
+      recognition: {
+        labels: recognition.labels || [],
+        keywords: recognition.keywords || [],
+        categoryHints: recognition.categoryHints || []
+      },
+      products: products.map(toVisualSearchCandidate)
+    })
+  } catch {
+    return {
+      aiSimilarities: {},
+      reasons: {},
+      labels: []
+    }
+  }
+}
+
 function handleFileSelect(event) {
   const file = event.target.files?.[0]
   if (!file) return
@@ -143,14 +174,23 @@ async function confirmVisualSearch() {
     recognitionResult.value = recognition
     selectedPetType.value = recognition.petType || selectedPetType.value
     const products = await ensureVisualSearchProducts({ force: true })
-    const imageSimilarities = await buildProductImageSimilarities(products, recognition.embedding || [])
+    const [imageSimilarities, aiResult] = await Promise.all([
+      buildProductImageSimilarities(products, recognition.embedding || []),
+      resolveAiSimilarities(recognition, products)
+    ])
+    const enrichedRecognition = {
+      ...recognition,
+      displayLabels: aiResult.labels?.length ? aiResult.labels : recognition.displayLabels
+    }
 
     const rankedMatches = rankVisualSearchMatches({
       products,
       petType: selectedPetType.value,
       imageName: selectedImageName.value,
-      recognition,
+      recognition: enrichedRecognition,
       imageSimilarities,
+      aiSimilarities: aiResult.aiSimilarities || {},
+      aiReasons: aiResult.reasons || {},
       limit: 6
     })
 

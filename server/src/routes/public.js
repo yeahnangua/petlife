@@ -1,5 +1,6 @@
 import { Router } from 'express'
 import { createAiConsult } from '../controllers/aiConsultController.js'
+import { scoreVisualSearch } from '../controllers/visualSearchController.js'
 import {
   getProduct,
   getService,
@@ -21,6 +22,7 @@ export function createPublicRouter() {
   router.get('/stores', listStores)
   router.get('/stores/:id/slots', listStoreSlots)
   router.post('/ai-consult', createAiConsult)
+  router.post('/visual-search/similarity', scoreVisualSearch)
 
   return router
 }
