@@ -32,6 +32,15 @@ function initializeDatabase(config, existingDatabase) {
   return db
 }
 
+function createImageSearchAiConfig(config) {
+  return {
+    ...config,
+    aiApiKey: config.imageSearchApiKey,
+    aiBaseUrl: config.imageSearchBaseUrl,
+    aiTimeoutMs: config.imageSearchTimeoutMs
+  }
+}
+
 export function createApp(overrides = {}) {
   const config = loadEnv(overrides)
   const db = initializeDatabase(config, overrides.database)
@@ -42,6 +51,8 @@ export function createApp(overrides = {}) {
   app.locals.config = config
   app.locals.db = db
   app.locals.aiChatClient = overrides.aiChatClient ?? createSiliconFlowChatClient(config)
+  app.locals.visualSearchAiChatClient =
+    overrides.visualSearchAiChatClient ?? createSiliconFlowChatClient(createImageSearchAiConfig(config))
   app.locals.wechatOfficialAccountClient =
     overrides.wechatOfficialAccountClient ?? createWechatOfficialAccountClient(config)
 

@@ -3,7 +3,6 @@ import { AppError } from '../utils/appError.js'
 const MAX_LABELS = 12
 const MAX_PRODUCTS = 120
 const MAX_TEXT_LENGTH = 240
-const MAX_REASON_LENGTH = 160
 
 const categoryLabelMap = {
   food: '主粮',
@@ -26,19 +25,19 @@ const SYSTEM_PROMPT = [
   '你是 PetLife 宠物商城的以图搜商品相似度评估器。',
   '根据图片识别标签和商品目录，判断每个商品与查询图片的语义相似度。',
   '重点比较商品标题、副标题、后台标签、分类和适用宠物，不要只做字面匹配。',
-  '必须用中文输出展示标签和原因。',
+  '必须用中文输出展示标签。',
   '不要在输出中保留英文识别标签、英文关键词或内部枚举值，需要先翻译成中文。',
+  '不要解释判断过程，不要输出任何说明文字。',
   '你必须输出 JSON 对象，不要输出 Markdown 或额外解释。'
 ].join('\n')
 
 const OUTPUT_PROMPT = [
   '输出 JSON 格式：',
-  '{"labels":["给用户看的中文识别标签"],"items":[{"id":"商品id","aiSimilarity":0,"reason":"中文原因"}]}',
+  '{"labels":["给用户看的中文识别标签"],"items":[{"id":"商品id","aiSimilarity":0}]}',
   '字段规则：',
   '- labels 必须是中文，最多 5 个，用于替代模型原始英文标签展示。',
   '- items 必须覆盖输入商品列表里的商品 id。',
-  '- aiSimilarity 是 0-100 的整数，100 表示最相似。',
-  '- reason 用中文简短说明语义相似或不相似的原因。'
+  '- aiSimilarity 是 0-100 的整数，100 表示最相似。'
 ].join('\n')
 
 function trimText(value, maxLength = MAX_TEXT_LENGTH) {
@@ -161,7 +160,6 @@ function parseStructuredContent(content, products) {
 
   const productIds = new Set(products.map((product) => product.id))
   const aiSimilarities = {}
-  const reasons = {}
 
   if (Array.isArray(parsed?.items)) {
     parsed.items.forEach((item) => {
@@ -173,16 +171,11 @@ function parseStructuredContent(content, products) {
       }
 
       aiSimilarities[id] = score
-      const reason = trimText(item?.reason, MAX_REASON_LENGTH)
-      if (reason) {
-        reasons[id] = reason
-      }
     })
   }
 
   return {
     aiSimilarities,
-    reasons,
     labels: normalizeStringArray(parsed?.labels, { maxItems: 5, maxLength: 40 })
   }
 }
@@ -196,9 +189,10 @@ export async function scoreVisualSearchSimilarity({ config, chatClient, body = {
   }
 
   const result = await chatClient({
-    model: config.aiModel,
+    model: config.imageSearchModel ?? config.aiModel,
     messages: buildMessages({ recognition, products }),
-    responseFormat: { type: 'json_object' }
+    responseFormat: { type: 'json_object' },
+    thinking: { type: 'disabled' }
   })
   const structured = parseStructuredContent(result.content, products)
 

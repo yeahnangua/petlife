@@ -8,7 +8,10 @@ const originalEnv = {
   DEEPSEEK_MODEL: process.env.DEEPSEEK_MODEL,
   SILICONFLOW_API_KEY: process.env.SILICONFLOW_API_KEY,
   SILICONFLOW_MODEL: process.env.SILICONFLOW_MODEL,
-  AI_TIMEOUT_MS: process.env.AI_TIMEOUT_MS
+  AI_TIMEOUT_MS: process.env.AI_TIMEOUT_MS,
+  imagesearch_key: process.env.imagesearch_key,
+  imagesearch_model: process.env.imagesearch_model,
+  imagesearch_baseurl: process.env.imagesearch_baseurl
 }
 
 function restoreEnvValue(name, value) {
@@ -48,6 +51,19 @@ describe('environment config', () => {
     const config = loadEnv()
 
     expect(config.aiTimeoutMs).toBe(60000)
+  })
+
+  it('loads dedicated image search AI config from lowercase .env names', () => {
+    process.env.imagesearch_key = 'test-image-search-key'
+    process.env.imagesearch_model = 'test-image-search-model'
+    process.env.imagesearch_baseurl = 'https://image-search.example.test/v1'
+
+    const config = loadEnv()
+
+    expect(config.imageSearchApiKey).toBe('test-image-search-key')
+    expect(config.imageSearchModel).toBe('test-image-search-model')
+    expect(config.imageSearchBaseUrl).toBe('https://image-search.example.test/v1')
+    expect(config.imageSearchTimeoutMs).toBe(config.aiTimeoutMs)
   })
 
   it('lets the project .env override stale startup environment values', () => {

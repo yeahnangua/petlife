@@ -77,7 +77,6 @@ export function rankVisualSearchMatches({
   recognition = {},
   imageSimilarities = {},
   aiSimilarities = {},
-  aiReasons = {},
   weights = DEFAULT_SIMILARITY_WEIGHTS,
   limit = 6
 } = {}) {
@@ -96,7 +95,6 @@ export function rankVisualSearchMatches({
       const labels = unique([productPetLabel(product), label, ...recognitionLabels]).slice(0, 5)
       const reasonPrefix = recognitionLabels.length || aiSimilarity !== null ? 'AI识别' : productPetLabel(product)
       const scoreReason = buildScoreReason({ aiSimilarity, imageSimilarity })
-      const semanticReason = aiReasons[product.id] || `${label}特征匹配`
 
       return {
         product,
@@ -104,7 +102,7 @@ export function rankVisualSearchMatches({
         imageSimilarity,
         aiSimilarity,
         labels,
-        reason: `${reasonPrefix} · ${scoreReason} · ${semanticReason} · 相似度 ${similarity}%`
+        reason: `${reasonPrefix} · ${scoreReason} · 相似度 ${similarity}%`
       }
     })
     .sort((left, right) => right.similarity - left.similarity)

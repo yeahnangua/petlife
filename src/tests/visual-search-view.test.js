@@ -215,10 +215,6 @@ describe('SearchView visual search flow', () => {
         'p-001': 10,
         'p-004': 100
       },
-      reasons: {
-        'p-001': '语义相关性较低',
-        'p-004': '识别标签和逗猫玩具高度相关'
-      },
       labels: ['逗猫玩具']
     })
     await flushPending()
@@ -227,6 +223,7 @@ describe('SearchView visual search flow', () => {
     expect(wrapper.text()).not.toContain('AI正在分析')
     expect(wrapper.text()).toContain('AI相似度 100%')
     expect(wrapper.text()).toContain('逗猫玩具')
+    expect(wrapper.text()).not.toContain('识别标签和逗猫玩具高度相关')
     expect(wrapper.find('.search__card h3').text()).toBe('羽毛逗猫棒套装')
 
     wrapper.unmount()

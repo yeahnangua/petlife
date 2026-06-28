@@ -151,7 +151,6 @@ function buildRankedMatches({
     recognition: enrichedRecognition,
     imageSimilarities,
     aiSimilarities: aiResult.aiSimilarities || {},
-    aiReasons: aiResult.reasons || {},
     limit: 6
   })
 }
@@ -182,7 +181,6 @@ async function resolveAiSimilarities(recognition, products) {
   } catch {
     return {
       aiSimilarities: {},
-      reasons: {},
       labels: [],
       errorMessage: 'AI相似度暂不可用，已按图片相似度展示。'
     }

@@ -5,7 +5,7 @@ export async function scoreVisualSearch(req, res, next) {
   try {
     const data = await scoreVisualSearchSimilarity({
       config: req.app.locals.config,
-      chatClient: req.app.locals.aiChatClient,
+      chatClient: req.app.locals.visualSearchAiChatClient ?? req.app.locals.aiChatClient,
       body: req.body
     })
 

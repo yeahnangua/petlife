@@ -45,4 +45,28 @@ describe('SiliconFlow chat client', () => {
       usage: { total_tokens: 12 }
     })
   })
+
+  it('forwards per-request thinking mode options to the AI service', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse({
+      model: 'deepseek-test-model',
+      choices: [{ message: { content: '{"ok":true}' }, finish_reason: 'stop' }]
+    }))
+    vi.stubGlobal('fetch', fetchMock)
+
+    const client = createSiliconFlowChatClient({
+      aiApiKey: 'test-api-key',
+      aiBaseUrl: 'https://ai.example.test/v1',
+      aiTimeoutMs: 1000
+    })
+
+    await client({
+      model: 'deepseek-test-model',
+      messages: [{ role: 'system', content: '只输出 JSON' }],
+      responseFormat: { type: 'json_object' },
+      thinking: { type: 'disabled' }
+    })
+
+    const requestBody = JSON.parse(fetchMock.mock.calls[0][1].body)
+    expect(requestBody.thinking).toEqual({ type: 'disabled' })
+  })
 })

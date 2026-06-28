@@ -56,6 +56,23 @@ describe('visual search helpers', () => {
     expect(matches[0].reason).toContain('AI识别')
   })
 
+  it('does not include AI explanation text in visual search match reasons', () => {
+    const matches = rankVisualSearchMatches({
+      products,
+      petType: 'cat',
+      aiSimilarities: {
+        'p-001': 92
+      },
+      aiReasons: {
+        'p-001': '识别标签和猫粮主粮高度相关'
+      },
+      limit: 1
+    })
+
+    expect(matches[0].reason).toContain('AI 92%')
+    expect(matches[0].reason).not.toContain('识别标签和猫粮主粮高度相关')
+  })
+
   it('combines image similarity and AI similarity with AI weighted higher by default', () => {
     const matches = rankVisualSearchMatches({
       products,

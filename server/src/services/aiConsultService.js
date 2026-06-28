@@ -223,7 +223,8 @@ async function requestChatCompletionOnce(config, payload) {
         stream: false,
         temperature: 0.35,
         max_tokens: 900,
-        response_format: payload.responseFormat
+        response_format: payload.responseFormat,
+        ...(payload.thinking ? { thinking: payload.thinking } : {})
       }),
       signal: controller.signal
     })

@@ -23,6 +23,9 @@ function createSeededApp(cleanups, overrides = {}) {
     database: db,
     aiApiKey: 'test-api-key',
     aiModel: 'deepseek-test-model',
+    imageSearchApiKey: 'test-image-search-key',
+    imageSearchModel: 'image-search-test-model',
+    imageSearchBaseUrl: 'https://image-search.example.test/v1',
     ...overrides
   })
 
@@ -39,18 +42,19 @@ describe('public visual search AI similarity api', () => {
   })
 
   it('asks the configured chat model to score product similarity from recognition labels and product text', async () => {
-    const aiChatClient = vi.fn(async () => ({
+    const aiChatClient = vi.fn()
+    const visualSearchAiChatClient = vi.fn(async () => ({
       content: JSON.stringify({
         labels: ['主粮包装'],
         items: [
-          { id: 'p-001', aiSimilarity: 92, reason: '识别标签和猫粮主粮高度相关' },
-          { id: 'p-004', aiSimilarity: 24, reason: '玩具相关性较低' }
+          { id: 'p-001', aiSimilarity: 92 },
+          { id: 'p-004', aiSimilarity: 24 }
         ]
       }),
       model: 'deepseek-test-model',
       usage: { prompt_tokens: 120, completion_tokens: 32, total_tokens: 152 }
     }))
-    const { app } = createSeededApp(cleanups, { aiChatClient })
+    const { app } = createSeededApp(cleanups, { aiChatClient, visualSearchAiChatClient })
 
     const response = await request(app)
       .post('/api/public/visual-search/similarity')
@@ -84,21 +88,19 @@ describe('public visual search AI similarity api', () => {
         'p-001': 92,
         'p-004': 24
       },
-      reasons: {
-        'p-001': '识别标签和猫粮主粮高度相关',
-        'p-004': '玩具相关性较低'
-      },
       labels: ['主粮包装'],
       model: 'deepseek-test-model',
       usage: { prompt_tokens: 120, completion_tokens: 32, total_tokens: 152 }
     })
 
-    expect(aiChatClient).toHaveBeenCalledOnce()
-    const payload = aiChatClient.mock.calls[0][0]
+    expect(aiChatClient).not.toHaveBeenCalled()
+    expect(visualSearchAiChatClient).toHaveBeenCalledOnce()
+    const payload = visualSearchAiChatClient.mock.calls[0][0]
     const promptText = payload.messages.map((item) => item.content).join('\n')
 
-    expect(payload.model).toBe('deepseek-test-model')
+    expect(payload.model).toBe('image-search-test-model')
     expect(payload.responseFormat).toEqual({ type: 'json_object' })
+    expect(payload.thinking).toEqual({ type: 'disabled' })
     expect(promptText).toContain('tabby cat')
     expect(promptText).toContain('packet package')
     expect(promptText).toContain('鲜肉全价猫粮')
@@ -109,5 +111,7 @@ describe('public visual search AI similarity api', () => {
     expect(promptText).toContain('"category":"主粮"')
     expect(promptText).not.toContain('"categoryHints":["food","clean"]')
     expect(promptText).not.toContain('"category":"food"')
+    expect(promptText).not.toContain('reason')
+    expect(promptText).not.toContain('原因')
   })
 })

@@ -22,6 +22,27 @@ function decodeEscapedNewlines(value) {
 
 export function loadEnv(overrides = {}) {
   const env = mergeEnvSources(process.env)
+  const aiApiKey =
+    overrides.aiApiKey ??
+    env.DEEPSEEK_API_KEY ??
+    env.SILICONFLOW_API_KEY ??
+    env.OPENAI_API_KEY ??
+    env.key ??
+    ''
+  const aiModel =
+    overrides.aiModel ??
+    env.DEEPSEEK_MODEL ??
+    env.SILICONFLOW_MODEL ??
+    env.OPENAI_MODEL ??
+    env.model ??
+    'deepseek-ai/DeepSeek-V4-Flash'
+  const aiBaseUrl =
+    overrides.aiBaseUrl ??
+    env.SILICONFLOW_BASE_URL ??
+    env.DEEPSEEK_BASE_URL ??
+    env.OPENAI_BASE_URL ??
+    'https://api.siliconflow.cn/v1'
+  const aiTimeoutMs = Number(overrides.aiTimeoutMs ?? env.AI_TIMEOUT_MS ?? 60000)
 
   return {
     port: Number(overrides.port ?? env.PORT ?? 8787),
@@ -57,26 +78,36 @@ export function loadEnv(overrides = {}) {
         env.WECHAT_OA_WELCOME_MESSAGE ??
         '欢迎关注 PetLife，点击菜单可进入商城。'
       ),
-    aiApiKey:
-      overrides.aiApiKey ??
-      env.DEEPSEEK_API_KEY ??
-      env.SILICONFLOW_API_KEY ??
-      env.OPENAI_API_KEY ??
-      env.key ??
-      '',
-    aiModel:
-      overrides.aiModel ??
-      env.DEEPSEEK_MODEL ??
-      env.SILICONFLOW_MODEL ??
-      env.OPENAI_MODEL ??
-      env.model ??
-      'deepseek-ai/DeepSeek-V4-Flash',
-    aiBaseUrl:
-      overrides.aiBaseUrl ??
-      env.SILICONFLOW_BASE_URL ??
-      env.DEEPSEEK_BASE_URL ??
-      env.OPENAI_BASE_URL ??
-      'https://api.siliconflow.cn/v1',
-    aiTimeoutMs: Number(overrides.aiTimeoutMs ?? env.AI_TIMEOUT_MS ?? 60000)
+    aiApiKey,
+    aiModel,
+    aiBaseUrl,
+    aiTimeoutMs,
+    imageSearchApiKey:
+      overrides.imageSearchApiKey ??
+      env.IMAGESEARCH_API_KEY ??
+      env.IMAGESEARCH_KEY ??
+      env.IMAGE_SEARCH_API_KEY ??
+      env.imagesearch_key ??
+      aiApiKey,
+    imageSearchModel:
+      overrides.imageSearchModel ??
+      env.IMAGESEARCH_MODEL ??
+      env.IMAGE_SEARCH_MODEL ??
+      env.imagesearch_model ??
+      aiModel,
+    imageSearchBaseUrl:
+      overrides.imageSearchBaseUrl ??
+      env.IMAGESEARCH_BASE_URL ??
+      env.IMAGESEARCH_BASEURL ??
+      env.IMAGE_SEARCH_BASE_URL ??
+      env.imagesearch_baseurl ??
+      aiBaseUrl,
+    imageSearchTimeoutMs: Number(
+      overrides.imageSearchTimeoutMs ??
+      env.IMAGESEARCH_TIMEOUT_MS ??
+      env.IMAGE_SEARCH_TIMEOUT_MS ??
+      env.imagesearch_timeout_ms ??
+      aiTimeoutMs
+    )
   }
 }
