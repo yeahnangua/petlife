@@ -3,7 +3,7 @@ import { createPinia, setActivePinia } from 'pinia'
 import { createRouter, createWebHashHistory } from 'vue-router'
 import { describe, expect, it, vi } from 'vitest'
 import { scoreVisualSearchProducts } from '@/api/public'
-import { buildProductImageSimilarities, recognizeImageElement } from '@/lib/imageRecognition'
+import { buildProductImageSimilarities, loadImageElement, recognizeImageElement } from '@/lib/imageRecognition'
 import { useCatalogStore } from '@/stores/catalog'
 import SearchView from '@/views/SearchView.vue'
 
@@ -30,6 +30,7 @@ vi.mock('@/lib/imageRecognition', () => ({
     'p-001': 94,
     'p-004': 30
   }),
+  loadImageElement: vi.fn().mockResolvedValue({ src: '/images/history-cat.png' }),
   recognizeImageElement: vi.fn().mockResolvedValue({
     source: 'mobilenet',
     labels: ['tabby cat', 'packet package'],
@@ -229,6 +230,92 @@ describe('SearchView visual search flow', () => {
     expect(wrapper.find('.search__card h3').text()).toBe('羽毛逗猫棒套装')
 
     wrapper.unmount()
+  })
+
+  it('reruns a visual search history record from its stored image url', async () => {
+    const historyImageElement = { src: '/images/history-cat.png' }
+    vi.mocked(loadImageElement).mockResolvedValueOnce(historyImageElement)
+    vi.mocked(recognizeImageElement).mockClear()
+    localStorage.setItem('petlifeVisualSearchHistory', JSON.stringify([
+      {
+        id: 'history-1',
+        thumbUrl: '/images/history-cat.png',
+        labels: ['猫粮', '包装识别'],
+        searchedAt: '2026-06-28T08:00:00.000Z',
+        resultCount: 2,
+        topProductId: 'p-001',
+        topProductTitle: '鲜肉全价猫粮',
+        favorite: false
+      }
+    ]))
+    const wrapper = await mountSearchView()
+
+    await wrapper.find('[aria-label="打开拍照搜商品"]').trigger('click')
+    await wrapper.vm.$nextTick()
+    document.body.querySelectorAll('button').forEach((button) => {
+      if (button.textContent.includes('查看图搜历史')) {
+        button.click()
+      }
+    })
+    await wrapper.vm.$nextTick()
+    document.body.querySelector('.search__history-main').click()
+    await flushPending()
+    await wrapper.vm.$nextTick()
+
+    expect(loadImageElement).toHaveBeenCalledWith('/images/history-cat.png')
+    expect(recognizeImageElement).toHaveBeenCalledWith(historyImageElement)
+    expect(wrapper.text()).toContain('找到')
+
+    wrapper.unmount()
+    localStorage.removeItem('petlifeVisualSearchHistory')
+  })
+
+  it('stores uploaded visual search history with a durable image data url', async () => {
+    const originalCreateObjectURL = URL.createObjectURL
+    const originalRevokeObjectURL = URL.revokeObjectURL
+    Object.defineProperty(URL, 'createObjectURL', {
+      configurable: true,
+      value: vi.fn(() => 'blob:preview-cat')
+    })
+    Object.defineProperty(URL, 'revokeObjectURL', {
+      configurable: true,
+      value: vi.fn()
+    })
+    localStorage.removeItem('petlifeVisualSearchHistory')
+
+    try {
+      const wrapper = await mountSearchView()
+      const file = new File(['history image bytes'], 'cat-food.png', { type: 'image/png' })
+      const input = wrapper.find('.search__file')
+
+      Object.defineProperty(input.element, 'files', {
+        configurable: true,
+        value: [file]
+      })
+      input.element.dispatchEvent(new Event('change'))
+      await flushPending()
+      await wrapper.vm.$nextTick()
+      await wrapper.findAll('button').find((button) => button.text() === '确认识别').trigger('click')
+      await flushPending()
+      await flushPending()
+      await wrapper.vm.$nextTick()
+
+      const history = JSON.parse(localStorage.getItem('petlifeVisualSearchHistory') || '[]')
+      expect(history[0].thumbUrl).toMatch(/^data:image\/png;base64,/)
+      expect(history[0].thumbUrl).not.toBe('blob:preview-cat')
+
+      wrapper.unmount()
+    } finally {
+      Object.defineProperty(URL, 'createObjectURL', {
+        configurable: true,
+        value: originalCreateObjectURL
+      })
+      Object.defineProperty(URL, 'revokeObjectURL', {
+        configurable: true,
+        value: originalRevokeObjectURL
+      })
+      localStorage.removeItem('petlifeVisualSearchHistory')
+    }
   })
 
   it('uses live catalog products when rendering visual search results', async () => {

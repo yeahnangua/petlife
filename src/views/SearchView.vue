@@ -6,7 +6,7 @@ import EmptyState from '@/components/EmptyState.vue'
 import IconSvg from '@/components/IconSvg.vue'
 import PriceText from '@/components/PriceText.vue'
 import { scoreVisualSearchProducts } from '@/api/public'
-import { buildProductImageSimilarities, recognizeImageElement } from '@/lib/imageRecognition'
+import { buildProductImageSimilarities, loadImageElement, recognizeImageElement } from '@/lib/imageRecognition'
 import {
   loadVisualSearchHistory,
   rankVisualSearchMatches,
@@ -36,6 +36,7 @@ const aiSimilarityError = ref('')
 const matches = ref([])
 const history = ref([])
 const activeVisualSearchId = ref(0)
+const historyImageUrlPromise = ref(null)
 
 const labels = computed(() => {
   if (!matches.value.length) return ['宠物用品', '相似商品']
@@ -104,14 +105,17 @@ async function useDemoImage() {
   recognitionError.value = ''
   aiSimilarityStatus.value = 'idle'
   aiSimilarityError.value = ''
+  historyImageUrlPromise.value = null
   activeVisualSearchId.value += 1
 
   try {
     const products = await ensureVisualSearchProducts()
     previewUrl.value = products[0]?.cover || ''
+    historyImageUrlPromise.value = previewUrl.value ? Promise.resolve(previewUrl.value) : null
     visualSearchStatus.value = previewUrl.value ? 'preview' : 'empty'
   } catch (error) {
     previewUrl.value = ''
+    historyImageUrlPromise.value = null
     recognitionError.value = error instanceof Error ? error.message : '商品目录加载失败，请稍后重试。'
     visualSearchStatus.value = 'error'
   }
@@ -155,12 +159,26 @@ function buildRankedMatches({
   })
 }
 
-function saveSearchMatches(rankedMatches, historyId) {
+async function resolveHistoryImageUrl() {
+  const imageUrlPromise = historyImageUrlPromise.value
+  if (!imageUrlPromise) {
+    return previewUrl.value
+  }
+
+  try {
+    return (await imageUrlPromise) || previewUrl.value
+  } catch {
+    return previewUrl.value
+  }
+}
+
+async function saveSearchMatches(rankedMatches, historyId) {
   if (!rankedMatches.length) return
 
+  const imageUrl = await resolveHistoryImageUrl()
   history.value = upsertVisualSearchHistory(history.value, {
     id: historyId,
-    imageUrl: previewUrl.value,
+    imageUrl,
     labels: labels.value,
     matches: rankedMatches,
     searchedAt: new Date().toISOString()
@@ -187,6 +205,27 @@ async function resolveAiSimilarities(recognition, products) {
   }
 }
 
+function readFileAsDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => resolve(typeof reader.result === 'string' ? reader.result : '')
+    reader.onerror = () => reject(reader.error)
+    reader.readAsDataURL(file)
+  })
+}
+
+async function resolveVisualSearchImageElement() {
+  if (previewImageRef.value) {
+    return previewImageRef.value
+  }
+
+  if (previewUrl.value) {
+    return loadImageElement(previewUrl.value)
+  }
+
+  return null
+}
+
 function handleFileSelect(event) {
   const file = event.target.files?.[0]
   if (!file) return
@@ -205,7 +244,9 @@ function handleFileSelect(event) {
   aiSimilarityStatus.value = 'idle'
   aiSimilarityError.value = ''
   activeVisualSearchId.value += 1
-  previewUrl.value = URL.createObjectURL(file)
+  const objectUrl = URL.createObjectURL(file)
+  previewUrl.value = objectUrl
+  historyImageUrlPromise.value = readFileAsDataUrl(file).catch(() => objectUrl)
   visualSearchStatus.value = 'preview'
   event.target.value = ''
 }
@@ -221,7 +262,7 @@ async function confirmVisualSearch() {
   aiSimilarityError.value = ''
 
   try {
-    const recognition = await recognizeImageElement(previewImageRef.value)
+    const recognition = await recognizeImageElement(await resolveVisualSearchImageElement())
     recognitionResult.value = recognition
     selectedPetType.value = recognition.petType || selectedPetType.value
     const products = await ensureVisualSearchProducts({ force: true })
@@ -278,6 +319,7 @@ async function confirmVisualSearch() {
 function rerunHistory(item) {
   showHistory.value = false
   previewUrl.value = item.thumbUrl
+  historyImageUrlPromise.value = item.thumbUrl ? Promise.resolve(item.thumbUrl) : null
   selectedImageName.value = `${item.labels.join('-')}.jpg`
   selectedPetType.value = item.labels.some((label) => label.includes('狗')) ? 'dog' : 'cat'
   confirmVisualSearch()
@@ -305,6 +347,7 @@ function resetVisualSearch() {
   recognitionError.value = ''
   aiSimilarityStatus.value = 'idle'
   aiSimilarityError.value = ''
+  historyImageUrlPromise.value = null
   matches.value = []
   visualSearchStatus.value = 'idle'
   activeVisualSearchId.value += 1
