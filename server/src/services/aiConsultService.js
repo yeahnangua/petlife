@@ -139,6 +139,51 @@ async function parseJsonResponse(response) {
   }
 }
 
+function maskSensitiveText(value) {
+  return String(value || '').replace(/sk-[A-Za-z0-9_-]{8,}/g, 'sk-***')
+}
+
+function getAiUpstreamErrorDetails(data) {
+  const error = data?.error && typeof data.error === 'object' ? data.error : data
+
+  return {
+    upstreamCode: typeof error?.code === 'string' ? error.code : null,
+    upstreamType: typeof error?.type === 'string' ? error.type : null,
+    upstreamMessage: maskSensitiveText(
+      typeof error?.message === 'string' ? error.message : 'AI service request failed'
+    )
+  }
+}
+
+function logAiUpstreamError({ response, data, baseUrl, model }) {
+  const details = getAiUpstreamErrorDetails(data)
+
+  console.error('[AI] Upstream request failed', {
+    upstreamStatus: response.status,
+    upstreamCode: details.upstreamCode,
+    upstreamType: details.upstreamType,
+    upstreamMessage: details.upstreamMessage,
+    baseUrl,
+    model
+  })
+}
+
+function createAiUpstreamError(response, data) {
+  const details = getAiUpstreamErrorDetails(data)
+  const errorData = {
+    upstreamStatus: response.status,
+    upstreamCode: details.upstreamCode,
+    upstreamType: details.upstreamType,
+    upstreamMessage: details.upstreamMessage
+  }
+
+  if ([401, 403].includes(response.status)) {
+    return new AppError(502, 50210, 'AI service authentication failed', errorData)
+  }
+
+  return new AppError(502, 50200, details.upstreamMessage, errorData)
+}
+
 function parseStructuredContent(content) {
   const text = trimText(content, 4000)
   if (!text) {
@@ -209,9 +254,10 @@ function isRetriableAiError(error) {
 async function requestChatCompletionOnce(config, payload) {
   const controller = new AbortController()
   const timeout = setTimeout(() => controller.abort(), config.aiTimeoutMs)
+  const baseUrl = normalizeBaseUrl(config.aiBaseUrl)
 
   try {
-    const response = await fetch(`${normalizeBaseUrl(config.aiBaseUrl)}/chat/completions`, {
+    const response = await fetch(`${baseUrl}/chat/completions`, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${config.aiApiKey}`,
@@ -231,7 +277,8 @@ async function requestChatCompletionOnce(config, payload) {
     const data = await parseJsonResponse(response)
 
     if (!response.ok) {
-      throw new AppError(502, 50200, data?.message || 'AI service request failed')
+      logAiUpstreamError({ response, data, baseUrl, model: payload.model })
+      throw createAiUpstreamError(response, data)
     }
 
     const content = data?.choices?.[0]?.message?.content?.trim()

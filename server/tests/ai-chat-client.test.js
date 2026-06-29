@@ -11,6 +11,7 @@ function jsonResponse(body, init = {}) {
 describe('SiliconFlow chat client', () => {
   afterEach(() => {
     vi.unstubAllGlobals()
+    vi.restoreAllMocks()
   })
 
   it('retries once when the AI service returns an empty message', async () => {
@@ -68,5 +69,42 @@ describe('SiliconFlow chat client', () => {
 
     const requestBody = JSON.parse(fetchMock.mock.calls[0][1].body)
     expect(requestBody.thinking).toEqual({ type: 'disabled' })
+  })
+
+  it('logs upstream authentication details when the AI service rejects the key', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse({
+      error: {
+        message: 'Authentication Fails, Your api key: ****pami is invalid',
+        type: 'authentication_error',
+        code: 'invalid_request_error'
+      }
+    }, { status: 401 }))
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    vi.stubGlobal('fetch', fetchMock)
+
+    const client = createSiliconFlowChatClient({
+      aiApiKey: 'test-api-key',
+      aiBaseUrl: 'https://api.deepseek.com',
+      aiTimeoutMs: 1000
+    })
+
+    await expect(client({
+      model: 'deepseek-v4-flash',
+      messages: [{ role: 'user', content: 'hello' }]
+    })).rejects.toMatchObject({
+      statusCode: 502,
+      code: 50210,
+      message: 'AI service authentication failed'
+    })
+
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+    expect(errorSpy).toHaveBeenCalledWith('[AI] Upstream request failed', {
+      upstreamStatus: 401,
+      upstreamCode: 'invalid_request_error',
+      upstreamType: 'authentication_error',
+      upstreamMessage: 'Authentication Fails, Your api key: ****pami is invalid',
+      baseUrl: 'https://api.deepseek.com',
+      model: 'deepseek-v4-flash'
+    })
   })
 })
