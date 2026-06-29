@@ -42,7 +42,7 @@ describe('environment config', () => {
 
     expect(config.aiApiKey).toBe('test-lowercase-key')
     expect(config.aiModel).toBe('deepseek-lowercase-model')
-    expect(config.aiBaseUrl).toBe('https://api.siliconflow.cn/v1')
+    expect(config.aiBaseUrl).toBe('https://api.deepseek.com')
   })
 
   it('uses a 60 second AI timeout by default', () => {

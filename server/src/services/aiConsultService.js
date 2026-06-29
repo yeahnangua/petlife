@@ -123,7 +123,7 @@ function buildChatMessages({ product, productRows, history }) {
 }
 
 function normalizeBaseUrl(value) {
-  return String(value || 'https://api.siliconflow.cn/v1').replace(/\/+$/, '')
+  return String(value || 'https://api.deepseek.com').replace(/\/+$/, '')
 }
 
 async function parseJsonResponse(response) {

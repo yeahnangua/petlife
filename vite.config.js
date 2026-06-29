@@ -2,8 +2,21 @@ import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import { fileURLToPath, URL } from 'node:url'
 
+function disableViteDevClient() {
+  return {
+    name: 'petlife:disable-vite-dev-client',
+    apply: 'serve',
+    transformIndexHtml: {
+      order: 'post',
+      handler(html) {
+        return html.replace(/\s*<script type="module" src="\/@vite\/client"><\/script>\n?/, '\n')
+      }
+    }
+  }
+}
+
 export default defineConfig({
-  plugins: [vue()],
+  plugins: [disableViteDevClient(), vue()],
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url))
@@ -15,6 +28,9 @@ export default defineConfig({
     include: ['src/tests/**/*.test.js']
   },
   server: {
+    allowedHosts: ['petlife.20050129.xyz'],
+    hmr: false,
+    ws: false,
     port: 5173,
     host: '0.0.0.0',
     proxy: {
